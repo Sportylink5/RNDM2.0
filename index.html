@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0c101a">
+  <meta name="description" content="RNDM Chat — личные сообщения, группы и каналы. Общение в твоём ритме.">
+  <title>RNDM Chat</title>
+  <link rel="icon" href="assets/icon-192.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="app/style.css?v=32.0.0">
+  <script>
+    try { document.documentElement.dataset.theme = localStorage.getItem('rndm-theme') === 'light' ? 'light' : 'dark'; } catch {}
+  </script>
+</head>
+<body>
+  <div id="root"><div class="boot"><span class="brand-mark">R</span><b>RNDM Chat</b><span class="spinner"></span><p>Подключаемся…</p></div></div>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <dialog id="modal" class="modal" aria-labelledby="modalTitle"></dialog>
+  <div id="popover" class="popover" hidden></div>
+  <noscript><p>Включи JavaScript в браузере, чтобы открыть RNDM Chat.</p></noscript>
+  <script src="vendor/supabase-2.117.2.js"></script>
+  <script src="config.js?v=32.0.0"></script>
+  <script>
+    if (location.protocol === 'file:') {
+      document.getElementById('root').innerHTML = '<div class="boot"><span class="brand-mark">R</span><h2>Открой опубликованный RNDM</h2><p>Загрузи файлы на GitHub Pages и открой опубликованную HTTPS-ссылку.</p><p>Инструкция находится в GITHUB_PAGES_RU.txt.</p></div>';
+    }
+  </script>
+  <script type="module" src="app/app.js?v=32.0.0"></script>
+</body>
+</html>
