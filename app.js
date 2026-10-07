@@ -658,11 +658,14 @@ document.addEventListener('submit',event=>{if(event.target.id==='colorsForm'){ev
 async function openPublicProfile(uid){
   if(!uid){await go(previousRoute||'chats');return;}
   $('#pane').innerHTML='<div class="empty-state"><h2>Загрузка профиля…</h2></div>';
-  try{const p=await api.publicProfile(uid);$('#pane').innerHTML=V.publicProfileView(app,p);}
+  try{const [p,gifts]=await Promise.all([api.publicProfile(uid),api.profileGifts(uid)]);$('#pane').innerHTML=V.publicProfileView(app,p,gifts);}
   catch(error){showError($('#pane'),error);}
 }
 
 async function handleAction(action,button) {
+  if(action==='profile-gift'){const target=button.dataset.user;await guarded('gift-shop',async()=>{const gifts=await api.giftCatalog();const current=await api.profile();app.profile=current;$('#pane').innerHTML=V.giftShop(target,gifts,current.stars);},button);return;}
+  if(action==='gift-close'){await openPublicProfile(app.profileTarget);return;}
+  if(action==='gift-send'){await guarded('gift-send',async()=>{const result=await api.sendGift(button.dataset.user,button.dataset.gift,$('#giftNote')?.value||'');app.profile.stars=result.balance;toast('Подарок отправлен '+result.emoji);await openPublicProfile(button.dataset.user);},button);return;}
   if(action==='call-audio'||action==='call-video'){if(app.active?.kind!=='direct')return;const person=app.info?.profiles.find(p=>p.id!==app.user.id);if(person)await guarded('call',()=>calls.dial(person,action==='call-video'?'video':'audio'),button);return;}
   if(action==='refresh-calls'){await calls.history($('#callsHistory'));return;}
   if(action==='tapolka-tap'){tapolkaTap();return;}

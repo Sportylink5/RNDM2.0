@@ -99,7 +99,7 @@ export function tapolka(app,board=[],mine=0) {
   </section>`;
 }
 
-export function publicProfileView(app,p) {
+export function publicProfileView(app,p,gifts=[]) {
   if(!p)return `<div class="empty-state"><h2>Профиль не найден</h2></div>`;
   const cover=p.cover_url?`style="background-image:url('${esc(p.cover_url)}')"`:'';
   const mine=p.id===app.user.id;
@@ -109,10 +109,13 @@ export function publicProfileView(app,p) {
     <section class="profile-main-card">
       <div class="profile-big-avatar">${avatar(p)}</div>
       <div class="profile-identity"><h1>${esc(p.display_name||p.username||'Пользователь')} ${p.is_verified?'✓':''}</h1><p>@${esc(p.username||'user')} ${role}</p></div>
-      <div class="profile-actions">${mine?`<button class="primary" data-nav="settings">Редактировать профиль</button>`:`<button class="primary" data-action="profile-message" data-user="${esc(p.id)}">Написать</button><button class="secondary" data-action="profile-friend" data-user="${esc(p.id)}">Добавить</button>`}</div>
+      <div class="profile-actions">${mine?`<button class="primary" data-nav="settings">Редактировать профиль</button>`:`<button class="primary" data-action="profile-message" data-user="${esc(p.id)}">Написать</button><button class="secondary" data-action="profile-friend" data-user="${esc(p.id)}">Добавить</button><button class="secondary" data-action="profile-gift" data-user="${esc(p.id)}">🎁 Подарить</button>`}</div>
       <p class="profile-bio">${esc(p.bio||'Пользователь пока ничего о себе не рассказал.')}</p>
       <div class="profile-stats"><span><b>${Number(p.reputation||0)}</b>репутация</span><span><b>${Number(p.xp||0)}</b>XP</span><span><b>${Number(p.stars||0)}</b>звёзд</span></div>
+      <section class="gift-showcase"><h3>🎁 Подарки</h3><div class="gift-showcase-list">${gifts.length?gifts.map(g=>`<div class="gift-chip" title="${esc(g.gift_name)} от ${esc(g.sender_name)}"><span>${esc(g.gift_emoji)}</span><small>${esc(g.sender_name)}</small></div>`).join(''):'<p>Подарков пока нет</p>'}</div></section>
       <div class="profile-details"><div><small>Статус</small><b>${esc(p.status||'offline')}</b></div><div><small>В RNDM с</small><b>${p.created_at?new Date(p.created_at).toLocaleDateString(app.profile?.app_language==='en'?'en-GB':'ru-RU'):'—'}</b></div></div>
     </section>
   </div>`;
 }
+
+export function giftShop(target,items,balance){return `<div class="gift-shop"><header><h2>🎁 Отправить подарок</h2><button class="secondary" data-action="gift-close">Закрыть</button></header><p>Твой баланс: <strong>⭐ ${Number(balance||0).toLocaleString('ru-RU')}</strong></p><div class="gift-grid">${items.map(g=>`<button class="gift-option" data-action="gift-send" data-user="${esc(target)}" data-gift="${esc(g.id)}"><span>${esc(g.emoji)}</span><b>${esc(g.name)}</b><small>⭐ ${g.price}</small></button>`).join('')}</div><label>Сообщение (необязательно)<input id="giftNote" maxlength="160" placeholder="Напиши пожелание"></label></div>`;}

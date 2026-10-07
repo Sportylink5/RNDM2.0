@@ -15,6 +15,9 @@ export class MessengerAPI {
     this.uid = null;
   }
   async session() { const data = must(await this.sb.auth.getSession()); this.uid = data.session?.user.id || null; return data.session; }
+  async giftCatalog(){return must(await this.sb.from('rndm_gift_catalog').select('id,name,emoji,price').eq('is_active',true).order('sort_order'))||[];}
+  async sendGift(target,gift,note=''){return must(await this.sb.rpc('rndm_send_gift',{target,gift,note}));}
+  async profileGifts(target){return must(await this.sb.rpc('rndm_profile_gifts',{target,max_rows:24}))||[];}
   async publicProfile(userId) {
     const {data,error}=await this.sb.from('profiles').select('id,username,display_name,avatar_url,cover_url,bio,status,last_seen,created_at,app_role,is_verified,is_premium,reputation,xp,stars,profile_accent,profile_private,show_friends,show_clips,show_followers,allow_messages,allow_friend_requests').eq('id',userId).maybeSingle();
     if(error)throw error; return data;
