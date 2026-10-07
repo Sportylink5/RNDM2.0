@@ -1,13 +1,14 @@
 import {$,$$,esc,icon,ib,avatar,sid,unique,preview,safeURL,richText,day,time,bytes,errorText,readLocal,writeLocal} from './core.js';
 import {MessengerAPI} from './api.js';
 import * as V from './views.js';
+import {Admin,staffRole} from './admin.js';
 import {Calls} from './calls.js';
 import {Clips} from './clips.js';
 import {applyColors,validColors,defaultColors} from './theme.js';
 
 const defaults={notes:[],muted:[],wallpaper:'default',enterSend:true,notifications:false,colors:null};
 const app={user:null,profile:null,route:'chats',folder:'all',active:null,info:null,dialogs:[],channels:[],friends:[],prefs:{},drafts:{},state:{...defaults},messages:[],reactions:[],peopleMap:{},replyLookup:{},pins:[],reply:null,edit:null,files:new Map(),pending:new Set(),epoch:0,messageEpoch:0,more:false,rt:[],globalRt:[],stateChain:Promise.resolve(),draftTimers:new Map(),refreshing:false};
-let calls,clips;
+let calls,clips,admin;
 let api,toastTimer,searchTimer,messageSearchTimer,typingTimer,refreshTimer,listTimer,messageSizeObserver,record=null,voiceBusy=false,authMode='login',stopped=false,recoverySeen=false;
 const root=$('#root'),modal=$('#modal'),pop=$('#popover');
 const activeKey=()=>app.active ? app.active.kind+':'+app.active.id : '';
@@ -70,7 +71,7 @@ function clearDraft(active,original) {
 }
 function cancelEdit(){if(!app.edit)return;const restore=app.edit.restore;app.edit=null;if($('#messageInput'))$('#messageInput').value=restore;renderCompose();}
 function stopSubscriptions(){app.rt.forEach(ch=>api.unwatch(ch));app.rt=[];clearTimeout(refreshTimer);clearTimeout(typingTimer);}
-function stopAll(){calls?.stop().catch(()=>{});clips?.stop();stopped=true;++app.epoch;++app.messageEpoch;stopSubscriptions();app.globalRt.forEach(ch=>api.unwatch(ch));app.globalRt=[];clearInterval(listTimer);cancelVoice();}
+function stopAll(){admin?.stop();calls?.stop().catch(()=>{});clips?.stop();stopped=true;++app.epoch;++app.messageEpoch;stopSubscriptions();app.globalRt.forEach(ch=>api.unwatch(ch));app.globalRt=[];clearInterval(listTimer);cancelVoice();}
 
 async function boot() {
   try {
@@ -128,6 +129,7 @@ async function start(user) {
   if(results[2].status==='fulfilled' && results[2].value?.value){app.state={...defaults,...results[2].value.value};writeLocal(localStateKey(),{value:app.state,at:Date.now()});}else if(results[2].status==='rejected')connection('Настройки доступны на устройстве',true);
   if(results[3].status==='fulfilled'){app.dialogs=results[3].value;renderSidebar();}else{renderSidebarError(results[3].reason);}
   applyColors(app.state.colors);refreshStories().catch(()=>{});
+  admin=new Admin(api,{toast,modal:showModal,confirm:confirmAction,close:()=>modal.close()});
   calls=new Calls(api,toast);calls.start();
   clips=new Clips(api,{toast,modal:showModal,confirm:confirmAction});
   api.heartbeat().catch(()=>{});clearInterval(listTimer);let tick=0;
@@ -140,6 +142,7 @@ async function start(user) {
   else if(params.get('view')==='channels'){await navigate('channels',false);if(params.get('channel'))await openChannel(params.get('channel'),false);}
   else if(params.get('view')==='contacts')await navigate('contacts');
   else if(params.get('view')==='clips'){await navigate('clips',false);}
+  else if(params.get('view')==='admin'){await navigate('admin',false);}
   else if(params.get('view')==='calls'){await navigate('calls',false);}
   else if(params.get('view')==='settings')await navigate('settings');
   else if(params.get('view')==='saved')await navigate('saved',false);
@@ -162,10 +165,10 @@ function renderSidebar() {
   renderStories();
   const route=app.route, search=$('#listSearch').value.trim().toLowerCase();
   $$('.nav-item').forEach(el=>el.classList.toggle('active',el.dataset.nav===route));
-  $('#sectionTitle').textContent={chats:'Чаты',contacts:'Контакты',channels:'Каналы',saved:'Избранное',settings:'Настройки',clips:'Клипы',calls:'Звонки'}[route];
+  $('#sectionTitle').textContent={chats:'Чаты',contacts:'Контакты',channels:'Каналы',saved:'Избранное',settings:'Настройки',clips:'Клипы',calls:'Звонки',admin:'Админка'}[route];
   const count=route==='chats'?app.dialogs.length:route==='channels'?app.channels.length:route==='contacts'?app.friends.filter(x=>x.status==='accepted').length:0;
   $('#sectionCount').textContent=count;$('#sectionCount').hidden=!count;
-  $('#listSearch').closest('.searchbox').hidden=['saved','settings','clips','calls'].includes(route);
+  $('#listSearch').closest('.searchbox').hidden=['saved','settings','clips','calls','admin'].includes(route);
   const tabs=route==='chats'?[['all','Все'],['direct','Личные'],['group','Группы'],['unread','Новые'],['archive','Архив']]:route==='channels'?[['all','Все'],['joined','Мои']]:[];
   $('#folderTabs').innerHTML=tabs.map(([name,label])=>`<button type="button" data-folder="${name}" class="${app.folder===name?'active':''}">${label}</button>`).join('');$('#folderTabs').hidden=!tabs.length;
   const host=$('#dialogList');
@@ -188,6 +191,8 @@ function renderSidebar() {
     host.innerHTML=rows.map(x=>V.row({...x,preview:x.count+' подписчиков · '+(x.description||'')},app)).join('')||'<div class="sidebar-empty"><p>Здесь появятся каналы.</p><button class="secondary" data-action="new-channel">Создать канал</button></div>';
   }else if(route==='saved'){
     host.innerHTML=V.row({id:'saved',kind:'saved',title:'Избранное',preview:'Твои заметки и сохранённые сообщения'},app)+'<div class="sidebar-empty"><p>Сохраняй важное через меню сообщения или добавляй заметки прямо здесь.</p></div>';
+  }else if(route==='admin'){
+    host.innerHTML='<div class="sidebar-empty"><p>Управление пользователями, жалобами и публикациями.</p><button class="secondary" data-nav="chats">Открыть чаты</button></div>';
   }else if(route==='clips'||route==='calls'){
     host.innerHTML=`<div class="sidebar-empty"><p>${route==='clips'?'Смотри видео, делись своими клипами и общайся в комментариях.':'Позвони из личного чата. История вызовов показана справа.'}</p><button class="secondary" data-nav="chats">Открыть чаты</button></div>`;
   }else{
@@ -213,12 +218,15 @@ async function searchPeople() {
 }
 async function navigate(route,push=true) {
   if(!app.user)return;
+  if(route==='admin'&&!staffRole(app.profile.app_role)){toast('Админка доступна только администрации.');route='chats';}
+  admin?.stop();
   applyColors(app.state.colors);clips?.stop();captureDraft();cancelEdit();cancelVoice();stopSubscriptions();closePop();
-  ++app.epoch;++app.messageEpoch;app.active=null;app.info=null;app.reply=null;app.messages=[];app.route=route;app.folder='all';$('#listSearch').value='';$('#workspace').classList.toggle('in-chat',['settings','saved','clips','calls'].includes(route));
+  ++app.epoch;++app.messageEpoch;app.active=null;app.info=null;app.reply=null;app.messages=[];app.route=route;app.folder='all';$('#listSearch').value='';$('#workspace').classList.toggle('in-chat',['settings','saved','clips','calls','admin'].includes(route));
   if(push)history.pushState({},'',location.pathname+(route==='chats'?'':'?view='+route));
   $('#pane').innerHTML=route==='settings'?V.settings(app):V.welcome();renderSidebar();
   const epoch=app.epoch;
   try{
+    if(route==='admin'){await admin.open($('#pane'));return;}
     if(route==='clips'){await clips.open($('#pane'),new URL(location.href).searchParams.get('clip'));return;}
     if(route==='calls'){$('#pane').innerHTML='<header class="chat-header"><button class="icon-button back-mobile" data-action="back" aria-label="К чатам">'+icon('back')+'</button><h2>Звонки</h2><button class="secondary" data-action="refresh-calls">Обновить</button></header><section class="calls-history" id="callsHistory"></section>';await calls.history($('#callsHistory'));return;}
     if(route==='contacts'){const friends=await api.friends();if(epoch!==app.epoch)return;app.friends=friends;friends.forEach(x=>{if(x.person)app.peopleMap[x.person.id]=x.person;});}
@@ -230,7 +238,7 @@ async function navigate(route,push=true) {
 }
 async function openConversation(id,push=true) {
   id=sid(id);if(!id)return;
-  clips?.stop();captureDraft();cancelEdit();cancelVoice();stopSubscriptions();closePop();
+  admin?.stop();clips?.stop();captureDraft();cancelEdit();cancelVoice();stopSubscriptions();closePop();
   const epoch=++app.epoch;++app.messageEpoch;app.route='chats';app.active={id,kind:app.dialogs.find(x=>x.id===id)?.kind || 'direct'};app.reply=null;app.messages=[];app.reactions=[];app.pins=[];app.replyLookup={};app.info=null;
   $('#workspace').classList.add('in-chat');$('#pane').innerHTML='<div class="empty-messages"><span class="spinner"></span><h3>Открываем чат…</h3></div>';renderSidebar();
   if(push){const url=new URL(location.href);url.search='';url.searchParams.set('chat',id);history.pushState({},'',url);}
@@ -243,14 +251,14 @@ async function openConversation(id,push=true) {
   }catch(error){if(isCurrent(epoch,id))$('#pane').innerHTML=`<div class="empty-messages">${icon('chats')}<h3>Чат пока недоступен</h3><p class="muted">${esc(errorText(error))}</p><button class="secondary" data-retry-chat="${esc(id)}">Повторить</button><button class="text-button" data-action="back">К списку чатов</button></div>`;}
 }
 async function openChannel(id,push=true) {
-  clips?.stop();captureDraft();cancelEdit();cancelVoice();stopSubscriptions();closePop();const epoch=++app.epoch;++app.messageEpoch;
+  admin?.stop();clips?.stop();captureDraft();cancelEdit();cancelVoice();stopSubscriptions();closePop();const epoch=++app.epoch;++app.messageEpoch;
   app.route='channels';app.active=app.channels.find(x=>x.id===sid(id));if(!app.active){toast('Канал не найден');return;}
   app.info=null;app.reply=null;app.reactions=[];app.messages=[];app.pins=[];$('#workspace').classList.add('in-chat');$('#pane').innerHTML=V.conversation(app);wireConversation();renderSidebar();
   if(push)history.pushState({},'',location.pathname+'?view=channels&channel='+encodeURIComponent(id));
   try{await refreshMessages(true);if(epoch===app.epoch)subscribeActive();}catch(error){if(epoch===app.epoch)showError($('#messages'),error);}
 }
 async function openSaved(push=true) {
-  clips?.stop();captureDraft();cancelEdit();cancelVoice();stopSubscriptions();const epoch=++app.epoch;++app.messageEpoch;app.route='saved';app.active={id:'saved',kind:'saved'};app.info=null;app.reply=null;app.messages=[];app.reactions=[];app.pins=[];
+  admin?.stop();clips?.stop();captureDraft();cancelEdit();cancelVoice();stopSubscriptions();const epoch=++app.epoch;++app.messageEpoch;app.route='saved';app.active={id:'saved',kind:'saved'};app.info=null;app.reply=null;app.messages=[];app.reactions=[];app.pins=[];
   $('#workspace').classList.add('in-chat');$('#pane').innerHTML=V.conversation(app);wireConversation();renderSidebar();
   if(push)history.replaceState({},'',location.pathname+'?view=saved');
   try{await refreshMessages(true);}catch(error){if(epoch===app.epoch)showError($('#messages'),error);}
@@ -640,7 +648,7 @@ window.addEventListener('popstate',()=>{if(!app.user)return;const params=new URL
 window.addEventListener('offline',()=>connection('Нет соединения · черновики сохраняются',true));
 window.addEventListener('online',()=>{connection();refreshLists().catch(()=>{});if(app.active)refreshMessages().catch(()=>{});});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&app.user&&!stopped){refreshLists().catch(()=>{});if(app.active)refreshMessages().then(markRead).catch(()=>{});}});
-window.addEventListener('pagehide',()=>{calls?.stop().catch(()=>{});clips?.stop();captureDraft();cancelVoice();stopSubscriptions();app.globalRt.forEach(ch=>api.unwatch(ch));app.globalRt=[];});
+window.addEventListener('pagehide',()=>{admin?.stop();calls?.stop().catch(()=>{});clips?.stop();captureDraft();cancelVoice();stopSubscriptions();app.globalRt.forEach(ch=>api.unwatch(ch));app.globalRt=[];});
 if(window.visualViewport){const size=()=>{document.documentElement.style.setProperty('--app-height',Math.round(window.visualViewport.height)+'px');};window.visualViewport.addEventListener('resize',size);size();}
 await boot();
 
