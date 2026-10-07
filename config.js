@@ -4,7 +4,7 @@ window.RNDM_CONFIG = Object.freeze({
   url: 'https://rijqlmrcnshswtoweoai.supabase.co',
   key: 'sb_publishable_Ay6EBRfZx1-Shj1FdMg7ZQ_P61Rii2A',
   version: '34.0.0',
-  // Server-side role checks are enabled. UI writes remain additionally role-gated.
+  // Administrative writes are authorized by protected Supabase RPCs.
   adminWriteEnabled: true,
   // For difficult/mobile networks, add your TURN URLs + temporary browser credentials here.
   iceServers: [{urls:['stun:stun.l.google.com:19302','stun:stun.cloudflare.com:3478']}],

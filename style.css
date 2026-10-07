@@ -42,12 +42,8 @@
 @media(max-width:1100px){.admin-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:760px){.rail-nav:has([data-nav=admin]) .nav-item{width:12.5%;min-width:37px}.admin-pane{padding:17px 12px}.admin-kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.admin-kpis article{padding:13px}.admin-kpis b{font-size:21px}.admin-tabs{gap:5px}.admin-tabs button{font-size:11px;padding:9px 11px}.admin-role{font-size:9px;padding:5px 7px}.admin-card{padding:13px}.admin-toolbar{gap:8px}.admin-toolbar .field{flex-basis:100%}.admin-toolbar .primary{width:100%}.admin-user .avatar{width:37px;height:37px}.admin-user .admin-actions{grid-column:1/-1}.admin-pagination{gap:8px}.admin-pagination button{padding:8px 11px;font-size:11px}}
 
-/* v34 mobile admin access + user editor */
-.mobile-admin-shortcut{display:none}
-.admin-edit-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.admin-edit-wide{grid-column:1/-1}.admin-check{display:flex;align-items:center;gap:9px;min-height:44px;font-size:13px;color:var(--text)}.admin-check input{width:18px;height:18px}
-@media(max-width:760px){
-  .mobile-admin-shortcut{position:fixed;right:14px;bottom:calc(76px + env(safe-area-inset-bottom));z-index:12;display:flex;align-items:center;gap:7px;min-height:44px;padding:10px 13px;border-radius:15px;background:linear-gradient(125deg,#9b7afd,#7658db);color:#fff;box-shadow:0 12px 35px #0008;font-size:11px;font-weight:700}
-  .mobile-admin-shortcut .icon{width:22px;height:22px}.workspace.in-chat .mobile-admin-shortcut{display:none}
-  .admin-edit-grid{grid-template-columns:1fr}.admin-edit-wide{grid-column:auto}
-  .admin-actions{display:grid;grid-template-columns:1fr 1fr}.admin-actions button{width:100%}.admin-actions button:first-child:last-child{grid-column:1/-1}
-}
+/* v34 mobile/admin management */
+.mobile-admin-entry{display:none;color:var(--accent);background:color-mix(in srgb,var(--accent) 13%,var(--surface))}
+.admin-user-badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.admin-user-badges span{font-size:9px;padding:4px 7px;border:1px solid var(--line);background:var(--surface);border-radius:8px;color:var(--muted)}.admin-user-bio{color:var(--muted)}
+.admin-check-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}.admin-check-grid label{display:flex;gap:8px;align-items:center;padding:11px;border:1px solid var(--line);background:var(--surface);border-radius:12px;font-size:12px}.admin-number-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media(max-width:760px){.mobile-admin-entry{display:inline-flex;flex:0 0 auto}.sidebar-title .new-chat{flex:0 0 auto}.admin-actions{display:grid;grid-template-columns:1fr 1fr;width:100%}.admin-actions button{width:100%;min-height:42px}.admin-number-grid{grid-template-columns:1fr}.admin-check-grid{grid-template-columns:1fr}.admin-pane{padding-bottom:max(28px,env(safe-area-inset-bottom))}.admin-tabs{position:sticky;top:0;z-index:3;background:var(--pane);padding-top:4px}.admin-card small{font-size:9px}}

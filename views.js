@@ -9,9 +9,8 @@ export function shell(app) {
       <nav class="rail-nav">${nav.map(([name,label])=>`<button class="nav-item ${app.route===name?'active':''}" data-nav="${name}" type="button" title="${label}">${icon(name)}<span>${label}</span></button>`).join('')}</nav>
       <div class="rail-bottom">${ib('moon','Сменить тему','theme')}<button class="rail-me" data-nav="settings" aria-label="Мой профиль">${avatar(app.profile)}</button></div>
     </aside>
-    ${staffRole(app.profile.app_role)?`<button class="mobile-admin-shortcut" data-nav="admin" type="button" aria-label="Открыть админку">${icon('shield')}<span>Админка</span></button>`:''}
     <aside class="sidebar" aria-label="Список чатов">
-      <div class="sidebar-header"><div class="sidebar-title"><h1 id="sectionTitle">Чаты</h1><span class="count-pill" id="sectionCount"></span>${ib('plus','Новый чат','new','new-chat')}</div>
+      <div class="sidebar-header"><div class="sidebar-title"><h1 id="sectionTitle">Чаты</h1><span class="count-pill" id="sectionCount"></span>${staffRole(app.profile.app_role)?`<button class="icon-button mobile-admin-entry" data-nav="admin" type="button" aria-label="Открыть админку" title="Админка">${icon('shield')}</button>`:''}${ib('plus','Новый чат','new','new-chat')}</div>
         <label class="searchbox">${icon('search')}<input id="listSearch" placeholder="Поиск" aria-label="Поиск чатов и людей" autocomplete="off">${ib('close','Очистить поиск','clear-search','small')}</label>
       </div>
       <div class="stories-strip" id="storiesStrip" aria-label="Истории"></div>
