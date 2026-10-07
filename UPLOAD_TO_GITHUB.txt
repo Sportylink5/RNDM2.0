@@ -1,0 +1,11 @@
+RNDM Chat v34 FLAT
+
+Все файлы лежат в одном корне.
+1. Открой репозиторий GitHub.
+2. Add file -> Upload files.
+3. Загрузи ВСЕ файлы из этой папки в корень репозитория.
+4. Commit changes.
+5. GitHub Pages: Deploy from a branch -> main -> /(root).
+
+Главный файл: index.html
+Папки создавать не нужно.

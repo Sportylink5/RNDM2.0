@@ -1,7 +1,7 @@
 ИКОНКИ RNDM
 
 Основные иконки созданы встроенным генератором изображений и вставлены
-в кнопки приложения. Файл: assets/icons.png, прозрачный PNG 1448 x 1086.
+в кнопки приложения. Файл: icons.png, прозрачный PNG 1448 x 1086.
 Это единый атлас из 4 столбцов и 3 строк; каждая ячейка — 362 x 362.
 
 Порядок слева направо:
@@ -17,7 +17,7 @@ contacts, megaphone, bookmark, gear, search, paperclip, smile, microphone,
 paper plane, plus, left arrow. Generous equal padding, consistent stroke width,
 no grid, no labels, no shadows, no glow, no 3D, genuinely transparent backdrop.
 
-Вспомогательные иконки меню нарисованы в SVG в app/core.js.
-Шрифт Inter включён локально; лицензия — assets/OFL-Inter.txt.
+Вспомогательные иконки меню нарисованы в SVG в core.js.
+Шрифт Inter включён локально; лицензия — OFL-Inter.txt.
 Библиотека Supabase 2.117.2 включена локально, как в прежней версии.
-Её лицензия — vendor/LICENSE-supabase.txt.
+Её лицензия — LICENSE-supabase.txt.
