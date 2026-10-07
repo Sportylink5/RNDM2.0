@@ -46,7 +46,9 @@ const paths = {
   refresh:'M20 6v5h-5M4 18v-5h5M5 9a7 7 0 0 1 12-4l3 3M19 15a7 7 0 0 1-12 4l-3-3',
   lock:'M5 10h14v11H5zM8 10V7a4 4 0 0 1 8 0v3M12 14v3',
   stop:'M5 5h14v14H5z', folder:'M3 7V4h7l2 3h9v13H3z',
-  keyboard:'M2 5h20v14H2zM6 9h.01M10 9h.01M14 9h.01M18 9h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M7 16h10'
+  keyboard:'M2 5h20v14H2zM6 9h.01M10 9h.01M14 9h.01M18 9h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M7 16h10',
+  tapolka:'M12 3v4M7 5l2 3M17 5l-2 3M5 10h14v10H5zM8 13h8M8 16h5',
+  tap:'M12 3v7M8 5l4 5 4-5M5 13h14v8H5zM9 17h6'
 };
 export function icon(name, extra = '') {
   const idx = atlas.indexOf(name);
