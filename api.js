@@ -19,9 +19,15 @@ export class MessengerAPI {
   async sendGift(target,gift,note=''){return must(await this.sb.rpc('rndm_send_gift',{target,gift,note}));}
   async profileGifts(target){return must(await this.sb.rpc('rndm_profile_gifts',{target,max_rows:24}))||[];}
   async publicProfile(userId) {
-    const {data,error}=await this.sb.from('profiles').select('id,username,display_name,avatar_url,cover_url,bio,status,last_seen,created_at,app_role,is_verified,is_premium,reputation,xp,stars,profile_accent,profile_private,show_friends,show_clips,show_followers,allow_messages,allow_friend_requests').eq('id',userId).maybeSingle();
+    const {data,error}=await this.sb.from('profiles').select('id,username,display_name,avatar_url,cover_url,bio,status,last_seen,created_at,app_role,is_verified,is_premium,reputation,xp,stars,profile_accent,frame_id,profile_cover_style,profile_private,show_friends,show_clips,show_followers,allow_messages,allow_friend_requests').eq('id',userId).maybeSingle();
     if(error)throw error; return data;
   }
+  async randomJoin(language='any',interest='any') {
+    const result=must(await this.sb.rpc('random_chat_join_v42',{p_language:language,p_interest:interest}));
+    return Array.isArray(result)?result[0]:result;
+  }
+  async randomWaitingCount(){return Number(must(await this.sb.rpc('random_waiting_count'))||0);}
+  async randomLeave(){return must(await this.sb.rpc('random_chat_leave'));}
   async updatePreferences(patch) {
     const allowed={};
     if(['ru','en'].includes(patch.app_language))allowed.app_language=patch.app_language;

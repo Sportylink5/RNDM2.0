@@ -11,6 +11,8 @@ const app={user:null,profile:null,route:'chats',folder:'all',active:null,info:nu
 let calls,clips,admin;
 let api,toastTimer,searchTimer,messageSearchTimer,typingTimer,refreshTimer,listTimer,messageSizeObserver,record=null,voiceBusy=false,authMode='login',stopped=false,recoverySeen=false;
 let previousRoute='chats',previousChatId=null;
+let randomTimer=null,randomToken=0,randomSearching=false,randomMatch=null,randomPerson=null,randomCount=null,randomInFlight=null;
+let randomLanguage='any',randomInterest='any';
 const root=$('#root'),modal=$('#modal'),pop=$('#popover');
 const activeKey=()=>app.active ? app.active.kind+':'+app.active.id : '';
 const chatKey=id=>'chat:'+id;
@@ -72,7 +74,7 @@ function clearDraft(active,original) {
 }
 function cancelEdit(){if(!app.edit)return;const restore=app.edit.restore;app.edit=null;if($('#messageInput'))$('#messageInput').value=restore;renderCompose();}
 function stopSubscriptions(){app.rt.forEach(ch=>api.unwatch(ch));app.rt=[];clearTimeout(refreshTimer);clearTimeout(typingTimer);}
-function stopAll(){admin?.stop();calls?.stop().catch(()=>{});clips?.stop();stopped=true;++app.epoch;++app.messageEpoch;stopSubscriptions();app.globalRt.forEach(ch=>api.unwatch(ch));app.globalRt=[];clearInterval(listTimer);cancelVoice();}
+function stopAll(){stopRandomSearch(true).catch(()=>{});admin?.stop();calls?.stop().catch(()=>{});clips?.stop();stopped=true;++app.epoch;++app.messageEpoch;stopSubscriptions();app.globalRt.forEach(ch=>api.unwatch(ch));app.globalRt=[];clearInterval(listTimer);cancelVoice();}
 
 
 const RU_PROFANITY=[/бл(?:я|е)(?:д|т)\w*/giu,/ху[йеяё]\w*/giu,/пизд\w*/giu,/еб(?:а|у|ё|е|и)\w*/giu,/ёб\w*/giu,/су(?:ка|чк)\w*/giu,/мудак\w*/giu];
@@ -102,7 +104,7 @@ function applyIncomingCensorship(text){
 function applyLanguage(){
  const lang=app.profile?.app_language||localStorage.getItem('rndm-language')||'ru';
  document.documentElement.lang=lang;
- const labels={chats:['Чаты','Chats'],contacts:['Контакты','Contacts'],channels:['Каналы','Channels'],tapolka:['Тапалка','Tap game'],clips:['Клипы','Clips'],calls:['Звонки','Calls'],settings:['Настройки','Settings'],saved:['Избранное','Saved'],admin:['Админка','Admin'],profile:['Профиль','Profile']};
+ const labels={random:['Рулетка','Random chat'],chats:['Чаты','Chats'],contacts:['Контакты','Contacts'],channels:['Каналы','Channels'],tapolka:['Тапалка','Tap game'],clips:['Клипы','Clips'],calls:['Звонки','Calls'],settings:['Настройки','Settings'],saved:['Избранное','Saved'],admin:['Админка','Admin'],profile:['Профиль','Profile']};
  const dict={'Мой RNDM':'My RNDM','Настройки':'Settings','Профиль':'Profile','Посмотреть мой профиль':'View my profile','Обложка профиля':'Profile cover','Загрузить обложку':'Upload cover','Имя пользователя':'Username','Имя':'Name','О себе':'About','Сохранить профиль':'Save profile','Изменить фото':'Change photo','Язык приложения / Language':'App language / Язык','Язык интерфейса / Interface language':'Interface language / Язык','Цензура':'Content filter','Оформление':'Appearance','Аккаунт':'Account','Сохранить / Save':'Save / Сохранить','Подарки':'Gifts','Звёзды':'Stars','Написать':'Message','Добавить':'Add friend','🎁 Подарить':'🎁 Send gift','Редактировать профиль':'Edit profile','Твои цвета':'Your colors','Выйти из аккаунта':'Sign out','Изменить пароль':'Change password','Статус':'Status','Клипы':'Clips','Звонки':'Calls','Сохранить цвета':'Save colors','Общение и приватность':'Chat & privacy'};
  const backward=Object.fromEntries(Object.entries(dict).map(([a,b])=>[b,a]));
  const table=lang==='en'?dict:backward;
@@ -191,6 +193,7 @@ async function start(user) {
   else if(params.get('view')==='profile'){app.profileTarget=params.get('user')||app.user.id;await navigate('profile',false);}
   else if(params.get('view')==='channels'){await navigate('channels',false);if(params.get('channel'))await openChannel(params.get('channel'),false);}
   else if(params.get('view')==='contacts')await navigate('contacts');
+  else if(params.get('view')==='random'){await navigate('random',false);}
   else if(params.get('view')==='clips'){await navigate('clips',false);}
   else if(params.get('view')==='admin'){await navigate('admin',false);}
   else if(params.get('view')==='calls'){await navigate('calls',false);}
@@ -215,10 +218,10 @@ function renderSidebar() {
   renderStories();
   const route=app.route, search=$('#listSearch').value.trim().toLowerCase();
   $$('.nav-item').forEach(el=>el.classList.toggle('active',el.dataset.nav===route));
-  $('#sectionTitle').textContent={chats:'Чаты',contacts:'Контакты',channels:'Каналы',saved:'Избранное',settings:'Настройки',clips:'Клипы',calls:'Звонки',admin:'Админка',tapolka:'Тапалка',profile:'Профиль'}[route]||'RNDM';
+  $('#sectionTitle').textContent={random:'Рулетка',chats:'Чаты',contacts:'Контакты',channels:'Каналы',saved:'Избранное',settings:'Настройки',clips:'Клипы',calls:'Звонки',admin:'Админка',tapolka:'Тапалка',profile:'Профиль'}[route]||'RNDM';
   const count=route==='chats'?app.dialogs.length:route==='channels'?app.channels.length:route==='contacts'?app.friends.filter(x=>x.status==='accepted').length:0;
   $('#sectionCount').textContent=count;$('#sectionCount').hidden=!count;
-  $('#listSearch').closest('.searchbox').hidden=['saved','settings','clips','calls','admin','tapolka','profile'].includes(route);
+  $('#listSearch').closest('.searchbox').hidden=['random','saved','settings','clips','calls','admin','tapolka','profile'].includes(route);
   const tabs=route==='chats'?[['all','Все'],['direct','Личные'],['group','Группы'],['unread','Новые'],['archive','Архив']]:route==='channels'?[['all','Все'],['joined','Мои']]:[];
   $('#folderTabs').innerHTML=tabs.map(([name,label])=>`<button type="button" data-folder="${name}" class="${app.folder===name?'active':''}">${label}</button>`).join('');$('#folderTabs').hidden=!tabs.length;
   const host=$('#dialogList');
@@ -230,7 +233,7 @@ function renderSidebar() {
       return !search||(x.title+' '+x.preview).toLowerCase().includes(search);
     }).sort((a,b)=>Number(app.prefs[b.id]?.is_pinned || 0)-Number(app.prefs[a.id]?.is_pinned || 0) || new Date(b.last || 0)-new Date(a.last || 0));
     let previousPinned=false;
-    host.innerHTML=rows.map((item,i)=>{const pinned=!!app.prefs[item.id]?.is_pinned;let label='';if(i===0&&pinned)label='<div class="list-label">Закреплённые</div>';else if((i===0||previousPinned)&&!pinned)label='<div class="list-label">Все сообщения</div>';previousPinned=pinned;return label+V.row(item,app);}).join('') || `<div class="sidebar-empty">${icon(app.folder==='archive'?'archive':'chats')}<p>${search?'Чаты не найдены. Найди человека по имени или @username.':app.folder==='archive'?'В архиве пока пусто.':app.folder==='unread'?'Все сообщения прочитаны.':'Здесь появятся твои разговоры.'}</p>${!search?'<button class="secondary" data-action="new">Начать общение</button>':''}</div>`;
+    host.innerHTML=V.randomSidebar()+rows.map((item,i)=>{const pinned=!!app.prefs[item.id]?.is_pinned;let label='';if(i===0&&pinned)label='<div class="list-label">Закреплённые</div>';else if((i===0||previousPinned)&&!pinned)label='<div class="list-label">Все сообщения</div>';previousPinned=pinned;return label+V.row(item,app);}).join('') + (!rows.length ? `<div class="sidebar-empty">${icon(app.folder==='archive'?'archive':'chats')}<p>${search?'Чаты не найдены. Найди человека по имени или @username.':app.folder==='archive'?'В архиве пока пусто.':app.folder==='unread'?'Все сообщения прочитаны.':'Здесь появятся твои разговоры.'}</p>${!search?'<button class="secondary" data-action="new">Начать общение</button>':''}</div>` : '');
     if(search)host.insertAdjacentHTML('beforeend','<div id="peopleSearchResults"></div>');
   }else if(route==='contacts'){
     const incoming=app.friends.filter(x=>x.status==='pending'&&x.addressee===app.user.id);
@@ -239,6 +242,8 @@ function renderSidebar() {
   }else if(route==='channels'){
     const rows=app.channels.filter(x=>(app.folder!=='joined'||x.joined||x.owner_id===app.user.id)&&(!search||(x.title+' '+x.description).toLowerCase().includes(search)));
     host.innerHTML=`<button type="button" class="chat-row tap-channel-row" data-nav="tapolka"><span class="avatar tone-1 tap-avatar">R</span><span class="row-content"><span class="row-top"><span class="row-name">Тапалка</span><span class="row-time">GAME</span></span><span class="row-bottom"><span class="row-preview">Игровой канал · общий рейтинг тапов</span></span></span></button>`+(rows.map(x=>V.row({...x,preview:x.count+' подписчиков · '+(x.description||'')},app)).join('')||'<div class="sidebar-empty"><p>Других каналов пока нет.</p><button class="secondary" data-action="new-channel">Создать канал</button></div>');
+  }else if(route==='random'){
+    host.innerHTML='<div class="sidebar-empty"><span class="random-sidebar-ornament">✨</span><h3>Новые знакомства</h3><p>Выбирай тему и находи людей для общения.</p><button class="primary" data-action="random-start">Начать поиск</button></div>';
   }else if(route==='tapolka'){
     host.innerHTML='<div class="sidebar-empty"><div class="tap-mini">R</div><p>Отдельный игровой канал RNDM. Тапай и соревнуйся с другими.</p><button class="primary" data-nav="tapolka">Открыть тапалку</button></div>';
   }else if(route==='saved'){
@@ -270,15 +275,18 @@ async function searchPeople() {
 }
 async function navigate(route,push=true) {
   if(!app.user)return;
+  if(app.route==='random' && route==='random'){renderRandomPage();return;}
+  if(app.route==='random' && route!=='random')await stopRandomSearch(true).catch(()=>{});
   if(route==='admin'&&!staffRole(app.profile.app_role)){toast('Админка доступна только администрации.');route='chats';}
   admin?.stop();
   applyColors(app.state.colors);clips?.stop();captureDraft();cancelEdit();cancelVoice();stopSubscriptions();closePop();
-  ++app.epoch;++app.messageEpoch;app.active=null;app.info=null;app.reply=null;app.messages=[];app.route=route;app.folder='all';$('#listSearch').value='';$('#workspace').classList.toggle('in-chat',['settings','saved','tapolka','clips','calls','admin','profile'].includes(route));
+  ++app.epoch;++app.messageEpoch;app.active=null;app.info=null;app.reply=null;app.messages=[];app.route=route;app.folder='all';$('#listSearch').value='';$('#workspace').classList.toggle('in-chat',['settings','saved','tapolka','clips','calls','admin','profile','random'].includes(route));
   if(push){const url=new URL(location.href);url.search='';if(route!=='chats'){url.searchParams.set('view',route);if(route==='profile'&&app.profileTarget)url.searchParams.set('user',app.profileTarget);}history.pushState({},'',url);}
   $('#pane').innerHTML=route==='settings'?V.settings(app):V.welcome();renderSidebar();applyLanguage();
   const epoch=app.epoch;
   try{
     if(route==='admin'){await admin.open($('#pane'));return;}
+    if(route==='random'){await openRandomPage();return;}
     if(route==='tapolka'){await openTapolka();return;}
     if(route==='profile'){await openPublicProfile(app.profileTarget);return;}
     if(route==='clips'){await clips.open($('#pane'),new URL(location.href).searchParams.get('clip'));return;}
@@ -292,6 +300,7 @@ async function navigate(route,push=true) {
 }
 async function openConversation(id,push=true) {
   id=sid(id);if(!id)return;
+  if(app.route==='random')await stopRandomSearch(true).catch(()=>{});
   admin?.stop();clips?.stop();captureDraft();cancelEdit();cancelVoice();stopSubscriptions();closePop();
   const epoch=++app.epoch;++app.messageEpoch;app.route='chats';app.active={id,kind:app.dialogs.find(x=>x.id===id)?.kind || 'direct'};app.reply=null;app.messages=[];app.reactions=[];app.pins=[];app.replyLookup={};app.info=null;
   $('#workspace').classList.add('in-chat');$('#pane').innerHTML='<div class="empty-messages"><span class="spinner"></span><h3>Открываем чат…</h3></div>';renderSidebar();applyLanguage();
@@ -554,6 +563,66 @@ async function comments(id) {
   $('#commentForm').onsubmit=async e=>{e.preventDefault();const input=$('textarea',e.currentTarget),button=$('button',e.currentTarget),original=input.value,body=original.trim();if(!body)return;button.disabled=true;try{await api.comment(id,body);if(input.value===original)input.value='';const fresh=await api.comments(id);if($('#commentsList'))$('#commentsList').innerHTML=render(fresh);}catch(error){showError($('#modalError'),error);}finally{button.disabled=false;}};
 }
 let tapolkaPending=0,tapolkaTimer=null,tapolkaBusy=false,tapolkaMine=0;
+
+function renderRandomPage(){
+  if(app.route!=='random')return;
+  const el=$('#pane');if(!el)return;
+  el.innerHTML=V.randomPage({searching:randomSearching,filterLanguage:randomLanguage,filterInterest:randomInterest,count:randomCount,matched:randomMatch,person:randomPerson,error:randomError});
+  applyLanguage();
+}
+let randomError='';
+async function openRandomPage(){
+  randomError='';randomMatch=null;randomPerson=null;randomSearching=false;
+  renderRandomPage();
+  try{randomCount=await api.randomWaitingCount();if(app.route==='random')renderRandomPage();}
+  catch{randomCount=null;}
+}
+async function stopRandomSearch(force=false){
+  const wasActive=randomSearching||randomMatch;
+  ++randomToken;clearTimeout(randomTimer);randomTimer=null;randomSearching=false;randomMatch=null;randomPerson=null;
+  if(app.route==='random'&&!force)renderRandomPage();
+  if(wasActive&&api?.uid){if(randomInFlight)await randomInFlight.catch(()=>{});await api.randomLeave();}
+}
+async function pollRandomSearch(token){
+  if(!randomSearching||token!==randomToken||app.route!=='random'||document.hidden)return;
+  try{
+    const query=api.randomJoin(randomLanguage,randomInterest);randomInFlight=query;
+    const [found,count]=await Promise.all([query,api.randomWaitingCount().catch(()=>null)]);
+    if(randomInFlight===query)randomInFlight=null;
+    if(token!==randomToken||app.route!=='random'||!randomSearching){
+      return;
+    }
+    randomCount=count;
+    if(found?.match_status==='matched'&&found.conversation_id&&found.matched_user_id){
+      randomSearching=false;clearTimeout(randomTimer);
+      randomMatch={conversation_id:found.conversation_id,matched_user_id:found.matched_user_id};
+      try{randomPerson=await api.publicProfile(found.matched_user_id);}catch{randomPerson=null;}
+      if(token===randomToken&&app.route==='random')renderRandomPage();
+      return;
+    }
+    renderRandomPage();
+    randomTimer=setTimeout(()=>pollRandomSearch(token),3500);
+  }catch(error){
+    randomInFlight=null;
+    if(token!==randomToken)return;
+    randomSearching=false;randomError=errorText(error);clearTimeout(randomTimer);
+    await api.randomLeave().catch(()=>{});
+    if(app.route==='random')renderRandomPage();
+  }
+}
+async function startRandomSearch(){
+  if(randomSearching)return;
+  const l=$('#randomLanguage')?.value||randomLanguage,i=$('#randomInterest')?.value||randomInterest;
+  if(!['any','ru','en'].includes(l)||!['any','games','music','study','tech','movies','life'].includes(i))throw new Error('Некорректные фильтры поиска');
+  randomLanguage=l;randomInterest=i;
+  // Clear any matched session before starting another one.
+  if(randomMatch)await stopRandomSearch(true);
+  else await api.randomLeave();
+  randomError='';randomMatch=null;randomPerson=null;randomSearching=true;
+  const token=++randomToken;renderRandomPage();
+  await pollRandomSearch(token);
+}
+
 async function openTapolka(){
   $('#pane').innerHTML='<div class="empty-messages"><span class="spinner"></span><h3>Открываем Тапалку…</h3></div>';
   const board=await api.tapolkaLeaderboard(20);tapolkaMine=Number(board.find(x=>x.user_id===app.user.id)?.taps||0);
@@ -666,10 +735,30 @@ document.addEventListener('change',event=>{
   const input=event.target;
   if(input.dataset.setting)guarded('setting',async()=>{try{await changeState({[input.dataset.setting]:input.checked});}catch(error){input.checked=!input.checked;throw error;}});
   if(input.dataset.privacy)guarded('privacy',async()=>{try{const v=input.dataset.privacy==='allow_messages'?(input.checked?'everyone':'none'):input.checked;app.profile=await api.updateProfile({[input.dataset.privacy]:v});}catch(error){input.checked=!input.checked;throw error;}});
+  if(input.closest('#profileStyleForm'))updateStylePreview();
   if(input.id==='avatarInput')uploadAvatar(input.files[0]);if(input.id==='coverInput')uploadCover(input.files[0]);
 });
-document.addEventListener('input',event=>{if(event.target.closest('#colorsForm')){const colors=Object.fromEntries(new FormData($('#colorsForm')));if(validColors(colors)){applyColors(colors);for(const field of $$('#colorsForm input'))field.nextElementSibling.textContent=field.value.toUpperCase();}}});
-document.addEventListener('submit',event=>{if(event.target.id==='colorsForm'){event.preventDefault();const form=event.target,button=$('[type=submit]',form),colors=Object.fromEntries(new FormData(form));guarded('colors',async()=>{try{if(!validColors(colors))throw new Error('Выбери четыре цвета.');await changeState({colors});applyColors(colors);toast('Твои цвета сохранены');}catch(error){showError($('#colorsError'),error);}},button);return;}if(event.target.id==='profileForm'){event.preventDefault();saveProfile(event.target);}});
+function updateStylePreview(){
+  const form=$('#profileStyleForm'),preview=$('#profileLivePreview');if(!form||!preview)return;
+  const color=form.elements.profile_accent.value,style=form.elements.profile_cover_style.value,frame=form.elements.frame_id.value;
+  if(!/^#[0-9a-f]{6}$/i.test(color))return;
+  preview.style.setProperty('--profile-accent',color);
+  $('#profileLiveCover').className='profile-live-cover cover-'+style;
+  $('#profileLiveFrame').className='avatar-frame frame-'+frame;
+  $('#profileAccentText').textContent=color.toUpperCase();
+}
+async function saveProfileStyle(form){
+  const value=Object.fromEntries(new FormData(form));
+  if(!['aurora','cosmos','sunset','ocean','forest','rose','minimal'].includes(value.profile_cover_style))throw new Error('Неверный стиль обложки');
+  if(!['none','neon','gold','frost','rose','rainbow'].includes(value.frame_id))throw new Error('Неверная рамка аватара');
+  if(!/^#[0-9a-f]{6}$/i.test(value.profile_accent))throw new Error('Неверный цвет');
+  app.profile=await api.updateProfile(value);
+  app.peopleMap[app.user.id]=app.profile;
+  $('#pane').innerHTML=V.settings(app);
+  applyLanguage();toast('Оформление профиля сохранено в Supabase');
+}
+document.addEventListener('input',event=>{if(event.target.closest('#profileStyleForm'))updateStylePreview();if(event.target.closest('#colorsForm')){const colors=Object.fromEntries(new FormData($('#colorsForm')));if(validColors(colors)){applyColors(colors);for(const field of $$('#colorsForm input'))field.nextElementSibling.textContent=field.value.toUpperCase();}}});
+document.addEventListener('submit',event=>{if(event.target.id==='colorsForm'){event.preventDefault();const form=event.target,button=$('[type=submit]',form),colors=Object.fromEntries(new FormData(form));guarded('colors',async()=>{try{if(!validColors(colors))throw new Error('Выбери четыре цвета.');await changeState({colors});applyColors(colors);toast('Твои цвета сохранены');}catch(error){showError($('#colorsError'),error);}},button);return;}if(event.target.id==='profileForm'){event.preventDefault();saveProfile(event.target);}if(event.target.id==='profileStyleForm'){event.preventDefault();guarded('profile-style',async()=>{try{await saveProfileStyle(event.target);}catch(error){showError($('#profileStyleError'),error);}});}});
 async function openPublicProfile(uid){
   if(!uid){await navigate(previousRoute||'chats');return;}
   $('#pane').innerHTML='<div class="empty-state"><h2>Загрузка профиля…</h2></div>';
@@ -678,6 +767,11 @@ async function openPublicProfile(uid){
 }
 
 async function handleAction(action,button) {
+  if(action==='random-start'){await guarded('random-start',startRandomSearch,button);return;}
+  if(action==='random-stop'){await guarded('random-stop',async()=>{await stopRandomSearch();toast('Поиск остановлен');},button);return;}
+  if(action==='random-next'){await guarded('random-next',async()=>{await stopRandomSearch(true);await startRandomSearch();},button);return;}
+  if(action==='random-profile'){if(randomMatch?.matched_user_id)await showPerson(randomMatch.matched_user_id);return;}
+  if(action==='random-open-chat'){if(randomMatch?.conversation_id)await openConversation(randomMatch.conversation_id);return;}
   if(action==='profile-gift'){const target=button.dataset.user;await guarded('gift-shop',async()=>{const gifts=await api.giftCatalog();const current=await api.profile();app.profile=current;$('#pane').innerHTML=V.giftShop(target,gifts,current.stars);},button);return;}
   if(action==='gift-close'){await openPublicProfile(app.profileTarget);return;}
   if(action==='gift-send'){await guarded('gift-send',async()=>{const result=await api.sendGift(button.dataset.user,button.dataset.gift,$('#giftNote')?.value||'');app.profile.stars=result.balance;toast('Подарок отправлен '+result.emoji);await openPublicProfile(button.dataset.user);},button);return;}
@@ -743,8 +837,8 @@ modal.addEventListener('click',event=>{if(event.target===modal){const r=modal.ge
 window.addEventListener('popstate',()=>{if(!app.user)return;const params=new URLSearchParams(location.search);if(params.get('chat'))openConversation(params.get('chat'),false);else {if(params.get('view')==='profile')app.profileTarget=params.get('user')||app.user.id;navigate(params.get('view')||'chats',false);}});
 window.addEventListener('offline',()=>connection('Нет соединения · черновики сохраняются',true));
 window.addEventListener('online',()=>{connection();refreshLists().catch(()=>{});if(app.active)refreshMessages().catch(()=>{});});
-document.addEventListener('visibilitychange',()=>{if(!document.hidden&&app.user&&!stopped){refreshLists().catch(()=>{});if(app.active)refreshMessages().then(markRead).catch(()=>{});}});
-window.addEventListener('pagehide',()=>{admin?.stop();calls?.stop().catch(()=>{});clips?.stop();captureDraft();cancelVoice();stopSubscriptions();app.globalRt.forEach(ch=>api.unwatch(ch));app.globalRt=[];});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&randomSearching){stopRandomSearch().catch(()=>{});randomError='Поиск остановлен, пока приложение в фоне. Нажми «Начать поиск» заново.';}if(!document.hidden&&app.user&&!stopped){refreshLists().catch(()=>{});if(app.active)refreshMessages().then(markRead).catch(()=>{});}});
+window.addEventListener('pagehide',()=>{if(randomSearching || randomMatch)api?.randomLeave().catch(()=>{});clearTimeout(randomTimer);randomSearching=false;admin?.stop();calls?.stop().catch(()=>{});clips?.stop();captureDraft();cancelVoice();stopSubscriptions();app.globalRt.forEach(ch=>api.unwatch(ch));app.globalRt=[];});
 if(window.visualViewport){const size=()=>{document.documentElement.style.setProperty('--app-height',Math.round(window.visualViewport.height)+'px');};window.visualViewport.addEventListener('resize',size);size();}
 if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(()=>{});}
 await boot();
