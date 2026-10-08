@@ -70,3 +70,20 @@
 @media(max-width:700px){.profile-cover{height:220px}.profile-main-card{margin:-48px 10px 90px;padding:0 18px 24px;border-radius:22px}.profile-big-avatar{transform:translateY(-42px);margin-bottom:-35px}.profile-big-avatar .avatar{width:88px;height:88px}.profile-identity h1{font-size:23px}.profile-actions>*{flex:1}.profile-stats span{padding:11px 5px}.profile-stats b{font-size:17px}}
 
 .gift-showcase{margin:20px 0}.gift-showcase-list{display:flex;flex-wrap:wrap;gap:10px}.gift-chip{display:flex;flex-direction:column;align-items:center;padding:10px;background:var(--soft);border-radius:14px;min-width:74px}.gift-chip span{font-size:34px}.gift-chip small{font-size:10px}.gift-shop{padding:24px;overflow:auto;height:100%}.gift-shop header{display:flex;justify-content:space-between;align-items:center}.gift-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:12px;margin:20px 0}.gift-option{display:flex;flex-direction:column;align-items:center;gap:6px;border:1px solid var(--line);background:var(--panel);border-radius:18px;padding:16px;color:var(--text);cursor:pointer}.gift-option span{font-size:42px}.gift-option small{color:var(--accent)}.gift-shop input{width:100%;padding:12px;margin-top:8px;border-radius:12px}
+
+.tapolka-button .tap-cat{font-size:clamp(80px,18vw,150px);display:block;line-height:1.05;filter:drop-shadow(0 8px 18px #0006);transition:transform .14s ease}.tapolka-button:active .tap-cat,.tapolka-button.pop .tap-cat{transform:scale(.87) rotate(-9deg)}.tapolka-button{touch-action:manipulation;user-select:none;-webkit-tap-highlight-color:transparent}.tapolka-button b{font-size:14px;letter-spacing:.06em}
+
+/* v39: clean native-video-free iOS clips */
+.clip-card>video::-webkit-media-controls{display:none!important}.clip-card>video::-webkit-media-controls-enclosure{display:none!important}
+.clip-play-overlay{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:76px;height:76px;border:0;border-radius:50%;background:#0006;color:#fff;display:grid;place-items:center;opacity:0;pointer-events:none;transition:opacity .2s}.clip-play-overlay.paused{opacity:1;pointer-events:auto}.clip-card:has(video:paused) .clip-play-overlay{opacity:1;pointer-events:auto}
+@media(max-width:760px){.clips-feed{height:calc(100dvh - 125px);overscroll-behavior-y:contain}.clip-card{height:100%;min-height:0;max-height:none;scroll-snap-align:start}.clip-copy{bottom:max(80px,env(safe-area-inset-bottom) + 60px)}.clip-actions{bottom:max(80px,env(safe-area-inset-bottom) + 60px)}.clip-card>video{object-fit:contain}}
+.profile-cover-preview{height:135px;border-radius:16px;background:linear-gradient(135deg,var(--accent),#151e38);background-size:cover;background-position:center;margin:10px 0}
+
+/* v41 — tappable user header, compact mobile profile */
+.chat-header-avatar{flex:none;border:0;outline-offset:4px;background:transparent;padding:0;cursor:pointer;border-radius:50%}
+.chat-header-avatar .avatar{pointer-events:none}
+.chat-header .header-title[data-person]{cursor:pointer;text-align:left;min-width:0}
+.chat-header .header-title[data-person] h2{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:760px){.public-profile .profile-actions{flex-wrap:wrap}.public-profile .profile-actions button{min-height:44px}.profile-cover .back-mobile{display:flex}}
+
+.clip-author-profile{border:0;background:transparent;color:inherit;padding:0;cursor:pointer;text-align:left}

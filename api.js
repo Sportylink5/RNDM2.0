@@ -26,7 +26,8 @@ export class MessengerAPI {
     const allowed={};
     if(['ru','en'].includes(patch.app_language))allowed.app_language=patch.app_language;
     if(['strict','mask','off'].includes(patch.censorship_mode))allowed.censorship_mode=patch.censorship_mode;
-    return must(await this.sb.from('profiles').update(allowed).eq('id',this.userId).select().single());
+    if(!Object.keys(allowed).length)throw new Error('Не выбраны настройки для сохранения.');
+    return must(await this.sb.from('profiles').update(allowed).eq('id',this.uid).select().single());
   }
   async profile() {
     const row = must(await this.sb.from('profiles').select('*').eq('id',this.uid).maybeSingle());
