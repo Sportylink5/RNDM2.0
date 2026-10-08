@@ -22,6 +22,8 @@ export function avatar(person, size = '', kind = '') {
 const atlas = ['chats','contacts','channels','saved','settings','search','attach','emoji','mic','send','plus','back'];
 const paths = {
   random:'M12 2l3.4 6.7L23 10l-5.5 5.4 1.3 7.6L12 19.4 5.2 23l1.3-7.6L1 10l7.6-1.3L12 2z',
+  stars:'M12 2.7l2.85 5.77 6.37.92-4.61 4.49 1.09 6.34L12 17.22l-5.70 3 1.09-6.34-4.61-4.49 6.37-.92L12 2.7z',
+  gift:'M3 10h18v11H3zM2 7h20v4H2zM12 7v14M12 7C6 7 5 4.9 6.7 3.6 9 1.6 12 7zM12 7c6 0 7-2.1 5.3-3.4C15 1.6 12 7 12 7z',
   admin:'M12 2l9 4v6c0 5-9 10-9 10S3 17 3 12V6l9-4M8 12l3 3 5-6', shield:'M12 2l9 4v6c0 5-9 10-9 10S3 17 3 12V6l9-4M8 12l3 3 5-6',
   phone:'M5 3h4l1 5-2 2a14 14 0 0 0 6 6l2-2 5 1v4c0 2-3 2-5 1A22 22 0 0 1 4 8C3 6 3 3 5 3z', calls:'M5 3h4l1 5-2 2a14 14 0 0 0 6 6l2-2 5 1v4c0 2-3 2-5 1A22 22 0 0 1 4 8C3 6 3 3 5 3z',
   video:'M3 5h12v14H3zM15 9l6-4v14l-6-4', clips:'M4 3h16v18H4zM10 8l6 4-6 4z', heart:'M12 21C-5 10 5-2 12 7c7-9 17 3 0 14z', volume:'M3 9h4l5-5v16l-5-5H3zM16 8a6 6 0 0 1 0 8M19 5a10 10 0 0 1 0 14',

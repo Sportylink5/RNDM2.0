@@ -1,4 +1,4 @@
-import {$,$$,esc,icon,avatar,safeURL,errorText} from './core.js';
+import {$,$$,esc,icon,avatar,safeURL,errorText} from './core.js?v=44.0.0';
 const must=r=>{if(r.error)throw r.error;return r.data;};
 export class Clips {
   constructor(api,ui){this.api=api;this.sb=api.sb;this.ui=ui;this.epoch=0;this.sound=true;this.rows=[];this.locks=new Set();}
