@@ -1,10 +1,10 @@
-import {$,$$,esc,icon,ib,avatar,sid,unique,preview,safeURL,richText,day,time,bytes,errorText,readLocal,writeLocal} from './core.js?v=44.0.0';
-import {MessengerAPI} from './api.js?v=44.0.0';
-import * as V from './views.js?v=44.0.0';
-import {Admin,staffRole} from './admin.js?v=44.0.0';
-import {Calls} from './calls.js?v=44.0.0';
-import {Clips} from './clips.js?v=44.0.0';
-import {applyColors,validColors,defaultColors} from './theme.js?v=44.0.0';
+import {$,$$,esc,icon,ib,avatar,sid,unique,preview,safeURL,richText,day,time,bytes,errorText,readLocal,writeLocal} from './core.js?v=45.0.0';
+import {MessengerAPI} from './api.js?v=45.0.0';
+import * as V from './views.js?v=45.0.0';
+import {Admin,staffRole} from './admin.js?v=45.0.0';
+import {Calls} from './calls.js?v=45.0.0';
+import {Clips} from './clips.js?v=45.0.0';
+import {applyColors,validColors,defaultColors} from './theme.js?v=45.0.0';
 
 const defaults={notes:[],muted:[],wallpaper:'default',enterSend:true,notifications:false,colors:null};
 const app={user:null,profile:null,route:'chats',folder:'all',active:null,info:null,dialogs:[],channels:[],friends:[],prefs:{},drafts:{},state:{...defaults},messages:[],reactions:[],peopleMap:{},replyLookup:{},pins:[],reply:null,edit:null,files:new Map(),pending:new Set(),epoch:0,messageEpoch:0,more:false,rt:[],globalRt:[],stateChain:Promise.resolve(),draftTimers:new Map(),refreshing:false};
@@ -107,10 +107,10 @@ function applyLanguage(){
  const lang=app.profile?.app_language||localStorage.getItem('rndm-language')||'ru';
  document.documentElement.lang=lang;
  const labels={random:['Рулетка','Random chat'],chats:['Чаты','Chats'],contacts:['Контакты','Contacts'],channels:['Каналы','Channels'],tapolka:['Тапалка','Tap game'],stars:['Звёзды','Stars'],clips:['Клипы','Clips'],calls:['Звонки','Calls'],settings:['Настройки','Settings'],saved:['Избранное','Saved'],admin:['Админка','Admin'],profile:['Профиль','Profile']};
- const dict={'Мой RNDM':'My RNDM','Настройки':'Settings','Профиль':'Profile','Посмотреть мой профиль':'View my profile','Обложка профиля':'Profile cover','Загрузить обложку':'Upload cover','Имя пользователя':'Username','Имя':'Name','О себе':'About','Сохранить профиль':'Save profile','Изменить фото':'Change photo','Язык приложения / Language':'App language / Язык','Язык интерфейса / Interface language':'Interface language / Язык','Цензура':'Content filter','Оформление':'Appearance','Аккаунт':'Account','Сохранить / Save':'Save / Сохранить','Подарки':'Gifts','Звёзды':'Stars','Написать':'Message','Добавить':'Add friend','🎁 Подарить':'🎁 Send gift','Звёзды и подарки':'Stars and gifts','Открыть кошелёк':'Open wallet','Редактировать профиль':'Edit profile','Твои цвета':'Your colors','Выйти из аккаунта':'Sign out','Изменить пароль':'Change password','Статус':'Status','Клипы':'Clips','Звонки':'Calls','Сохранить цвета':'Save colors','Общение и приватность':'Chat & privacy'};
+ const dict={'Мой RNDM':'My RNDM','Настройки':'Settings','Профиль':'Profile','Посмотреть мой профиль':'View my profile','Обложка профиля':'Profile cover','Загрузить обложку':'Upload cover','Имя пользователя':'Username','Имя':'Name','О себе':'About','Сохранить профиль':'Save profile','Изменить фото':'Change photo','Язык приложения / Language':'App language / Язык','Язык интерфейса / Interface language':'Interface language / Язык','Цензура':'Content filter','Оформление':'Appearance','Аккаунт':'Account','Сохранить / Save':'Save / Сохранить','Подарки':'Gifts','Звёзды':'Stars','Написать':'Message','Добавить':'Add friend','🎁 Подарить':'🎁 Send gift','Звёзды и подарки':'Stars and gifts','Открыть кошелёк':'Open wallet','Редактировать профиль':'Edit profile','Твои цвета':'Your colors','Выйти из аккаунта':'Sign out','Изменить пароль':'Change password','Статус':'Status','Клипы':'Clips','Звонки':'Calls','Сохранить цвета':'Save colors','Общение и приватность':'Chat & privacy','Тапалка':'Tap game','Котик':'Cat','Энергия':'Energy','Задания на сегодня':'Today’s tasks','Улучшения котика':'Cat upgrades','Восстановление':'Regeneration','Вместимость энергии':'Energy capacity','Публикации':'Posts','Новая публикация':'New post','Закрепить':'Pin','Удалить':'Delete','Написать сообщение':'Message','Написать':'Message','Написать публикацию':'Write a post','Отправить подарок':'Send gift','Подарок':'Gift','Друзья':'Friends','Найти случайного собеседника':'Find a random partner','Начать поиск':'Start searching','Остановить поиск':'Stop searching','Другой человек':'Find another person','Добавить в друзья':'Add friend','Новые':'Latest','Популярные':'Popular','Подписки':'Following','Подписаться':'Follow','Клипы':'Clips','Хештег':'Hashtag','Первый клип — за тобой':'Be the first to post','Выложить':'Upload','Музыка профиля':'Profile music','Название трека':'Track title','Ссылка на аудио':'Audio URL','Сохранить музыку':'Save music','Посмотреть публикации в профиле':'View profile posts','Поиск в переписке':'Search messages','Прикрепить файл':'Attach file','Записать голосовое':'Record voice','Отложить сообщение':'Schedule message','Отложенная отправка':'Scheduled message','Выключить звук':'Mute','Включить звук':'Unmute','Закреплено':'Pinned','Обновить':'Refresh','Завершить':'End','Предпросмотр':'Preview','Открыть чат':'Open chat','Профиль':'Profile','Сохранить':'Save','Получено':'Claimed','Сегодня':'Today','Рейтинг канала':'Leaderboard','Загрузить ещё':'Load more','Обложка':'Cover','Выйти':'Sign out','Закрыть':'Close','Отмена':'Cancel','Отправить':'Send','Переписка':'Conversation','Сохранить оформление':'Save appearance','Кошелёк':'Wallet','Активность':'Activity','Проверить':'Check'};
  const backward=Object.fromEntries(Object.entries(dict).map(([a,b])=>[b,a]));
  const table=lang==='en'?dict:backward;
- const safeZones=['#pane .settings-pane','#pane .public-profile','#pane .tapolka-page','.side-nav','#pane .chat-header'];
+ const safeZones=['#pane .settings-pane','#pane .public-profile','#pane .tapolka-page','#pane .cat-progression','#pane .clips-feed','#pane .clip-feed-tools','#pane .random-page','#pane .star-wallet-page','#pane .welcome','.rail-nav','#pane .chat-header','#modal .gift-shop-v43'];
  document.querySelectorAll(safeZones.join(',')).forEach(host=>{
   const walker=document.createTreeWalker(host,NodeFilter.SHOW_TEXT);let node;
   while((node=walker.nextNode())){
@@ -138,7 +138,7 @@ async function repairFrontendCache(reload=true){
   }
   if(reload){
     const url=new URL(location.href);
-    url.searchParams.set('updated',window.RNDM_CONFIG?.version||'44.0.0');
+    url.searchParams.set('updated',window.RNDM_CONFIG?.version||'45.0.0');
     location.replace(url.href);
   }
 }
@@ -159,7 +159,7 @@ async function boot() {
     const message=String(error?.message||'');
     const outdated=/\bis not a function\b|\b(?:undefined|null)\b.*\b(?:property|properties)\b/i.test(message);
     if(outdated){
-      const flag='rndm-repair-once-'+(window.RNDM_CONFIG?.version||'44.0.0');
+      const flag='rndm-repair-once-'+(window.RNDM_CONFIG?.version||'45.0.0');
       try{
         if(sessionStorage.getItem(flag)!=='1'){
           sessionStorage.setItem(flag,'1');
@@ -213,7 +213,7 @@ async function start(user) {
   applyColors(app.state.colors);refreshStories().catch(()=>{});
   admin=new Admin(api,{toast,modal:showModal,confirm:confirmAction,close:()=>modal.close()});
   calls=new Calls(api,toast);calls.start();
-  clips=new Clips(api,{toast,modal:showModal,confirm:confirmAction});
+  clips=new Clips(api,{toast,modal:showModal,confirm:confirmAction,onProfile:showPerson,onGift:openGiftShop});
   api.heartbeat().catch(()=>{});clearInterval(listTimer);let tick=0;
   listTimer=setInterval(()=>{if(stopped || document.hidden || !navigator.onLine)return;tick++;if(tick%2===0)refreshStories().catch(()=>{});if(app.active)refreshMessages().catch(()=>{});if(tick%2===0)refreshLists().catch(()=>{});if(tick%20===0)api.heartbeat().catch(()=>{});if(['direct','group'].includes(app.active?.kind))updateTypers();},15000);
   app.globalRt.forEach(ch=>api.unwatch(ch));app.globalRt=[];
@@ -460,7 +460,7 @@ function renderCompose() {
   const context=$('#replyContext'),target=app.edit||app.reply;context.hidden=!target;
   if(target)context.innerHTML=`${icon(app.edit?'edit':'reply')}<div class="context-text"><b>${app.edit?'Редактирование':'Ответ на сообщение'}</b><p>${esc(preview(target))}</p></div>${ib('close','Отменить','cancel-context','small')}`;
   const file=fileFor(),fileHost=$('#fileContext');fileHost.hidden=!file;
-  if(file)fileHost.innerHTML=`${file.url?`<img class="file-preview-thumb" src="${esc(file.url)}" alt="">`:icon('file')}<div class="context-text"><b>${esc(file.file.name)}</b><p>${bytes(file.file.size)} · файл готов к отправке</p></div>${ib('close','Убрать вложение','remove-file','small')}`;
+  if(file)fileHost.innerHTML=`${file.url?`<img class="file-preview-thumb" src="${esc(file.url)}" alt="">`:icon('file')}<div class="context-text"><b>${esc(file.file.name)}</b><p>${bytes(file.file.size)} · файл готов к отправке</p></div>${file.file.type.startsWith('image/')?ib('edit','Редактор фото','edit-photo','small'):''}${ib('close','Убрать вложение','remove-file','small')}`;
   const pending=app.pending.has(activeKey());$('#sendButton').disabled=pending||!!record||(!input.value.trim()&&!file);$('#sendButton').title=pending?'Отправляем…':app.edit?'Сохранить изменение':'Отправить сообщение';
   $('[data-action=voice]').disabled=pending||!!app.edit||!!file||voiceBusy;
   $('[data-action=voice]').classList.toggle('active',!!record);$('[data-action=voice]').setAttribute('aria-label',record?'Остановить запись':'Записать голосовое');
@@ -550,7 +550,7 @@ async function showPerson(uid){
 function chatMenu(anchor) {
   const a=app.active;if(!a)return;const pref=app.prefs[a.id]||{};
   let html=`<button data-action="info">${icon('info')}Информация</button>`;
-  if(['direct','group'].includes(a.kind))html+=`<button data-action="pin-chat">${icon('pin')}${pref.is_pinned?'Открепить чат':'Закрепить чат'}</button><button data-action="archive-chat">${icon('archive')}${pref.is_archived?'Вернуть из архива':'В архив'}</button><button data-action="mute-chat">${icon('mute')}${app.state.muted.includes(a.id)?'Включить уведомления':'Без уведомлений'}</button><button data-action="chat-wallpaper">${icon('image')}Фон чата</button>`;
+  if(['direct','group'].includes(a.kind))html+=`<button data-action="pin-chat">${icon('pin')}${pref.is_pinned?'Открепить чат':'Закрепить чат'}</button><button data-action="archive-chat">${icon('archive')}${pref.is_archived?'Вернуть из архива':'В архив'}</button><button data-action="mute-chat">${icon('mute')}${app.state.muted.includes(a.id)?'Включить уведомления':'Без уведомлений'}</button><button data-action="chat-wallpaper">${icon('image')}Фон чата</button><button data-action="schedule-message">🕒 Отложить сообщение</button>`;
   if(a.kind==='channel')html+=`<button data-action="join-channel">${icon(a.joined?'close':'plus')}${a.joined?'Отписаться':'Подписаться'}</button>`;
   html+=`<button data-action="refresh-chat">${icon('refresh')}Обновить</button>`;showPop(anchor,html);
 }
@@ -598,7 +598,7 @@ async function comments(id) {
   showModal('Комментарии',`<div id="commentsList" class="comments-list">${render(rows)}</div><form class="comment-form" id="commentForm"><textarea name="body" rows="2" maxlength="2000" required placeholder="Напиши комментарий…" aria-label="Комментарий"></textarea><button type="submit" class="primary" aria-label="Отправить комментарий">${icon('send')}</button></form><div id="modalError"></div>`);
   $('#commentForm').onsubmit=async e=>{e.preventDefault();const input=$('textarea',e.currentTarget),button=$('button',e.currentTarget),original=input.value,body=original.trim();if(!body)return;button.disabled=true;try{await api.comment(id,body);if(input.value===original)input.value='';const fresh=await api.comments(id);if($('#commentsList'))$('#commentsList').innerHTML=render(fresh);}catch(error){showError($('#modalError'),error);}finally{button.disabled=false;}};
 }
-let tapolkaPending=0,tapolkaTimer=null,tapolkaBusy=false,tapolkaMine=0;
+let tapolkaPending=0,tapolkaTimer=null,tapolkaBusy=false,tapolkaMine=0,catState=null;
 
 function renderRandomPage(){
   if(app.route!=='random')return;
@@ -661,18 +661,30 @@ async function startRandomSearch(){
 
 async function openTapolka(){
   $('#pane').innerHTML='<div class="empty-messages"><span class="spinner"></span><h3>Открываем Тапалку…</h3></div>';
-  const board=await api.tapolkaLeaderboard(20);tapolkaMine=Number(board.find(x=>x.user_id===app.user.id)?.taps||0);
-  $('#pane').innerHTML=V.tapolka(app,board,tapolkaMine);
+  const [board,state]=await Promise.all([api.tapolkaLeaderboard(20),api.catState()]);
+  if(app.route!=='tapolka')return;
+  catState=state;tapolkaMine=Number(board.find(x=>x.user_id===app.user.id)?.taps||0);
+  $('#pane').innerHTML=V.tapolka(app,board,tapolkaMine,state);applyLanguage();
 }
 async function flushTapolka(){
   if(tapolkaBusy||tapolkaPending<1)return;
-  tapolkaBusy=true;const amount=Math.min(25,tapolkaPending);tapolkaPending-=amount;
-  try{tapolkaMine=await api.tapolkaTap(amount);const el=$('#tapolkaMine');if(el)el.textContent=Number(tapolkaMine+tapolkaPending).toLocaleString('ru-RU');}
-  catch(error){tapolkaPending+=amount;toast(errorText(error));}
-  finally{tapolkaBusy=false;if(tapolkaPending>0)tapolkaTimer=setTimeout(flushTapolka,250);else refreshTapolkaBoard().catch(()=>{});}
+  tapolkaBusy=true;const amount=Math.min(8,tapolkaPending);tapolkaPending-=amount;
+  try{
+    const result=await api.catTap(amount);
+    tapolkaMine=Number(result.taps);if(catState){catState.energy=result.energy;catState.daily_taps=result.today_taps;catState.level=result.level;catState.stars_earned_today=Number(catState.stars_earned_today||0)+Number(result.stars_earned||0);}
+    if(app.profile&&result.stars_earned)app.profile.stars=Number(app.profile.stars||0)+Number(result.stars_earned);
+    const el=$('#tapolkaMine');if(el)el.textContent=Number(tapolkaMine+tapolkaPending).toLocaleString('ru-RU');
+    if(result.stars_earned){toast('🐱 Задание выполнено: +'+result.stars_earned+' ⭐');renderSidebar();}
+    const energy=$('#catEnergyText');if(energy)energy.textContent=result.energy+' / '+result.max_energy;
+    const bar=$('#catEnergyBar');if(bar)bar.style.width=Math.max(0,100*result.energy/Math.max(1,result.max_energy))+'%';
+    const today=$('#catDailyTaps');if(today)today.textContent=result.today_taps;
+    const stars=$('#catStarsEarned');if(stars)stars.textContent=catState.stars_earned_today+' / 24';
+    const level=$('#catLevel');if(level)level.textContent=result.level;
+  }catch(error){tapolkaPending=0;const counter=$('#tapolkaMine');if(counter)counter.textContent=Number(tapolkaMine).toLocaleString('ru-RU');const pending=$('#tapolkaPending');if(pending)pending.textContent='';toast(errorText(error));catState=await api.catState().catch(()=>catState);}
+  finally{tapolkaBusy=false;if(tapolkaPending>0)tapolkaTimer=setTimeout(flushTapolka,320);else refreshTapolkaBoard().catch(()=>{});}
 }
 async function refreshTapolkaBoard(){if(app.route!=='tapolka')return;const board=await api.tapolkaLeaderboard(20);const own=board.find(x=>x.user_id===app.user.id);if(own)tapolkaMine=Number(own.taps||tapolkaMine);const host=$('#tapolkaBoard');if(!host)return;host.innerHTML=board.map((x,i)=>`<div class="tapolka-rank ${x.user_id===app.user.id?'mine':''}"><span class="tapolka-place">${i+1}</span>${avatar(x)}<span class="row-content"><b>${esc(x.display_name||x.username||'Игрок')}</b><small>@${esc(x.username||'user')}</small></span><strong>${Number(x.taps||0).toLocaleString('ru-RU')}</strong></div>`).join('')||'<div class="sidebar-empty"><p>Рейтинг пока пуст.</p></div>';}
-function tapolkaTap(){tapolkaPending++;const score=$('#tapolkaMine');if(score)score.textContent=Number(tapolkaMine+tapolkaPending).toLocaleString('ru-RU');const b=$('#tapolkaButton');if(b){b.classList.remove('pop');void b.offsetWidth;b.classList.add('pop');}const p=$('#tapolkaPending');if(p)p.textContent=tapolkaPending>1?`+${tapolkaPending}`:'';clearTimeout(tapolkaTimer);tapolkaTimer=setTimeout(flushTapolka,450);}
+function tapolkaTap(){if(catState&&catState.energy<=tapolkaPending){toast('⚡ Энергия котика закончилась. Подожди восстановления.');return;}tapolkaPending++;const score=$('#tapolkaMine');if(score)score.textContent=Number(tapolkaMine+tapolkaPending).toLocaleString('ru-RU');const b=$('#tapolkaButton');if(b){b.classList.remove('pop');void b.offsetWidth;b.classList.add('pop');}const p=$('#tapolkaPending');if(p)p.textContent=tapolkaPending>1?`+${tapolkaPending}`:'';clearTimeout(tapolkaTimer);tapolkaTimer=setTimeout(flushTapolka,450);}
 
 async function searchMessages() {
   const input=$('#messageSearch');if(!input||!app.active)return;const value=input.value.trim(),active={...app.active},epoch=app.epoch;
@@ -794,11 +806,19 @@ async function saveProfileStyle(form){
   applyLanguage();toast('Оформление профиля сохранено в Supabase');
 }
 document.addEventListener('input',event=>{if(event.target.id==='giftRecipientSearch'){clearTimeout(giftRecipientSearchTimer);const q=event.target.value;giftRecipientSearchTimer=setTimeout(()=>searchGiftRecipients(q),260);}if(event.target.closest('#profileStyleForm'))updateStylePreview();if(event.target.closest('#colorsForm')){const colors=Object.fromEntries(new FormData($('#colorsForm')));if(validColors(colors)){applyColors(colors);for(const field of $$('#colorsForm input'))field.nextElementSibling.textContent=field.value.toUpperCase();}}});
-document.addEventListener('submit',event=>{if(event.target.id==='colorsForm'){event.preventDefault();const form=event.target,button=$('[type=submit]',form),colors=Object.fromEntries(new FormData(form));guarded('colors',async()=>{try{if(!validColors(colors))throw new Error('Выбери четыре цвета.');await changeState({colors});applyColors(colors);toast('Твои цвета сохранены');}catch(error){showError($('#colorsError'),error);}},button);return;}if(event.target.id==='profileForm'){event.preventDefault();saveProfile(event.target);}if(event.target.id==='profileStyleForm'){event.preventDefault();guarded('profile-style',async()=>{try{await saveProfileStyle(event.target);}catch(error){showError($('#profileStyleError'),error);}});}});
+document.addEventListener('submit',event=>{if(event.target.id==='colorsForm'){event.preventDefault();const form=event.target,button=$('[type=submit]',form),colors=Object.fromEntries(new FormData(form));guarded('colors',async()=>{try{if(!validColors(colors))throw new Error('Выбери четыре цвета.');await changeState({colors});applyColors(colors);toast('Твои цвета сохранены');}catch(error){showError($('#colorsError'),error);}},button);return;}if(event.target.id==='profileForm'){event.preventDefault();saveProfile(event.target);}if(event.target.id==='profileStyleForm'){event.preventDefault();guarded('profile-style',async()=>{try{await saveProfileStyle(event.target);}catch(error){showError($('#profileStyleError'),error);}});}
+  if(event.target.id==='profileMusicForm'){event.preventDefault();const form=event.target;guarded('profile-music',async()=>{
+   try{const fd=new FormData(form);const url=String(fd.get('profile_music_url')||'').trim();
+      if(url&&!/^https:\/\//i.test(url))throw new Error('Только защищённые ссылки HTTPS');
+      if(url&&!(new URL(url)).hostname)throw new Error('Некорректная ссылка');
+      app.profile=await api.updateProfile({profile_music_url:url||null,music_title:String(fd.get('music_title')||'').trim().slice(0,100)});
+      $('#pane').innerHTML=V.settings(app);toast('Музыка профиля сохранена');
+    }catch(error){showError($('#profileMusicError'),error);}
+  },form.querySelector('[type=submit]'));}});
 async function openPublicProfile(uid){
   if(!uid){await navigate(previousRoute||'chats');return;}
   $('#pane').innerHTML='<div class="empty-state"><h2>Загрузка профиля…</h2></div>';
-  try{const [p,gifts]=await Promise.all([api.publicProfile(uid),api.profileGifts(uid)]);$('#pane').innerHTML=V.publicProfileView(app,p,gifts);}
+  try{const [p,gifts,moments]=await Promise.all([api.publicProfile(uid),api.profileGifts(uid),api.profileMoments(uid)]);$('#pane').innerHTML=V.publicProfileView(app,p,gifts,moments);}
   catch(error){showError($('#pane'),error);}
 }
 
@@ -853,6 +873,8 @@ async function handleAction(action,button) {
   if(action==='random-next'){await guarded('random-next',async()=>{await stopRandomSearch(true);await startRandomSearch();},button);return;}
   if(action==='random-profile'){if(randomMatch?.matched_user_id)await showPerson(randomMatch.matched_user_id);return;}
   if(action==='random-open-chat'){if(randomMatch?.conversation_id)await openConversation(randomMatch.conversation_id);return;}
+  if(action==='random-friend'){if(randomMatch?.matched_user_id)await guarded('random-friend',async()=>{await api.friend(randomMatch.matched_user_id);toast('Запрос в друзья отправлен');},button);return;}
+  if(action==='random-gift'){if(randomMatch?.matched_user_id)await guarded('random-gift',()=>openGiftShop(randomMatch.matched_user_id),button);return;}
   if(action==='profile-gift'||action==='stars-gift-to'){
     const target=button.dataset.user;
     await guarded('gift-shop',()=>openGiftShop(target),button);return;
@@ -880,6 +902,17 @@ async function handleAction(action,button) {
       renderSidebar();applyLanguage();
     },button);return;
   }
+  if(action==='cat-upgrade'){await guarded('cat-upgrade',async()=>{
+     const kind=button.dataset.upgrade,level=kind==='energy'?Number(catState?.energy_level||1):Number(catState?.regen_level||1);
+     const price=kind==='energy'?30+20*(level-1):45+25*(level-1);
+     confirmAction('Купить улучшение котика?',`Стоимость: ${price} ⭐. Улучшение сохраняется навсегда.`,async()=>{
+       const result=await api.catUpgrade(kind);if(app.profile)app.profile.stars=result.balance;
+       await openTapolka();renderSidebar();toast('🐱 Котик стал сильнее!');
+     },'Улучшить');
+   },button);return;}
+  if(action==='profile-post-new'){showModal('Новая публикация',`<form id="profileMomentForm"><label class="field">Что нового?<textarea name="body" rows="5" maxlength="1000" required placeholder="Поделись новостью, достижением или мыслью…"></textarea></label><div id="profileMomentError"></div><button class="primary" type="submit">Опубликовать</button></form>`);$('#profileMomentForm').onsubmit=e=>{e.preventDefault();const form=e.currentTarget;guarded('new-profile-post',async()=>{await api.createProfileMoment(new FormData(form).get('body'));modal.close();await openPublicProfile(app.user.id);toast('Публикация добавлена');},form.querySelector('[type=submit]'));};return;}
+  if(action==='profile-post-delete'){confirmAction('Удалить публикацию?','Публикация исчезнет из профиля.',async()=>{await api.deleteProfileMoment(button.dataset.post);await openPublicProfile(app.user.id);toast('Публикация удалена');});return;}
+  if(action==='profile-post-pin'){await guarded('profile-post-pin',async()=>{await api.pinProfileMoment(button.dataset.post);await openPublicProfile(app.user.id);toast('Публикация закреплена');},button);return;}
   if(action==='stars-refresh'){await guarded('stars-refresh',()=>openStars(),button);return;}
   if(action==='stars-claim'){
     await guarded('stars-claim',async()=>{
@@ -915,9 +948,25 @@ async function handleAction(action,button) {
   if(action==='refresh-chat'){closePop();guarded('refresh',()=>refreshMessages(),button);return;}
   if(action==='older'){guarded('older',()=>refreshMessages(false,true),button);return;}
   if(action==='bottom'){$('#messages').scrollTop=$('#messages').scrollHeight;return;}
-  if(action==='attach'){$('#attachmentInput').click();return;}if(action==='remove-file'){clearFile();return;}
+  if(action==='attach'){$('#attachmentInput').click();return;}if(action==='remove-file'){clearFile();return;}if(action==='edit-photo'){await openPhotoEditor();return;}
   if(action==='cancel-context'){cancelEdit();app.reply=null;renderCompose();return;}
   if(action==='emoji'){showPop(button,`<div class="emoji-grid">${['😀','😊','😂','🥰','😍','😎','🤔','😮','😢','😭','😅','🙃','❤️','💜','💚','👍','👎','🙏','🔥','✨','🎉','💯','👋','🤝','🚀','☕','🎮','🎵','🌿','⭐'].map(e=>`<button data-insert-emoji="${e}" aria-label="${e}">${e}</button>`).join('')}</div>`,true);return;}
+  if(action==='schedule-message'){
+    if(!['direct','group'].includes(app.active?.kind)){toast('Отложенная отправка доступна в чатах');return;}
+    const text=$('#messageInput')?.value.trim();if(!text){toast('Сначала напиши сообщение');return;}
+    const date=new Date(Date.now()+3600000);date.setMinutes(Math.ceil(date.getMinutes()/5)*5,0,0);
+    const local=new Date(date.getTime()-date.getTimezoneOffset()*60000).toISOString().slice(0,16);
+    showModal('Отложенное сообщение',`<form id="scheduleForm"><p class="muted">Текст сообщения сохранится в базе и появится в переписке в выбранное время. Не закрывай окно до подтверждения.</p><label class="field">Когда отправить?<input type="datetime-local" name="when" value="${local}" required></label><div id="scheduleError"></div><button type="submit" class="primary">Запланировать</button></form>`);
+    const id=app.active.id;
+    $('#scheduleForm').onsubmit=e=>{e.preventDefault();const form=e.currentTarget;guarded('schedule-message',async()=>{
+      try{const date=new Date(new FormData(form).get('when'));if(!Number.isFinite(date.getTime())||date.getTime()<Date.now()+60000||date.getTime()>Date.now()+30*86400000)throw new Error('Выбери время от 1 минуты до 30 дней');
+       const filtered=filterOutgoing(text);if(!filtered.ok)throw new Error(filtered.reason);
+       await api.send(id,filtered.text,null,{scheduled_for:date.toISOString()});modal.close();
+       if(app.active?.id===id&&$('#messageInput')?.value.trim()===text)$('#messageInput').value='';
+       toast('🕒 Сообщение запланировано.');
+      }catch(error){showError($('#scheduleError'),error);}
+    },form.querySelector('[type=submit]'));};return;
+  }
   if(action==='voice'){await voice();return;}
   if(action==='pin-chat'||action==='archive-chat'){
     const a={...app.active},field=action==='pin-chat'?'is_pinned':'is_archived',value=!app.prefs[a.id]?.[field];closePop();
@@ -928,6 +977,8 @@ async function handleAction(action,button) {
   if(action==='join-channel'){const a={...app.active};closePop();guarded('join',async()=>{await api.join(a.id,a.joined);app.channels=await api.channels();if(app.active?.id===a.id)await openChannel(a.id,false);renderSidebar();applyLanguage();});return;}
   if(action==='avatar'){$('#avatarInput').click();return;}if(action==='cover'){$('#coverInput').click();return;}if(action==='my-profile'){await showPerson(app.user.id);return;}
   if(action==='password'){changePassword();return;}
+  if(action==='diagnose-calls'){await diagnoseCalls();return;}
+  if(action==='test-microphone'){await testMicrophone();return;}
   if(action==='notifications'){guarded('notifications',async()=>{if(!window.Notification)throw new Error('Этот браузер не поддерживает уведомления.');if(app.state.notifications){await changeState({notifications:false});}else{const permission=await Notification.requestPermission();if(permission!=='granted')throw new Error('Разреши уведомления в настройках браузера.');await changeState({notifications:true});}if(app.route==='settings')$('#pane').innerHTML=V.settings(app);},button);return;}
   if(action==='logout'){confirmAction('Выйти из аккаунта?','Ты сможешь снова войти с прежней почтой и паролем.',async()=>{captureDraft();const result=await api.sb.auth.signOut();if(result.error)throw result.error;stopAll();app.user=null;applyColors(null);auth('login');},'Выйти');}
 }
@@ -942,6 +993,58 @@ async function uploadCover(file){
   try{app.profile=await api.updateProfile({cover_url:uploaded.url});$('#pane').innerHTML=V.settings(app);app.peopleMap[app.user.id]=app.profile;renderSidebar();applyLanguage();toast('Обложка обновлена и сохранена');}
   catch(error){await api.sb.storage.from('avatars').remove([uploaded.path]);throw error;}
  });
+}
+
+async function openPhotoEditor(){
+  const selected=fileFor();
+  if(!selected?.file?.type.startsWith('image/')){toast('Сначала прикрепи фотографию');return;}
+  const src=selected.url||URL.createObjectURL(selected.file);
+  showModal('Редактор фотографии',`<div class="photo-editor"><canvas id="photoCanvas" aria-label="Предпросмотр фотографии"></canvas><div class="photo-editor-controls"><button class="secondary" type="button" id="photoRotate">↻ Повернуть</button><label class="field">Яркость <input type="range" id="photoBrightness" min="60" max="160" value="100"></label><label class="setting-row">Чёрно-белое <input type="checkbox" id="photoGray"></label></div><p class="muted">Для отправки будет создана копия фотографии. Оригинал на устройстве не изменится.</p><div id="photoEditorError"></div><button class="primary" id="photoSave" type="button">Применить</button></div>`);
+  const canvas=$('#photoCanvas'),ctx=canvas?.getContext('2d');
+  if(!canvas||!ctx)return;
+  const img=new Image();let turns=0;
+  const render=()=>{
+    if(!img.naturalWidth)return;
+    const sideways=turns%2===1,scale=Math.min(1,1400/Math.max(img.naturalWidth,img.naturalHeight));
+    const w=Math.max(1,Math.round(img.naturalWidth*scale)),h=Math.max(1,Math.round(img.naturalHeight*scale));
+    canvas.width=sideways?h:w;canvas.height=sideways?w:h;
+    ctx.save();ctx.translate(canvas.width/2,canvas.height/2);ctx.rotate(turns*Math.PI/2);
+    ctx.filter=`brightness(${$('#photoBrightness')?.value||100}%) ${$('#photoGray')?.checked?'grayscale(100%)':''}`;
+    ctx.drawImage(img,-w/2,-h/2,w,h);ctx.restore();
+  };
+  $('#photoRotate').onclick=()=>{turns=(turns+1)%4;render();};
+  $('#photoBrightness').oninput=render;$('#photoGray').onchange=render;
+  $('#photoSave').onclick=async()=>{
+    const b=$('#photoSave');b.disabled=true;
+    try{
+      if(!canvas.width)throw new Error('Фотография ещё загружается');
+      const blob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('Не удалось обработать изображение')),'image/jpeg',0.88));
+      if(blob.size>window.RNDM_CONFIG.maxFileBytes)throw new Error('Изображение слишком большое');
+      const name=selected.file.name.replace(/\.[^.]+$/,'')+'-rndm.jpg';
+      const edited=new File([blob],name,{type:'image/jpeg'});
+      const key=activeKey();const old=app.files.get(key);
+      if(old?.url)URL.revokeObjectURL(old.url);
+      app.files.set(key,{file:edited,url:URL.createObjectURL(edited)});
+      modal.close();renderCompose();toast('Фотография обработана');
+    }catch(err){showError($('#photoEditorError'),err);}finally{if(b.isConnected)b.disabled=false;}
+  };
+  img.onload=render;img.onerror=()=>showError($('#photoEditorError'),new Error('Не удалось открыть изображение'));
+  img.src=src;
+}
+async function diagnoseCalls(){
+ const secure=window.isSecureContext,rtc=typeof RTCPeerConnection!=='undefined',media=!!navigator.mediaDevices?.getUserMedia;
+ const ice=window.RNDM_CONFIG?.iceServers||[];
+ const relay=ice.some(server=>JSON.stringify(server.urls||'').includes('turn:')||JSON.stringify(server.urls||'').includes('turns:'));
+ const row=(name,ok,detail='')=>`<div class="diagnostic-row"><span>${ok?'✅':'⚠️'} ${esc(name)}</span><small>${esc(detail)}</small></div>`;
+ showModal('Проверка звонков',`<div class="call-diagnostics">${row('Безопасное HTTPS-соединение',secure)}${row('Поддержка WebRTC',rtc)}${row('Доступ к микрофону',media,'Проверяется по отдельному запросу')}${row('Релейный TURN-сервер',relay,relay?'Настроен':'Для надёжных звонков в разных сетях потребуется TURN')}<button type="button" class="primary" data-action="test-microphone">Проверить микрофон</button><p class="muted">Эта диагностика проверяет устройство и конфигурацию, но не подтверждает связь между двумя абонентами.</p></div>`);
+}
+async function testMicrophone(){
+ const btn=document.querySelector('[data-action="test-microphone"]');if(btn)btn.disabled=true;
+ try{
+  if(!navigator.mediaDevices?.getUserMedia)throw new Error('Микрофон недоступен в этом браузере');
+  const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+  stream.getTracks().forEach(t=>t.stop());toast('🎙 Микрофон доступен');
+ }catch(error){toast('Микрофон: '+errorText(error));}finally{if(btn?.isConnected)btn.disabled=false;}
 }
 function changePassword(){showModal('Изменить пароль',`<form id="passwordForm"><label class="field">Новый пароль<input type="password" name="password" minlength="8" maxlength="128" autocomplete="new-password" required></label><label class="field">Повтори пароль<input type="password" name="repeat" minlength="8" autocomplete="new-password" required></label><div id="modalError"></div><button type="submit" class="primary">Сохранить</button></form>`);$('#passwordForm').onsubmit=async e=>{e.preventDefault();const fd=new FormData(e.currentTarget),button=$('button',e.currentTarget);button.disabled=true;try{if(fd.get('password')!==fd.get('repeat'))throw new Error('Пароли не совпадают.');const result=await api.sb.auth.updateUser({password:fd.get('password')});if(result.error)throw result.error;modal.close();toast('Пароль изменён');}catch(error){showError($('#modalError'),error);}finally{button.disabled=false;}};}
 

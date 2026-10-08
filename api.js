@@ -1,4 +1,4 @@
-import {timeoutFetch, sid, unique, safeURL} from './core.js?v=44.0.0';
+import {timeoutFetch, sid, unique, safeURL} from './core.js?v=45.0.0';
 
 function must(result) { if (result.error) throw result.error; return result.data; }
 const now = () => new Date().toISOString();
@@ -222,6 +222,23 @@ export class MessengerAPI {
   }
   unwatch(channel) { if (channel) this.sb.removeChannel(channel); }
 
+
+  async catState(){return must(await this.sb.rpc('rndm_cat_state'));}
+  async catTap(amount=1){return must(await this.sb.rpc('rndm_cat_tap',{amount:Math.min(8,Math.max(1,Number(amount)||1))}));}
+  async catUpgrade(kind){return must(await this.sb.rpc('rndm_cat_upgrade',{kind}));}
+  async followingIds(){return (must(await this.sb.from('rndm_follows').select('followee_id').eq('follower_id',this.uid))||[]).map(x=>x.followee_id);}
+  async followUser(userId,following){if(userId===this.uid)throw new Error('Нельзя подписаться на себя');
+    if(following)return must(await this.sb.from('rndm_follows').delete().eq('follower_id',this.uid).eq('followee_id',userId).select());
+    return must(await this.sb.from('rndm_follows').insert({follower_id:this.uid,followee_id:userId}).select());
+  }
+  async profileMoments(userId){return must(await this.sb.from('profile_moments').select('id,user_id,body,media_url,media_type,is_featured,created_at').eq('user_id',userId).order('is_featured',{ascending:false}).order('created_at',{ascending:false}).limit(30))||[];}
+  async createProfileMoment(body){const text=String(body||'').trim();if(!text||text.length>1000)throw new Error('Публикация должна содержать 1–1000 символов');return must(await this.sb.from('profile_moments').insert({user_id:this.uid,body:text}).select().single());}
+  async deleteProfileMoment(id){return must(await this.sb.from('profile_moments').delete().eq('user_id',this.uid).eq('id',id).select('id'));}
+  async pinProfileMoment(id){
+    const old=await this.sb.from('profile_moments').update({is_featured:false}).eq('user_id',this.uid).eq('is_featured',true);
+    if(old.error)throw old.error;
+    return must(await this.sb.from('profile_moments').update({is_featured:true}).eq('user_id',this.uid).eq('id',id).select('id'));
+  }
   async tapolkaTap(amount=1) { const data=must(await this.sb.rpc('rndm_tapolka_tap',{amount})); return Number(data||0); }
   async tapolkaLeaderboard(limit=20) { return must(await this.sb.rpc('rndm_tapolka_leaderboard',{max_rows:limit})) || []; }
 }

@@ -1,11 +1,11 @@
-const VERSION='44.0.0';
-const CACHE='rndm-v44-shell';
+const VERSION='45.0.0';
+const CACHE='rndm-v45-shell';
 const SHELL=[
-  './index.html','./style.css?v=44.0.0','./config.js?v=44.0.0',
-  './app.js?v=44.0.0','./core.js?v=44.0.0','./api.js?v=44.0.0',
-  './views.js?v=44.0.0','./admin.js?v=44.0.0',
-  './calls.js?v=44.0.0','./clips.js?v=44.0.0',
-  './theme.js?v=44.0.0','./supabase-2.117.2.js?v=44.0.0',
+  './index.html','./style.css?v=45.0.0','./config.js?v=45.0.0',
+  './app.js?v=45.0.0','./core.js?v=45.0.0','./api.js?v=45.0.0',
+  './views.js?v=45.0.0','./admin.js?v=45.0.0',
+  './calls.js?v=45.0.0','./clips.js?v=45.0.0',
+  './theme.js?v=45.0.0','./supabase-2.117.2.js?v=45.0.0',
   './manifest.webmanifest','./icon-192.png','./icon-512.png',
   './star-gold.webp','./gift-gold.webp'
 ];

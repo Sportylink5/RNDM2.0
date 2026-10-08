@@ -3,7 +3,7 @@
 window.RNDM_CONFIG = Object.freeze({
   url: 'https://rijqlmrcnshswtoweoai.supabase.co',
   key: 'sb_publishable_Ay6EBRfZx1-Shj1FdMg7ZQ_P61Rii2A',
-  version: '44.0.0',
+  version: '45.0.0',
   // Administrative writes are authorized by protected Supabase RPCs.
   adminWriteEnabled: true,
   // For difficult/mobile networks, add your TURN URLs + temporary browser credentials here.
