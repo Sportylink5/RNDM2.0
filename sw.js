@@ -1,11 +1,11 @@
-const VERSION='45.0.0';
-const CACHE='rndm-v45-shell';
+const VERSION='47.0.0';
+const CACHE='rndm-v47-shell';
 const SHELL=[
-  './index.html','./style.css?v=45.0.0','./config.js?v=45.0.0',
-  './app.js?v=45.0.0','./core.js?v=45.0.0','./api.js?v=45.0.0',
-  './views.js?v=45.0.0','./admin.js?v=45.0.0',
-  './calls.js?v=45.0.0','./clips.js?v=45.0.0',
-  './theme.js?v=45.0.0','./supabase-2.117.2.js?v=45.0.0',
+  './index.html','./style.css?v=47.0.0','./config.js?v=47.0.0',
+  './app.js?v=47.0.0','./core.js?v=47.0.0','./api.js?v=47.0.0',
+  './views.js?v=47.0.0','./admin.js?v=47.0.0',
+  './calls.js?v=47.0.0','./clips.js?v=47.0.0',
+  './theme.js?v=47.0.0','./supabase-2.117.2.js?v=47.0.0',
   './manifest.webmanifest','./icon-192.png','./icon-512.png',
   './star-gold.webp','./gift-gold.webp'
 ];
@@ -24,7 +24,7 @@ self.addEventListener('fetch',event=>{
   const isCode=/\.(?:js|css|webmanifest)$/.test(path);
   const isPage=req.mode==='navigate';
   if(isPage||isCode){
-    event.respondWith(fetch(req).then(response=>{
+    event.respondWith(fetch(new Request(req,{cache:'no-store'})).then(response=>{
       if(response.ok){
         const copy=response.clone();
         event.waitUntil(caches.open(CACHE).then(cache=>cache.put(isPage?'./index.html':req,copy)).catch(()=>{}));

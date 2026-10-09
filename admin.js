@@ -1,4 +1,4 @@
-import {$,$$,esc,icon,avatar,safeURL,errorText} from './core.js?v=45.0.0';
+import {$,$$,esc,icon,avatar,safeURL,errorText} from './core.js?v=47.0.0';
 const must=r=>{if(r.error)throw r.error;return r.data;};
 export const staffRole=role=>['owner','admin','moderator'].includes(role);
 const rank={user:0,premium:10,verified:20,moderator:30,admin:40,owner:50};

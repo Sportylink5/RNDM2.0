@@ -12,7 +12,7 @@
   <link rel="icon" href="icon-192.png" type="image/png">
   <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="style.css?v=45.0.0">
+  <link rel="stylesheet" href="style.css?v=47.0.0">
   <script>
     try { document.documentElement.dataset.theme = localStorage.getItem('rndm-theme') === 'light' ? 'light' : 'dark'; } catch {}
   </script>
@@ -23,17 +23,17 @@
   <dialog id="modal" class="modal" aria-labelledby="modalTitle"></dialog>
   <div id="popover" class="popover" hidden></div>
   <noscript><p>Включи JavaScript в браузере, чтобы открыть RNDM Chat.</p></noscript>
-  <script src="supabase-2.117.2.js?v=45.0.0"></script>
-  <script src="config.js?v=45.0.0"></script>
+  <script src="supabase-2.117.2.js?v=47.0.0"></script>
+  <script src="config.js?v=47.0.0"></script>
   <script>
     if (location.protocol === 'file:') {
       document.getElementById('root').innerHTML = '<div class="boot"><span class="brand-mark">R</span><h2>Открой опубликованный RNDM</h2><p>Загрузи файлы на GitHub Pages и открой опубликованную HTTPS-ссылку.</p><p>Инструкция находится в GITHUB_PAGES_RU.txt.</p></div>';
     }
   </script>
-  <script type="module" src="app.js?v=45.0.0"></script>
+  <script type="module" src="app.js?v=47.0.0"></script>
   <script>
     if ('serviceWorker' in navigator && location.protocol === 'https:') {
-      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js?v=45.0.0',{scope:'./',updateViaCache:'none'}).then(reg=>reg.update().catch(console.warn)).catch(console.warn));
+      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js?v=47.0.0',{scope:'./',updateViaCache:'none'}).then(reg=>reg.update().catch(console.warn)).catch(console.warn));
     }
   </script>
 </body>

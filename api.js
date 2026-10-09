@@ -1,4 +1,4 @@
-import {timeoutFetch, sid, unique, safeURL} from './core.js?v=45.0.0';
+import {timeoutFetch, sid, unique, safeURL} from './core.js?v=47.0.0';
 
 function must(result) { if (result.error) throw result.error; return result.data; }
 const now = () => new Date().toISOString();
@@ -15,14 +15,27 @@ export class MessengerAPI {
     this.uid = null;
   }
   async session() { const data = must(await this.sb.auth.getSession()); this.uid = data.session?.user.id || null; return data.session; }
-  async giftCatalog(){return must(await this.sb.from('rndm_gift_catalog').select('id,name,emoji,price').eq('is_active',true).order('sort_order'))||[];}
+  async giftCatalog(){return must(await this.sb.from('rndm_gift_catalog').select('id,name,emoji,price,rarity,collection').eq('is_active',true).order('sort_order'))||[];}
   async starsWallet(){return must(await this.sb.rpc('rndm_wallet_state'));}
   async myGifts(){return must(await this.sb.rpc('rndm_my_gifts',{max_rows:60}))||[];}
   async claimDailyStars(){const rows=must(await this.sb.rpc('claim_daily_reward'));return Array.isArray(rows)?rows[0]:rows;}
   async sendGift(target,gift,note=''){return must(await this.sb.rpc('rndm_send_gift',{target,gift,note}));}
   async profileGifts(target){return must(await this.sb.rpc('rndm_profile_gifts',{target,max_rows:24}))||[];}
+  async notifications(limit=80){return must(await this.sb.from('notifications').select('id,kind,title,body,link,created_at,is_read,actor_id').eq('user_id',this.uid).order('created_at',{ascending:false}).limit(limit))||[];}
+  async notificationUnread(){const r=await this.sb.from('notifications').select('id',{count:'exact',head:true}).eq('user_id',this.uid).eq('is_read',false);if(r.error)throw r.error;return r.count||0;}
+  async markNotification(id){return must(await this.sb.from('notifications').update({is_read:true}).eq('user_id',this.uid).eq('id',Number(id)).select('id'));}
+  async markAllNotifications(){return must(await this.sb.from('notifications').update({is_read:true}).eq('user_id',this.uid).eq('is_read',false).select('id'));}
+  async randomHistory(){const rows=must(await this.sb.from('rndm_random_history').select('partner_id,conversation_id,last_met_at,matches,is_favorite').eq('user_id',this.uid).order('is_favorite',{ascending:false}).order('last_met_at',{ascending:false}).limit(24))||[];const users=await this.profiles(rows.map(x=>x.partner_id));return rows.map(row=>({...row,person:users.find(p=>p.id===row.partner_id)||null}));}
+  async randomFavorite(partnerId,on){return must(await this.sb.from('rndm_random_history').update({is_favorite:!!on}).eq('user_id',this.uid).eq('partner_id',partnerId).select('partner_id'));}
+  async profileSocial(userId){const [count,following]=await Promise.all([this.sb.from('rndm_follows').select('follower_id',{count:'exact',head:true}).eq('followee_id',userId),this.sb.from('rndm_follows').select('follower_id').eq('followee_id',userId).eq('follower_id',this.uid).maybeSingle()]);if(count.error)throw count.error;if(following.error)throw following.error;return {followers:count.count||0,following:!!following.data};}
+  async catCosmeticState(){const row=must(await this.sb.from('rndm_cat_progress').select('skin_id,accessory_id').eq('user_id',this.uid).maybeSingle());return row||{skin_id:'classic',accessory_id:'none'};}
+  async catCosmetic(kind,choice){return must(await this.sb.rpc('rndm_cat_cosmetic',{kind,choice}));}
+  async catWeeklyBoard(){return must(await this.sb.rpc('rndm_cat_weekly_leaderboard',{max_rows:20}))||[];}
+  async catMyScore(){const row=must(await this.sb.from('rndm_tapolka_scores').select('taps').eq('user_id',this.uid).maybeSingle());return Number(row?.taps||0);}
+  async creatorStats(){return must(await this.sb.rpc('rndm_creator_clip_stats'));}
+
   async publicProfile(userId) {
-    const {data,error}=await this.sb.from('profiles').select('id,username,display_name,avatar_url,cover_url,bio,status,last_seen,created_at,app_role,is_verified,is_premium,is_banned,reputation,xp,stars,profile_accent,frame_id,profile_cover_style,profile_private,show_friends,show_clips,show_followers,allow_messages,allow_friend_requests').eq('id',userId).maybeSingle();
+    const {data,error}=await this.sb.from('profiles').select('id,username,display_name,avatar_url,cover_url,bio,status,last_seen,created_at,app_role,is_verified,is_premium,is_banned,reputation,xp,stars,profile_accent,frame_id,profile_cover_style,profile_layout,profile_private,show_friends,show_clips,show_followers,allow_messages,allow_friend_requests').eq('id',userId).maybeSingle();
     if(error)throw error; return data;
   }
   async randomJoin(language='any',interest='any') {

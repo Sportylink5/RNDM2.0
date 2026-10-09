@@ -1,12 +1,12 @@
-import {$,$$,esc,icon,avatar,safeURL,errorText} from './core.js?v=45.0.0';
+import {$,$$,esc,icon,avatar,safeURL,errorText} from './core.js?v=47.0.0';
 const must=r=>{if(r.error)throw r.error;return r.data;};
 export class Clips {
-  constructor(api,ui){this.api=api;this.sb=api.sb;this.ui=ui;this.epoch=0;this.sound=true;this.rows=[];this.locks=new Set();this.feedMode='latest';this.tag='';this.following=new Set();}
+  constructor(api,ui){this.api=api;this.sb=api.sb;this.ui=ui;this.epoch=0;this.sound=true;this.rows=[];this.locks=new Set();this.feedMode='recommended';this.tag='';this.following=new Set();}
   stop(){++this.epoch;this.observer?.disconnect();if(this.host){this.host.onclick=null;$$('video',this.host).forEach(v=>{v.pause();v.removeAttribute('src');v.load();});}this.host=null;}
   async open(host,clipId=null){
     this.stop();this.host=host;this.rows=[];this.before=null;this.more=true;this.loading=false;
-    host.innerHTML=`<header class="chat-header"><button class="icon-button back-mobile" data-action="back" aria-label="К чатам">${icon('back')}</button><h2>Клипы</h2><div class="header-tools"><button class="secondary" id="clipUpload">${icon('plus')}Выложить</button></div></header><div class="clip-feed-tools"><div class="clip-feed-tabs" role="tablist"><button type="button" class="active" data-clip-feed="latest">Новые</button><button type="button" data-clip-feed="popular">Популярные</button><button type="button" data-clip-feed="following">Подписки</button></div><label class="clip-tag-filter"><span>＃</span><input id="clipTag" type="search" maxlength="40" placeholder="Хештег" aria-label="Поиск по хештегу"><button type="button" id="clipTagClear" aria-label="Очистить">×</button></label></div><div class="clips-feed" id="clipsFeed"><div class="sidebar-empty"><span class="spinner"></span><p>Загружаем клипы…</p></div></div><input id="clipFile" type="file" accept="video/mp4,video/webm,video/quicktime" hidden>`;
-    $('#clipUpload').onclick=()=>{const input=$('#clipFile');input.value='';input.click();};$('#clipFile').onchange=e=>this.upload(e.target.files[0]);
+    host.innerHTML=`<header class="chat-header"><button class="icon-button back-mobile" data-action="back" aria-label="К чатам">${icon('back')}</button><h2>Клипы</h2><div class="header-tools"><button class="secondary" id="clipStats">${icon('info')}Статистика</button><button class="secondary" id="clipUpload">${icon('plus')}Выложить</button></div></header><div class="clip-feed-tools"><div class="clip-feed-tabs" role="tablist"><button type="button" class="active" data-clip-feed="recommended">Для тебя</button><button type="button" data-clip-feed="latest">Новые</button><button type="button" data-clip-feed="popular">Популярные</button><button type="button" data-clip-feed="following">Подписки</button><button type="button" data-clip-feed="saved">Избранное</button></div><label class="clip-tag-filter"><span>＃</span><input id="clipTag" type="search" maxlength="40" placeholder="Хештег" aria-label="Поиск по хештегу"><button type="button" id="clipTagClear" aria-label="Очистить">×</button></label></div><div class="clips-feed" id="clipsFeed"><div class="sidebar-empty"><span class="spinner"></span><p>Загружаем клипы…</p></div></div><input id="clipFile" type="file" accept="video/mp4,video/webm,video/quicktime" hidden>`;
+    $$('[data-clip-feed]',host).forEach(b=>b.classList.toggle('active',b.dataset.clipFeed===this.feedMode));$('#clipStats').onclick=()=>this.analytics().catch(err=>this.ui.toast(errorText(err)));$('#clipUpload').onclick=()=>{const input=$('#clipFile');input.value='';input.click();};$('#clipFile').onchange=e=>this.upload(e.target.files[0]);
     host.onclick=e=>{
       const tab=e.target.closest('[data-clip-feed]');
       if(tab){e.preventDefault();++this.epoch;this.loading=false;this.feedMode=tab.dataset.clipFeed;$$('[data-clip-feed]',host).forEach(b=>b.classList.toggle('active',b===tab));this.rows=[];this.before=null;this.load(false).catch(err=>this.ui.toast(errorText(err)));return;}
@@ -19,8 +19,13 @@ export class Clips {
   async load(append=false,clipId=null){
     if(this.loading||!this.host)return;this.loading=true;const epoch=this.epoch,mode=this.feedMode,tag=this.tag,feed=$('#clipsFeed',this.host);
     try{
-      let query=this.sb.from('clips').select('*').order('created_at',{ascending:false}).order('id',{ascending:false}).limit(this.feedMode==='popular'?100:30);
-      if(this.feedMode==='following'){
+      let query=this.sb.from('clips').select('*').order('created_at',{ascending:false}).order('id',{ascending:false}).limit(['popular','recommended'].includes(this.feedMode)?100:30);
+      if(this.feedMode==='saved'){
+        const saved=must(await this.sb.from('clip_saves').select('clip_id').eq('user_id',this.api.uid).limit(300))||[];
+        if(epoch!==this.epoch)return;
+        if(!saved.length){feed.innerHTML='<div class="clips-empty"><h3>Избранное пусто</h3><p>Нажми закладку на клипе, чтобы сохранить.</p></div>';return;}
+        query=query.in('id',saved.map(x=>x.clip_id));
+      }else if(this.feedMode==='following'){
         const followed=await this.api.followingIds();if(epoch!==this.epoch)return;
         this.following=new Set(followed);
         if(!followed.length){feed.innerHTML='<div class="clips-empty"><h3>Подписок пока нет</h3><p>Открой интересный клип и подпишись на автора.</p><button class="secondary" id="clipBackLatest">Смотреть новые</button></div>';$('#clipBackLatest',feed).onclick=()=>{this.feedMode='latest';++this.epoch;this.loading=false;this.open(this.host);};return;}
@@ -30,14 +35,22 @@ export class Clips {
       }
       if(this.tag)query=query.ilike('caption',`%${this.tag.replace(/[%_]/g,'')}%`);
       if(append&&this.before)query=query.or(`created_at.lt.${this.before.created_at},and(created_at.eq.${this.before.created_at},id.lt.${this.before.id})`);
-      let rows=must(await query)||[];const more=this.feedMode!=='popular'&&rows.length===30,before=rows.at(-1)||this.before;
+      let rows=must(await query)||[];const more=!['popular','recommended','saved'].includes(this.feedMode)&&rows.length===30,before=rows.at(-1)||this.before;
       if(!append&&clipId&&!rows.some(x=>x.id===clipId)){const r=must(await this.sb.from('clips').select('*').eq('id',clipId).maybeSingle());if(r)rows.unshift(r);}
       const ids=rows.map(x=>x.id),people=await this.api.profiles(rows.map(x=>x.user_id));
       const [likes,comments,saves]=ids.length?await Promise.all([this.sb.from('clip_likes').select('clip_id,user_id').in('clip_id',ids),this.sb.from('clip_comments').select('clip_id').in('clip_id',ids),this.sb.from('clip_saves').select('clip_id').eq('user_id',this.api.uid).in('clip_id',ids)]):[{data:[]},{data:[]},{data:[]}];
       const lr=must(likes)||[],cr=must(comments)||[],sr=must(saves)||[];
       if(epoch!==this.epoch||mode!==this.feedMode||tag!==this.tag)return;this.more=more;this.before=before;
       rows=rows.map(r=>({...r,following:this.following.has(r.user_id),person:people.find(p=>p.id===r.user_id),likes:lr.filter(x=>x.clip_id===r.id).length,comments:cr.filter(x=>x.clip_id===r.id).length,liked:lr.some(x=>x.clip_id===r.id&&x.user_id===this.api.uid),saved:sr.some(x=>x.clip_id===r.id)}));
-      if(this.feedMode==='popular')rows.sort((a,b)=>b.likes-a.likes||new Date(b.created_at)-new Date(a.created_at));
+      if(this.feedMode==='popular')rows.sort((a,b)=>(b.likes*3+b.comments*2)-(a.likes*3+a.comments*2)||new Date(b.created_at)-new Date(a.created_at));
+      if(this.feedMode==='recommended'){
+        // Transparent ranking, computed from existing public reactions + freshness + subscriptions.
+        const now=Date.now(),score=r=>{
+          const ageDays=Math.max(0,(now-new Date(r.created_at).getTime())/86400000);
+          return Number(r.likes||0)*3+Number(r.comments||0)*5+(r.following?12:0)+18/(1+ageDays);
+        };
+        rows.sort((a,b)=>score(b)-score(a)||new Date(b.created_at)-new Date(a.created_at));
+      }
       if(!append){this.rows=[];feed.innerHTML='';}
       const fresh=rows.filter(r=>!this.rows.some(x=>x.id===r.id));this.rows.push(...fresh);$('#clipMore',feed)?.remove();feed.insertAdjacentHTML('beforeend',fresh.map(r=>this.card(r)).join(''));
       if(!this.rows.length)feed.innerHTML='<div class="clips-empty">'+icon('clips')+'<h2>Нет подходящих клипов</h2><p>Попробуй другой хештег или подпишись на авторов.</p></div>';
@@ -108,6 +121,7 @@ export class Clips {
       finally{if(button.isConnected){button.disabled=false;button.textContent='Опубликовать';}}
     };
   }
+  async analytics(){const data=await this.api.creatorStats();this.ui.modal('📊 Статистика клипов',`<section class="creator-stats"><p>Статистика только твоих опубликованных клипов.</p><div><article><b>${Number(data?.clips||0)}</b><span>Клипов</span></article><article><b>${Number(data?.views||0)}</b><span>Просмотров</span></article><article><b>${Number(data?.likes||0)}</b><span>Лайков</span></article><article><b>${Number(data?.comments||0)}</b><span>Комментариев</span></article><article><b>${Number(data?.saves||0)}</b><span>Сохранений</span></article></div></section>`);}
   async comments(r){
     this.current?.pause();this.ui.modal('Комментарии',`<div class="comments-list" id="clipComments"><span class="spinner"></span></div><form id="clipCommentForm" class="comment-form"><textarea name="body" maxlength="4000" rows="2" required aria-label="Комментарий" placeholder="Твой комментарий…"></textarea><button class="primary" type="submit" aria-label="Отправить">${icon('send')}</button></form><div id="clipCommentError"></div>`);
     const form=$('#clipCommentForm'),host=$('#clipComments');

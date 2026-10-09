@@ -42,7 +42,7 @@ const paths = {
   copy:'M8 8h12v13H8zM16 8V3H3v13h5',
   file:'M5 3h9l5 5v13H5zM14 3v6h5M8 13h8M8 17h5',
   download:'M12 3v12M7 10l5 5 5-5M4 17v4h16v-4',
-  bell:'M5 16h14l-2-3V9a5 5 0 0 0-10 0v4l-2 3M10 20h4',
+  notifications:'M5 16h14l-2-3V9a5 5 0 0 0-10 0v4l-2 3M10 20h4', bell:'M5 16h14l-2-3V9a5 5 0 0 0-10 0v4l-2 3M10 20h4',
   mute:'M18 5l-2 2M3 3l18 18M6 8v5l-2 3h12M10 20h4M10 4a5 5 0 0 1 7 5v4',
   logout:'M9 3H4v18h5M10 12h11M17 8l4 4-4 4',
   chevron:'M9 5l7 7-7 7', down:'M6 9l6 6 6-6',
