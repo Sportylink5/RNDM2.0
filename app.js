@@ -1,10 +1,10 @@
-import {$,$$,esc,icon,ib,avatar,sid,unique,preview,safeURL,richText,day,time,bytes,errorText,readLocal,writeLocal} from './core.js?v=53.0.0';
-import {MessengerAPI} from './api.js?v=53.0.0';
-import * as V from './views.js?v=53.0.0';
-import {Admin,staffRole} from './admin.js?v=53.0.0';
-import {Calls} from './calls.js?v=53.0.0';
-import {Clips} from './clips.js?v=53.0.0';
-import {applyColors,validColors,defaultColors} from './theme.js?v=53.0.0';
+import {$,$$,esc,icon,ib,avatar,sid,unique,preview,safeURL,richText,day,time,bytes,errorText,readLocal,writeLocal} from './core.js?v=56.0.0';
+import {MessengerAPI} from './api.js?v=56.0.0';
+import * as V from './views.js?v=56.0.0';
+import {Admin,staffRole} from './admin.js?v=56.0.0';
+import {Calls} from './calls.js?v=56.0.0';
+import {Clips} from './clips.js?v=56.0.0';
+import {applyColors,validColors,defaultColors} from './theme.js?v=56.0.0';
 
 const defaults={notes:[],muted:[],wallpaper:'default',enterSend:true,notifications:false,notificationSound:false,colors:null};
 const app={user:null,profile:null,route:'chats',folder:'all',active:null,info:null,dialogs:[],channels:[],friends:[],prefs:{},drafts:{},state:{...defaults},messages:[],reactions:[],peopleMap:{},replyLookup:{},pins:[],reply:null,edit:null,files:new Map(),pending:new Set(),epoch:0,messageEpoch:0,more:false,rt:[],globalRt:[],stateChain:Promise.resolve(),draftTimers:new Map(),refreshing:false};
@@ -138,7 +138,7 @@ async function repairFrontendCache(reload=true){
   }
   if(reload){
     const url=new URL(location.href);
-    url.searchParams.set('updated',window.RNDM_CONFIG?.version||'53.0.0');
+    url.searchParams.set('updated',window.RNDM_CONFIG?.version||'56.0.0');
     location.replace(url.href);
   }
 }
@@ -159,7 +159,7 @@ async function boot() {
     const message=String(error?.message||'');
     const outdated=/\bis not a function\b|\b(?:undefined|null)\b.*\b(?:property|properties)\b/i.test(message);
     if(outdated){
-      const flag='rndm-repair-once-'+(window.RNDM_CONFIG?.version||'53.0.0');
+      const flag='rndm-repair-once-'+(window.RNDM_CONFIG?.version||'56.0.0');
       try{
         if(sessionStorage.getItem(flag)!=='1'){
           sessionStorage.setItem(flag,'1');
@@ -849,7 +849,7 @@ async function openStars(){
   const epoch=app.epoch, pane=$('#pane');
   if(!pane)return;
   pane.innerHTML='<div class="star-wallet-loading"><span class="spinner"></span><p>Загружаем кошелёк...</p></div>';
-  const results=await Promise.allSettled([api.starsWallet(),api.myGifts(),api.giftCatalog(),api.friends()]);
+  const results=await Promise.allSettled([api.starsWallet(),api.myGifts(),api.giftCatalog(),api.friends(),api.caseTypes(),api.caseInventory(),api.donationConfig(),api.donationRequests()]);
   if(epoch!==app.epoch||app.route!=='stars')return;
   if(results[0].status==='rejected'){
     pane.innerHTML=`<div class="star-wallet-loading"><h2>Не удалось загрузить баланс</h2><p>${esc(errorText(results[0].reason))}</p><button type="button" class="primary" data-action="stars-refresh">Повторить</button></div>`;
@@ -858,7 +858,9 @@ async function openStars(){
   const val=i=>results[i].status==='fulfilled'?results[i].value:[];
   const wallet=val(0),history=val(1),catalog=val(2),friends=val(3);
   if(app.profile)app.profile.stars=Number(wallet.balance||0);
-  pane.innerHTML=V.starsWallet(app,{wallet,history,catalog,friends});
+  pane.innerHTML=V.starsWallet(app,{wallet,history,catalog,friends,cases:val(4),inventory:val(5),donation:val(6)||{},donations:val(7)});
+  const donationForm=$('#rndm54-donation-form');if(donationForm)donationForm.onsubmit=event=>{event.preventDefault();const form=event.currentTarget;guarded('donation-submit',async()=>{const data=new FormData(form);await api.donationSubmit(String(data.get('reference')||'').trim(),String(data.get('comment')||''));toast('Заявка записана. Владелец сверит платёж.');await openStars();},form.querySelector('[type=submit]'));};
+  const failures=[4,5,6,7].filter(i=>results[i].status==='rejected');if(failures.length){const section=pane.querySelector('.rndm54-section');if(section)section.insertAdjacentHTML('beforeend',`<p class="star-load-note">Некоторые функции требуют обновления базы данных: ${esc(errorText(results[failures[0]].reason))}</p>`);}
   renderSidebar();applyLanguage();
   for(let i=1;i<4;i++)if(results[i].status==='rejected'){
     const section=pane.querySelectorAll('.star-wallet-section')[i-1];
@@ -946,6 +948,51 @@ async function handleAction(action,button) {
   if(action==='profile-post-new'){showModal('Новая публикация',`<form id="profileMomentForm"><label class="field">Что нового?<textarea name="body" rows="5" maxlength="1000" required placeholder="Поделись новостью, достижением или мыслью…"></textarea></label><div id="profileMomentError"></div><button class="primary" type="submit">Опубликовать</button></form>`);$('#profileMomentForm').onsubmit=e=>{e.preventDefault();const form=e.currentTarget;guarded('new-profile-post',async()=>{await api.createProfileMoment(new FormData(form).get('body'));modal.close();await openPublicProfile(app.user.id);toast('Публикация добавлена');},form.querySelector('[type=submit]'));};return;}
   if(action==='profile-post-delete'){confirmAction('Удалить публикацию?','Публикация исчезнет из профиля.',async()=>{await api.deleteProfileMoment(button.dataset.post);await openPublicProfile(app.user.id);toast('Публикация удалена');});return;}
   if(action==='profile-post-pin'){await guarded('profile-post-pin',async()=>{await api.pinProfileMoment(button.dataset.post);await openPublicProfile(app.user.id);toast('Публикация закреплена');},button);return;}
+
+  if(action==='gift-exchange'){
+    const type=button.dataset.source,id=button.dataset.item;
+    const name=button.dataset.title||'Подарок';
+    const base=Number(button.dataset.base||0),credit=Number(button.dataset.amount||0);
+    if(!['received','case'].includes(type)||!id||credit<=0)return;
+    const fee=Math.max(0,base-credit);
+    showModal('↺ Обменять подарок?',`<div class="rndm55-confirm"><p>«${esc(name)}» исчезнет из доступных подарков и больше не сможет быть отправлен другу.</p><div class="rndm55-exchange-breakdown"><span>Стоимость</span><b>${base.toLocaleString('ru-RU')} ⭐</b><span>Комиссия 10%</span><b>−${fee.toLocaleString('ru-RU')} ⭐</b><span>На баланс</span><strong>+${credit.toLocaleString('ru-RU')} ⭐</strong></div><p class="muted">Это необратимая операция. Реальные деньги не используются.</p><div class="modal-actions"><button type="button" class="secondary" data-action="close-modal">Отмена</button><button type="button" class="primary" data-action="gift-exchange-confirm" data-source="${esc(type)}" data-item="${esc(id)}">Обменять</button></div></div>`);
+    return;
+  }
+  if(action==='gift-exchange-confirm'){
+    await guarded('gift-exchange-confirm',async()=>{
+      const result=await api.exchangeGift(button.dataset.source,button.dataset.item);
+      if(app.profile)app.profile.stars=Number(result.balance);
+      if(modal.open)modal.close();
+      toast(`✅ +${Number(result.received)} ⭐ за подарок · комиссия ${Number(result.commission)} ⭐`);
+      if(app.route==='stars')await openStars();
+      renderSidebar();
+    },button);
+    return;
+  }
+  if(action==='case-open'){
+    const id=button.dataset.case,title=button.dataset.title,cost=Number(button.dataset.price);
+    showModal('📦 Открыть кейс?',`<p>Кейс «${esc(title)}». С баланса спишется <b>⭐ ${cost}</b>. Случайный подарок окажется в коллекции. Выигрыш можно обменять на игровые звёзды с комиссией 10%, но не на деньги.</p><div class="modal-actions"><button class="secondary" data-action="close-modal">Отмена</button><button class="primary" data-action="case-confirm" data-case="${esc(id)}">Открыть кейс</button></div>`);return;
+  }
+  if(action==='case-confirm'){
+    await guarded('case-confirm',async()=>{
+      const result=await api.caseOpen(button.dataset.case);
+      if(app.profile)app.profile.stars=Number(result.balance);
+      await openStars();renderSidebar();
+      showModal(result.exclusive?'💠 ЭКСКЛЮЗИВ!':'🎉 Твой приз!',`<div class="rndm54-win"><span>${V.giftArt(result.gift_id,result.name)}</span><h2>${esc(result.name)}</h2><p>${result.exclusive?'Эксклюзив из кейса':'Редкость: '+esc(result.rarity)}</p><small>Сохранено в коллекции. Остаток: ⭐ ${Number(result.balance).toLocaleString('ru-RU')}</small></div><button type="button" class="primary" data-action="close-modal">Отлично!</button>`);
+    },button);return;
+  }
+  if(action==='case-gift'){
+    const itemId=button.dataset.item;
+    showModal('🎁 Передать предмет другу',`<form id="rndm54-case-gift-form"><p>Укажи точный @username друга. Предмет перейдёт в его коллекцию навсегда.</p><label class="field">Имя пользователя<input name="username" required minlength="3" maxlength="32" placeholder="@username" autocomplete="off"></label><label class="field">Пожелание<input name="note" maxlength="160" placeholder="Необязательно"></label><div id="caseGiftError"></div><button class="primary" type="submit">Найти и отправить</button></form>`);
+    const form=$('#rndm54-case-gift-form');form.onsubmit=event=>{event.preventDefault();const submit=form.querySelector('button[type=submit]');guarded('case-gift-send',async()=>{
+      const data=new FormData(form),username=String(data.get('username')||'').replace(/^@/,'').trim().toLowerCase();
+      const people=await api.people(username);const target=people.find(p=>String(p.username||'').toLowerCase()===username);
+      if(!target)throw new Error('Пользователь с таким @username не найден.');
+      if(target.id===app.user.id)throw new Error('Нельзя отправить подарок себе.');
+      await api.caseSend(itemId,target.id,String(data.get('note')||''));if(modal.open)modal.close();
+      toast('🎁 Подарок передан пользователю @'+username);if(app.route==='stars')await openStars();
+    },submit);};return;
+  }
   if(action==='stars-refresh'){await guarded('stars-refresh',()=>openStars(),button);return;}
   if(action==='stars-claim'){
     await guarded('stars-claim',async()=>{

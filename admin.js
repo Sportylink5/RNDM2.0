@@ -1,4 +1,4 @@
-import {$,$$,esc,icon,avatar,safeURL,errorText} from './core.js?v=53.0.0';
+import {$,$$,esc,icon,avatar,safeURL,errorText} from './core.js?v=56.0.0';
 const must=r=>{if(r.error)throw r.error;return r.data;};
 export const staffRole=role=>['owner','admin','moderator'].includes(role);
 const rank={user:0,premium:10,verified:20,moderator:30,admin:40,owner:50};
@@ -23,7 +23,7 @@ export class Admin {
       // Every write is still authorized by its server RPC.
       this.writeReady=window.RNDM_CONFIG.adminWriteEnabled===true;
       this.offset=0;this.search='';this.kind='clips';this.reportFilter='open';this.tab='users';
-      host.innerHTML=`<header class="chat-header"><button class="icon-button back-mobile" data-action="back" aria-label="К чатам">${icon('back')}</button><h2>Админка</h2><span class="admin-role">${esc(roleNames[this.role])}</span><div class="header-tools"><button class="secondary" data-admin-action="refresh">Обновить</button></div></header><section class="admin-pane"><div class="admin-kpis" id="adminStats"></div><nav class="admin-tabs" aria-label="Разделы админки">${Object.entries({users:'Пользователи',security:'Подозрительная активность',reports:'Жалобы',content:'Публикации',audit:'Журнал'}).map(([key,label])=>`<button data-admin-tab="${key}" class="${key==='users'?'active':''}">${label}</button>`).join('')}</nav>${!this.writeReady?'<div class="notice admin-readiness">Блокировки, назначение ролей и удаление пока выключены. Можно просматривать пользователей и журнал, обрабатывать жалобы и редактировать публикации.</div>':''}<div id="adminPanel"></div></section>`;
+      host.innerHTML=`<header class="chat-header"><button class="icon-button back-mobile" data-action="back" aria-label="К чатам">${icon('back')}</button><h2>Админка</h2><span class="admin-role">${esc(roleNames[this.role])}</span><div class="header-tools"><button class="secondary" data-admin-action="refresh">Обновить</button></div></header><section class="admin-pane"><div class="admin-kpis" id="adminStats"></div><nav class="admin-tabs" aria-label="Разделы админки">${Object.entries({users:'Пользователи',security:'Подозрительная активность',reports:'Жалобы',content:'Публикации',audit:'Журнал',...(this.role==='owner'?{donations:'Донаты'}:{})}).map(([key,label])=>`<button data-admin-tab="${key}" class="${key==='users'?'active':''}">${label}</button>`).join('')}</nav>${!this.writeReady?'<div class="notice admin-readiness">Блокировки, назначение ролей и удаление пока выключены. Можно просматривать пользователей и журнал, обрабатывать жалобы и редактировать публикации.</div>':''}<div id="adminPanel"></div></section>`;
       host.onclick=event=>{const b=event.target.closest('button');if(!b)return;if(b.dataset.adminTab)this.switchTab(b.dataset.adminTab);else if(b.dataset.adminAction)this.action(b).catch(e=>this.ui.toast(message(e)));};
       this.stats(token).catch(()=>{});await this.switchTab('users');
     }catch(e){if(this.current(token))host.innerHTML=`<div class="empty-messages">${icon('shield')}<h3>Нет доступа</h3><p class="muted">${esc(message(e))}</p><button class="secondary" data-action="back">Вернуться к чатам</button></div>`;}
@@ -34,13 +34,27 @@ export class Admin {
     if(this.current(token)&&$('#adminStats',this.host))$('#adminStats',this.host).innerHTML=items.map(([,label],i)=>`<article><b>${results[i].status==='fulfilled'?results[i].value.toLocaleString('ru-RU'):'—'}</b><span>${label}</span></article>`).join('');
   }
   async switchTab(tab){
-    if(!this.host||!['users','security','reports','content','audit'].includes(tab))return;this.tab=tab;this.offset=0;this.search='';++this.requests;
+    if(!this.host||!['users','security','reports','content','audit','donations'].includes(tab))return;this.tab=tab;this.offset=0;this.search='';++this.requests;
     $$('[data-admin-tab]',this.host).forEach(b=>b.classList.toggle('active',b.dataset.adminTab===tab));
-    const panel=$('#adminPanel',this.host);this.pauseMedia();panel.innerHTML=`<form class="admin-toolbar" id="adminFilter">${tab==='content'?`<label class="field">Раздел<select id="adminKind">${Object.entries(kinds).map(([key,label])=>`<option value="${key}">${label}</option>`).join('')}</select></label>`:''}${tab==='reports'?'<label class="field">Статус<select id="adminReportFilter"><option value="open">Новые</option><option value="reviewing">В работе</option><option value="resolved">Решённые</option><option value="rejected">Отклонённые</option><option value="all">Все</option></select></label>':''}${tab==='users'||tab==='content'?'<label class="field admin-search">Поиск<input id="adminSearch" maxlength="80" placeholder="'+(tab==='users'?'Имя или @username':'Текст публикации или ID клипа')+'"></label><button class="primary" type="submit">Найти</button>':''}</form><div id="adminList"></div><div class="admin-pagination" id="adminPagination"></div>`;
+    const panel=$('#adminPanel',this.host);this.pauseMedia();if(tab==='donations'){await this.donationsPanel();return;}panel.innerHTML=`<form class="admin-toolbar" id="adminFilter">${tab==='content'?`<label class="field">Раздел<select id="adminKind">${Object.entries(kinds).map(([key,label])=>`<option value="${key}">${label}</option>`).join('')}</select></label>`:''}${tab==='reports'?'<label class="field">Статус<select id="adminReportFilter"><option value="open">Новые</option><option value="reviewing">В работе</option><option value="resolved">Решённые</option><option value="rejected">Отклонённые</option><option value="all">Все</option></select></label>':''}${tab==='users'||tab==='content'?'<label class="field admin-search">Поиск<input id="adminSearch" maxlength="80" placeholder="'+(tab==='users'?'Имя или @username':'Текст публикации или ID клипа')+'"></label><button class="primary" type="submit">Найти</button>':''}</form><div id="adminList"></div><div class="admin-pagination" id="adminPagination"></div>`;
     if($('#adminKind',panel)){$('#adminKind',panel).value=this.kind;$('#adminKind',panel).onchange=()=>{this.kind=$('#adminKind',panel).value;this.offset=0;this.load().catch(()=>{});};}
     if($('#adminReportFilter',panel)){$('#adminReportFilter',panel).value=this.reportFilter;$('#adminReportFilter',panel).onchange=()=>{this.reportFilter=$('#adminReportFilter',panel).value;this.offset=0;this.load().catch(()=>{});};}
     $('#adminFilter',panel).onsubmit=e=>{e.preventDefault();this.search=cleanSearch($('#adminSearch',panel)?.value);this.offset=0;this.load().catch(()=>{});};
     await this.load();
+  }
+
+  async donationsPanel(){
+    const host=$('#adminPanel',this.host);if(!host)return;
+    host.innerHTML='<div class="admin-card"><span class="spinner"></span><p>Загружаем заявки…</p></div>';
+    try{
+      const [setting,requests]=await Promise.all([
+        this.sb.rpc('rndm_donation_public').then(must),
+        this.sb.rpc('rndm_donation_admin_list',{p_limit:100}).then(must)
+      ]);
+      const rows=Array.isArray(requests)?requests:[];
+      host.innerHTML=`<article class="admin-card"><h3>💜 Ссылка для поддержки</h3><p class="muted">Донаты добровольные и не начисляют звёзды или кейсы.</p><form id="rndm54-settings-form"><label class="field">Безопасная HTTPS-ссылка на проверенный платёжный сервис<input name="url" type="url" placeholder="https://..." value="${esc(setting.url||'')}"></label><label class="field">Текст кнопки<input name="label" maxlength="60" value="${esc(setting.label||'Поддержать RNDM')}"></label><button class="primary" type="submit">Сохранить ссылку</button></form></article><article class="admin-card"><h3>Подтверждение платежей</h3><p class="muted">Перед подтверждением сверь ID операции в кабинете платёжного сервиса. Заявка сама по себе не доказывает платёж.</p>${rows.map(r=>`<div class="rndm54-admin-donation"><b>${esc(r.display_name||r.username)}</b> <small>@${esc(r.username)} · ${date(r.created_at)}</small><p>Номер: <code>${esc(r.reference)}</code></p>${r.comment?`<p>${esc(r.comment)}</p>`:''}<b>${r.status==='approved'?'✓ Подтверждён':r.status==='rejected'?'Отклонён':'Ожидает проверки'}</b>${r.status==='pending'?`<div class="admin-actions"><button type="button" class="primary" data-admin-action="donation-approve" data-id="${esc(r.id)}">Подтвердить</button><button type="button" class="secondary" data-admin-action="donation-reject" data-id="${esc(r.id)}">Отклонить</button></div>`:''}</div>`).join('')||'<p class="muted">Заявок пока нет.</p>'}</article>`;
+      const form=$('#rndm54-settings-form',host);form.onsubmit=async e=>{e.preventDefault();const button=form.querySelector('[type=submit]');button.disabled=true;try{const fd=new FormData(form);must(await this.sb.rpc('rndm_donation_admin_settings',{p_url:String(fd.get('url')||'').trim(),p_label:String(fd.get('label')||'').trim()}));this.ui.toast('Ссылка сохранена');await this.donationsPanel();}catch(err){this.ui.toast(message(err));}finally{if(button.isConnected)button.disabled=false;}};
+    }catch(err){host.innerHTML=`<div class="notice error-notice">${esc(message(err))}</div><button class="secondary" type="button" data-admin-action="donations-reload">Повторить</button>`;}
   }
   async load(){
     if(!this.host)return;const token=this.epoch,request=++this.requests,tab=this.tab,host=$('#adminList',this.host),pagination=$('#adminPagination',this.host);if(!host)return;
@@ -98,7 +112,12 @@ export class Admin {
   requireWrite(){if(!this.writeReady)throw new Error('Блокировки, роли и удаление пока выключены.');}
   async action(button){
     const action=button.dataset.adminAction,id=button.dataset.id;
-    if(action==='refresh'){await this.load();this.stats().catch(()=>{});return;}
+    if(action==='refresh'){if(this.tab==='donations')await this.donationsPanel();else await this.load();this.stats().catch(()=>{});return;}
+    if(action==='donations-reload'){await this.donationsPanel();return;}
+    if(action==='donation-approve'||action==='donation-reject'){
+      const approve=action==='donation-approve';
+      this.ui.confirm(approve?'Подтвердить донат?':'Отклонить заявку?',approve?'Сверь номер операции в платёжном сервисе. Это действие не начисляет игровые звёзды.':'Пометить заявку как отклонённую?',async()=>{must(await this.sb.rpc('rndm_donation_admin_decide',{p_id:id,p_approve:approve}));this.ui.toast('Статус обновлён');await this.donationsPanel();},approve?'Подтвердить':'Отклонить');return;
+    }
     if(action==='prev'||action==='next'){this.offset=Math.max(0,this.offset+(action==='next'?25:-25));await this.load();return;}
     const row=this.rows?.find(r=>String(r.id)===id);if(!row)return;
     if(action==='security-profile'){if(row.subject_id&&this.ui.onProfile)await this.ui.onProfile(row.subject_id);return;}
