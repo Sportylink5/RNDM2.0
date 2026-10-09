@@ -1,10 +1,10 @@
-import {$,$$,esc,icon,ib,avatar,sid,unique,preview,safeURL,richText,day,time,bytes,errorText,readLocal,writeLocal} from './core.js?v=47.0.0';
-import {MessengerAPI} from './api.js?v=47.0.0';
-import * as V from './views.js?v=47.0.0';
-import {Admin,staffRole} from './admin.js?v=47.0.0';
-import {Calls} from './calls.js?v=47.0.0';
-import {Clips} from './clips.js?v=47.0.0';
-import {applyColors,validColors,defaultColors} from './theme.js?v=47.0.0';
+import {$,$$,esc,icon,ib,avatar,sid,unique,preview,safeURL,richText,day,time,bytes,errorText,readLocal,writeLocal} from './core.js?v=53.0.0';
+import {MessengerAPI} from './api.js?v=53.0.0';
+import * as V from './views.js?v=53.0.0';
+import {Admin,staffRole} from './admin.js?v=53.0.0';
+import {Calls} from './calls.js?v=53.0.0';
+import {Clips} from './clips.js?v=53.0.0';
+import {applyColors,validColors,defaultColors} from './theme.js?v=53.0.0';
 
 const defaults={notes:[],muted:[],wallpaper:'default',enterSend:true,notifications:false,notificationSound:false,colors:null};
 const app={user:null,profile:null,route:'chats',folder:'all',active:null,info:null,dialogs:[],channels:[],friends:[],prefs:{},drafts:{},state:{...defaults},messages:[],reactions:[],peopleMap:{},replyLookup:{},pins:[],reply:null,edit:null,files:new Map(),pending:new Set(),epoch:0,messageEpoch:0,more:false,rt:[],globalRt:[],stateChain:Promise.resolve(),draftTimers:new Map(),refreshing:false};
@@ -138,7 +138,7 @@ async function repairFrontendCache(reload=true){
   }
   if(reload){
     const url=new URL(location.href);
-    url.searchParams.set('updated',window.RNDM_CONFIG?.version||'47.0.0');
+    url.searchParams.set('updated',window.RNDM_CONFIG?.version||'53.0.0');
     location.replace(url.href);
   }
 }
@@ -159,7 +159,7 @@ async function boot() {
     const message=String(error?.message||'');
     const outdated=/\bis not a function\b|\b(?:undefined|null)\b.*\b(?:property|properties)\b/i.test(message);
     if(outdated){
-      const flag='rndm-repair-once-'+(window.RNDM_CONFIG?.version||'47.0.0');
+      const flag='rndm-repair-once-'+(window.RNDM_CONFIG?.version||'53.0.0');
       try{
         if(sessionStorage.getItem(flag)!=='1'){
           sessionStorage.setItem(flag,'1');
@@ -183,7 +183,9 @@ function auth(mode,email='') {
         result=await api.sb.auth.signInWithPassword({email:String(fd.get('email')).trim(),password:fd.get('password')});
         if(result.error)throw result.error;api.uid=result.data.user.id;await start(result.data.user);
       }else if(mode==='register'){
-        result=await api.sb.auth.signUp({email:String(fd.get('email')).trim(),password:fd.get('password'),options:{data:{username:String(fd.get('username')).toLowerCase(),display_name:String(fd.get('name')).trim()},emailRedirectTo:new URL('index.html',location.href).href}});
+        const username=String(fd.get('username')||'').trim().toLowerCase(),name=String(fd.get('name')||'').trim();
+        if(!/^[a-z0-9_]{3,15}$/.test(username)||name.length>15)throw new Error('Ник от 3 до 15 символов, имя не длиннее 15.');
+        result=await api.sb.auth.signUp({email:String(fd.get('email')).trim(),password:fd.get('password'),options:{data:{username,display_name:name},emailRedirectTo:new URL('index.html',location.href).href}});
         if(result.error)throw result.error;
         if(result.data.session){api.uid=result.data.user.id;await start(result.data.user);}else $('#authMessage').innerHTML='<div class="notice">Аккаунт создан. Подтверди почту по ссылке из письма, затем войди.</div>';
       }else if(mode==='forgot'){
@@ -211,7 +213,7 @@ async function start(user) {
   if(results[2].status==='fulfilled' && results[2].value?.value){app.state={...defaults,...results[2].value.value};writeLocal(localStateKey(),{value:app.state,at:Date.now()});}else if(results[2].status==='rejected')connection('Настройки доступны на устройстве',true);
   if(results[3].status==='fulfilled'){app.dialogs=results[3].value;renderSidebar();applyLanguage();}else{renderSidebarError(results[3].reason);}
   applyColors(app.state.colors);refreshStories().catch(()=>{});refreshNotificationBadge().catch(()=>{});
-  admin=new Admin(api,{toast,modal:showModal,confirm:confirmAction,close:()=>modal.close()});
+  admin=new Admin(api,{toast,modal:showModal,confirm:confirmAction,close:()=>modal.close(),onProfile:showPerson});
   calls=new Calls(api,toast);calls.start();
   clips=new Clips(api,{toast,modal:showModal,confirm:confirmAction,onProfile:showPerson,onGift:openGiftShop});
   api.heartbeat().catch(()=>{});clearInterval(listTimer);let tick=0;
@@ -462,7 +464,7 @@ function renderCompose() {
   const context=$('#replyContext'),target=app.edit||app.reply;context.hidden=!target;
   if(target)context.innerHTML=`${icon(app.edit?'edit':'reply')}<div class="context-text"><b>${app.edit?'Редактирование':'Ответ на сообщение'}</b><p>${esc(preview(target))}</p></div>${ib('close','Отменить','cancel-context','small')}`;
   const file=fileFor(),fileHost=$('#fileContext');fileHost.hidden=!file;
-  if(file)fileHost.innerHTML=`${file.url?`<img class="file-preview-thumb" src="${esc(file.url)}" alt="">`:icon('file')}<div class="context-text"><b>${esc(file.file.name)}</b><p>${bytes(file.file.size)} · файл готов к отправке</p></div>${file.file.type.startsWith('image/')?ib('edit','Редактор фото','edit-photo','small'):''}${ib('close','Убрать вложение','remove-file','small')}`;
+  if(file)fileHost.innerHTML=`${file.url?`<img class="file-preview-thumb" src="${esc(file.url)}" alt="">`:icon('file')}<div class="context-text"><b>${esc(file.file.name)}</b><p>${bytes(file.file.size)} · файл готов к отправке</p><p class="attachment-warning">⚠️ Пока ссылка на вложение доступна каждому, у кого она есть. Не отправляй документы, пароли и конфиденциальные файлы.</p></div>${file.file.type.startsWith('image/')?ib('edit','Редактор фото','edit-photo','small'):''}${ib('close','Убрать вложение','remove-file','small')}`;
   const pending=app.pending.has(activeKey());$('#sendButton').disabled=pending||!!record||(!input.value.trim()&&!file);$('#sendButton').title=pending?'Отправляем…':app.edit?'Сохранить изменение':'Отправить сообщение';
   $('[data-action=voice]').disabled=pending||!!app.edit||!!file||voiceBusy;
   $('[data-action=voice]').classList.toggle('active',!!record);$('[data-action=voice]').setAttribute('aria-label',record?'Остановить запись':'Записать голосовое');
@@ -539,7 +541,7 @@ async function newGroup() {
   $('#groupForm').onsubmit=async e=>{e.preventDefault();const b=$('button[type=submit]',e.currentTarget);b.disabled=true;try{const ids=new FormData(e.currentTarget).getAll('member');if(!ids.length)throw new Error('Выбери хотя бы одного участника.');const cid=await api.group($('#groupName').value.trim(),ids);if(!cid)throw new Error('Сервер не подтвердил создание группы.');modal.close();await refreshLists();await openConversation(cid);}catch(error){showError($('#modalError'),error);}finally{b.disabled=false;}};
 }
 function newChannel() {
-  showModal('Новый канал',`<form id="channelForm"><label class="field">Название<input id="channelName" placeholder="Имя твоего канала" minlength="2" maxlength="80" required></label><label class="field">Описание<textarea id="channelDescription" rows="3" maxlength="500" placeholder="О чём здесь будут публикации?"></textarea></label><p class="muted" style="font-size:11px;line-height:1.7">Публикации доступны читателям. Писать посты может владелец канала.</p><div id="modalError"></div><div class="modal-actions"><button type="button" class="secondary" data-action="close-modal">Отмена</button><button class="primary" type="submit">Создать канал</button></div></form>`);
+  showModal('Новый канал',`<form id="channelForm"><label class="field">Название<input id="channelName" placeholder="Имя твоего канала" minlength="2" maxlength="15" required></label><label class="field">Описание<textarea id="channelDescription" rows="3" maxlength="50" placeholder="О чём здесь будут публикации?"></textarea></label><p class="muted" style="font-size:11px;line-height:1.7">Публикации доступны читателям. Писать посты может владелец канала.</p><div id="modalError"></div><div class="modal-actions"><button type="button" class="secondary" data-action="close-modal">Отмена</button><button class="primary" type="submit">Создать канал</button></div></form>`);
   $('#channelForm').onsubmit=async e=>{e.preventDefault();const b=$('button[type=submit]',e.currentTarget);b.disabled=true;try{const ch=await api.createChannel($('#channelName').value.trim(),$('#channelDescription').value.trim());modal.close();await navigate('channels');await openChannel(ch.id);}catch(error){showError($('#modalError'),error);}finally{b.disabled=false;}};
 }
 async function showPerson(uid){

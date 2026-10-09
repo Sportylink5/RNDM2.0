@@ -3,6 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; frame-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://rijqlmrcnshswtoweoai.supabase.co wss://rijqlmrcnshswtoweoai.supabase.co; img-src 'self' data: blob: https:; media-src 'self' blob: https:; font-src 'self' data:; worker-src 'self' blob:; form-action 'self'; upgrade-insecure-requests">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noai,noimageai">
   <meta name="theme-color" content="#0c101a">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -12,10 +15,8 @@
   <link rel="icon" href="icon-192.png" type="image/png">
   <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="style.css?v=47.0.0">
-  <script>
-    try { document.documentElement.dataset.theme = localStorage.getItem('rndm-theme') === 'light' ? 'light' : 'dark'; } catch {}
-  </script>
+  <link rel="stylesheet" href="style.css?v=53.0.0">
+  <script src="bootstrap.js?v=53.0.0" defer></script>
 </head>
 <body>
   <div id="root"><div class="boot"><span class="brand-mark">R</span><b>RNDM Chat</b><span class="spinner"></span><p>Подключаемся…</p></div></div>
@@ -23,18 +24,10 @@
   <dialog id="modal" class="modal" aria-labelledby="modalTitle"></dialog>
   <div id="popover" class="popover" hidden></div>
   <noscript><p>Включи JavaScript в браузере, чтобы открыть RNDM Chat.</p></noscript>
-  <script src="supabase-2.117.2.js?v=47.0.0"></script>
-  <script src="config.js?v=47.0.0"></script>
-  <script>
-    if (location.protocol === 'file:') {
-      document.getElementById('root').innerHTML = '<div class="boot"><span class="brand-mark">R</span><h2>Открой опубликованный RNDM</h2><p>Загрузи файлы на GitHub Pages и открой опубликованную HTTPS-ссылку.</p><p>Инструкция находится в GITHUB_PAGES_RU.txt.</p></div>';
-    }
-  </script>
-  <script type="module" src="app.js?v=47.0.0"></script>
-  <script>
-    if ('serviceWorker' in navigator && location.protocol === 'https:') {
-      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js?v=47.0.0',{scope:'./',updateViaCache:'none'}).then(reg=>reg.update().catch(console.warn)).catch(console.warn));
-    }
-  </script>
+  <script src="supabase-2.117.2.js?v=53.0.0" integrity="sha384-WgXwGL6fUsYJWNaKJgVbrJKGRQwc1vieh2oy4kw9nXqpNDz3tdSsqEYUgeHD/NuF" crossorigin="anonymous"></script>
+  <script src="config.js?v=53.0.0"></script>
+  <script src="file-warning.js?v=53.0.0" defer></script>
+  <script type="module" src="app.js?v=53.0.0"></script>
+  <script src="pwa-register.js?v=53.0.0" defer></script>
 </body>
 </html>

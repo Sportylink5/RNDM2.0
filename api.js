@@ -1,4 +1,4 @@
-import {timeoutFetch, sid, unique, safeURL} from './core.js?v=47.0.0';
+import {timeoutFetch, sid, unique, safeURL} from './core.js?v=53.0.0';
 
 function must(result) { if (result.error) throw result.error; return result.data; }
 const now = () => new Date().toISOString();
@@ -35,11 +35,11 @@ export class MessengerAPI {
   async creatorStats(){return must(await this.sb.rpc('rndm_creator_clip_stats'));}
 
   async publicProfile(userId) {
-    const {data,error}=await this.sb.from('profiles').select('id,username,display_name,avatar_url,cover_url,bio,status,last_seen,created_at,app_role,is_verified,is_premium,is_banned,reputation,xp,stars,profile_accent,frame_id,profile_cover_style,profile_layout,profile_private,show_friends,show_clips,show_followers,allow_messages,allow_friend_requests').eq('id',userId).maybeSingle();
+    const {data,error}=await this.sb.from('rndm_public_profiles').select('id,username,display_name,avatar_url,cover_url,bio,status,last_seen,created_at,app_role,is_verified,is_premium,is_banned,reputation,xp,stars,profile_accent,frame_id,profile_cover_style,profile_layout,profile_private,show_friends,show_clips,show_followers,allow_messages,allow_friend_requests').eq('id',userId).maybeSingle();
     if(error)throw error; return data;
   }
   async randomJoin(language='any',interest='any') {
-    const result=must(await this.sb.rpc('random_chat_join_v42',{p_language:language,p_interest:interest}));
+    const result=must(await this.sb.rpc('rndm_random_search',{p_language:language,p_interest:interest}));
     return Array.isArray(result)?result[0]:result;
   }
   async randomWaitingCount(){return Number(must(await this.sb.rpc('random_waiting_count'))||0);}
@@ -49,10 +49,10 @@ export class MessengerAPI {
     if(['ru','en'].includes(patch.app_language))allowed.app_language=patch.app_language;
     if(['strict','mask','off'].includes(patch.censorship_mode))allowed.censorship_mode=patch.censorship_mode;
     if(!Object.keys(allowed).length)throw new Error('Не выбраны настройки для сохранения.');
-    return must(await this.sb.from('profiles').update(allowed).eq('id',this.uid).select().single());
+    const changed=must(await this.sb.from('profiles').update(allowed).eq('id',this.uid).select('id')); if(!changed?.length)throw new Error('Сервер не подтвердил сохранение настроек.'); return this.profile();
   }
   async profile() {
-    const row = must(await this.sb.from('profiles').select('*').eq('id',this.uid).maybeSingle());
+    const row = must(await this.sb.rpc('rndm_my_profile'));
     if (row) return row;
     const boot = await this.sb.rpc('rndm_bootstrap');
     if (!boot.error && boot.data?.profile) return boot.data.profile;
@@ -60,7 +60,7 @@ export class MessengerAPI {
   }
   async profiles(ids) {
     ids = [...new Set(ids.filter(Boolean))]; if (!ids.length) return [];
-    return must(await this.sb.from('profiles').select('id,username,display_name,avatar_url,bio,last_seen,hide_last_seen').in('id',ids)) || [];
+    return must(await this.sb.from('rndm_public_profiles').select('id,username,display_name,avatar_url,bio,last_seen,hide_last_seen').in('id',ids)) || [];
   }
   async preferences() {
     return must(await this.sb.from('conversation_preferences').select('*').eq('user_id',this.uid)) || [];
@@ -134,8 +134,16 @@ export class MessengerAPI {
   async upload(bucket,file,prefix='messages') {
     if (!file?.size) throw new Error('Выбери непустой файл.');
     if (file.size > window.RNDM_CONFIG.maxFileBytes) throw new Error('Максимальный размер файла — 50 МБ.');
-    const type=file.type || ({mp3:'audio/mpeg',m4a:'audio/mp4',mp4:'video/mp4',mov:'video/quicktime',webm:'video/webm',jpg:'image/jpeg',png:'image/png'})[file.name.split('.').pop().toLowerCase()] || 'application/octet-stream';
-    const name=file.name.replace(/[^a-zA-Z0-9._-]/g,'_').slice(-100) || 'file';
+    const originalName=String(file.name||'file').slice(0,150);
+    const blockedExtension=/\.(?:html?|xhtml|mhtml|svgz?|xml|js|mjs|cjs|ts|php|phtml|asp|aspx|jsp|exe|dll|bat|cmd|ps1|vbs|wsf|hta|scr|msi|app|jar|swf|wasm|apk|ipa|lnk|url|webloc)(?:\.|$)/i;
+    const declaredType=String(file.type||'').toLowerCase();
+    if(blockedExtension.test(originalName)||/^(?:text\/html|image\/svg\+xml|application\/(?:javascript|x-javascript|x-msdownload|x-msdos-program|x-httpd-php|x-shockwave-flash|wasm|xml)|text\/javascript)/.test(declaredType))
+      throw new Error('Этот тип файла может выполнять код. Передавай такой файл только внутри безопасного ZIP.');
+    const bucketLimit={'avatars':5,'market-files':20,'clips':100,'videos':250,'stories':50,'channel-files':50,'chat-files':50};
+    const maxMb=bucketLimit[bucket]??50;
+    if(file.size>maxMb*1024*1024)throw new Error('Для этого раздела максимальный размер файла — '+maxMb+' МБ.');
+    const type=file.type || ({mp3:'audio/mpeg',m4a:'audio/mp4',mp4:'video/mp4',mov:'video/quicktime',webm:'video/webm',jpg:'image/jpeg',png:'image/png'})[originalName.split('.').pop().toLowerCase()] || 'application/octet-stream';
+    const name=originalName.replace(/[^a-zA-Z0-9._-]/g,'_').slice(-100) || 'file';
     const path=`${this.uid}/${prefix}/${crypto.randomUUID()}-${name}`;
     must(await this.sb.storage.from(bucket).upload(path,file,{contentType:type,upsert:false,cacheControl:'3600'}));
     const {data}=this.sb.storage.from(bucket).getPublicUrl(path);
@@ -186,7 +194,7 @@ export class MessengerAPI {
   async saveState(value) { must(await this.sb.from('user_state').upsert({user_id:this.uid,key,value,updated_at:now()},{onConflict:'user_id,key'})); }
   async people(query) {
     const value=query.trim().replace(/^@/,'').replace(/[,()%\\]/g,' ').slice(0,70).trim(); if (value.length<2) return [];
-    return must(await this.sb.from('profiles').select('id,username,display_name,avatar_url,bio,last_seen,hide_last_seen').neq('id',this.uid).or(`username.ilike.%${value}%,display_name.ilike.%${value}%`).limit(30)) || [];
+    return must(await this.sb.from('rndm_public_profiles').select('id,username,display_name,avatar_url,bio,last_seen,hide_last_seen').neq('id',this.uid).or(`username.ilike.%${value}%,display_name.ilike.%${value}%`).limit(30)) || [];
   }
   async friends() {
     const rows=must(await this.sb.from('friendships').select('*').or(`requester.eq.${this.uid},addressee.eq.${this.uid}`).order('created_at',{ascending:false})) || [];
@@ -205,6 +213,9 @@ export class MessengerAPI {
   }
   async join(cid,leave=false) { if (leave) must(await this.sb.from('rndm_channel_subscriptions').delete().eq('channel_id',cid).eq('user_id',this.uid)); else must(await this.sb.from('rndm_channel_subscriptions').insert({channel_id:cid,user_id:this.uid})); }
   async createChannel(name,description) {
+    name=String(name||'').trim(); description=String(description||'').trim();
+    if(name.length<2||name.length>15)throw new Error('Название канала: от 2 до 15 символов.');
+    if(description.length>50)throw new Error('Описание канала: максимум 50 символов.');
     const channel=must(await this.sb.from('rndm_channels').insert({owner_id:this.uid,name,description,emoji:'📡',handle:'ch_'+crypto.randomUUID().replaceAll('-','').slice(0,12)}).select().single());
     // Ownership is sufficient for publishing even if subscribing is unavailable.
     await this.sb.from('rndm_channel_subscriptions').insert({channel_id:channel.id,user_id:this.uid});
@@ -226,7 +237,12 @@ export class MessengerAPI {
     const people=await this.profiles(rows.map(x=>x.user_id)); return rows.map(row=>({...row,person:people.find(x=>x.id===row.user_id)}));
   }
   async comment(pid,body) { return must(await this.sb.from('rndm_channel_comments').insert({post_id:pid,user_id:this.uid,body}).select().single()); }
-  async updateProfile(value) { return must(await this.sb.from('profiles').update(value).eq('id',this.uid).select().single()); }
+  async updateProfile(value) {
+    if('username' in value&&String(value.username).length>15)throw new Error('Ник: максимум 15 символов.');
+    if('display_name' in value&&String(value.display_name).length>15)throw new Error('Имя: максимум 15 символов.');
+    if('bio' in value&&String(value.bio||'').length>50)throw new Error('Описание: максимум 50 символов.');
+    const changed=must(await this.sb.from('profiles').update(value).eq('id',this.uid).select('id')); if(!changed?.length)throw new Error('Сервер не подтвердил сохранение профиля.'); return this.profile();
+  }
   async heartbeat() { await this.sb.from('profiles').update({last_seen:now()}).eq('id',this.uid); }
   async typing(cid,activity='typing') { await this.sb.from('typing_states').upsert({conversation_id:cid,user_id:this.uid,activity,updated_at:now()}); }
   async typers(cid) { return must(await this.sb.from('typing_states').select('user_id,activity,updated_at').eq('conversation_id',cid).neq('user_id',this.uid).gt('updated_at',new Date(Date.now()-5500).toISOString())) || []; }

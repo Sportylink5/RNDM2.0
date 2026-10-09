@@ -268,3 +268,92 @@
 @media(max-width:760px){.notification-page{height:calc(100dvh - 83px);padding:13px 12px max(90px,env(safe-area-inset-bottom))}.notification-top-button{height:34px;width:34px}.notif-row{padding:13px;gap:11px}.notification-page+.sidebar{display:none}.random-history{margin:16px 2px 0;padding:13px}.random-history-person{gap:6px}.random-history-person .primary,.random-history-person .secondary{padding:7px}.cat-cosmetics{padding:14px;margin:12px 0}.cat-cosmetic-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.cat-cosmetic-choice{min-height:105px}.creator-stats>div{grid-template-columns:repeat(2,minmax(0,1fr))}.profile-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:360px){.random-history-person .primary{font-size:10px;padding:7px 5px}.random-history-person .avatar{width:34px;height:34px}.notif-tabs button{font-size:11px;padding:9px 12px}}
 @media(prefers-reduced-motion:reduce){.profile-cover.cover-cosmos:before,.profile-cover.cover-aurora:before{animation:none!important}}
+
+/* v48 — interactive iOS clips. The tap surface is behind profile and actions. */
+.clip-card{isolation:isolate}
+.clip-card .clip-shade{z-index:1}
+.clip-card .clip-play-overlay{
+  position:absolute;inset:0;top:0;left:0;transform:none;
+  width:100%;height:100%;border-radius:0;background:transparent;
+  opacity:1;pointer-events:auto;display:grid;place-items:center;
+  z-index:2;touch-action:pan-y;cursor:pointer;-webkit-tap-highlight-color:transparent;
+}
+.clip-card .clip-play-symbol{
+  width:70px;height:70px;border-radius:50%;display:grid;place-items:center;
+  background:#0a0a16a8;box-shadow:0 10px 30px #0005;
+  opacity:0;transition:opacity .16s,transform .16s;pointer-events:none;
+}
+.clip-card .clip-play-symbol .icon{width:34px;height:34px}
+.clip-card .clip-play-overlay.paused .clip-play-symbol{opacity:1}
+.clip-card .clip-play-overlay:focus-visible .clip-play-symbol{opacity:1;outline:2px solid #fff;outline-offset:4px}
+.clip-card .clip-copy{z-index:4}
+.clip-card .clip-actions{z-index:5}
+.clip-card .clip-copy .clip-author-profile,
+.clip-card .clip-copy .clip-creator-tools button{pointer-events:auto;position:relative}
+.clip-card .clip-author-profile{min-height:44px;min-width:0;max-width:100%;text-shadow:0 1px 5px #000d}
+.clip-card .clip-author-profile b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.clip-card .clip-speed-control{
+  position:absolute;top:12px;right:12px;z-index:6;
+  min-width:58px;min-height:44px;padding:7px 11px;
+  display:grid;place-items:center;border:1px solid #ffffff52;border-radius:12px;
+  color:white;background:#0d1024bd;backdrop-filter:blur(9px);
+  font-size:13px;font-weight:800;font-variant-numeric:tabular-nums;
+  cursor:pointer;-webkit-tap-highlight-color:transparent;
+}
+.clip-card .clip-enable-sound{z-index:7}
+.clip-comment-author{display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:0;color:var(--text);cursor:pointer;font-size:11px;max-width:95px;text-align:center;padding:4px}
+.clip-comment-author b{overflow-wrap:anywhere}
+@media(max-width:760px){
+  .clip-card .clip-speed-control{top:max(10px,env(safe-area-inset-top) / 4);right:10px}
+  .clip-card .clip-play-symbol{width:64px;height:64px}
+  .clip-card .clip-copy .clip-author-profile{min-height:48px}
+}
+
+/* v48 — keep clip header and feeds reachable on narrow iPhones. */
+@media(max-width:760px){
+  #pane>.chat-header:has(#clipUpload){gap:6px;padding-inline:10px;min-width:0}
+  #pane>.chat-header:has(#clipUpload)>h2{font-size:18px;white-space:nowrap;flex:none}
+  #pane>.chat-header:has(#clipUpload) .header-tools{min-width:0;display:flex;gap:5px;margin-left:auto;flex-shrink:1}
+  #clipStats{font-size:0;min-width:42px;padding:8px;flex:none}
+  #clipStats .icon{width:19px;height:19px}
+  #clipUpload{font-size:11px;padding:8px;min-height:42px;flex:none}
+  .clip-feed-tabs{min-width:0;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none}
+  .clip-feed-tabs::-webkit-scrollbar{display:none}
+  .clip-feed-tabs button{flex:none}
+  .clip-feed-tools .clip-tag-filter{flex:0 0 88px;min-width:0}
+}
+
+/* v49: save clips to Files / Downloads, without obstructing playback controls */
+.clip-card .clip-download-action{border:1px solid #ffffff34}
+.clip-card .clip-download-action[aria-busy="true"]{opacity:.7;cursor:progress}
+.clip-download-wait{font-size:12px!important;line-height:10px}
+.clip-download-sheet{display:flex;flex-direction:column;gap:12px;padding:5px 0 10px;max-width:100%;overflow-wrap:anywhere}
+.clip-download-sheet p{font-size:13px;line-height:1.55}
+.clip-download-sheet b{display:block;word-break:break-word;font-size:12px;margin-top:5px}
+.clip-download-sheet .primary,.clip-download-sheet .secondary{display:flex;align-items:center;justify-content:center;min-height:48px;text-align:center;text-decoration:none;width:100%;border-radius:13px}
+@media(max-width:760px){.clip-card .clip-actions{gap:6px;right:8px}.clip-card .clip-actions button{width:46px;min-height:40px;padding:7px;border-radius:12px}}
+@media(max-width:760px) and (max-height:650px){.clip-card .clip-actions{gap:4px;bottom:max(58px,env(safe-area-inset-bottom) + 41px)}.clip-card .clip-actions button{width:42px;min-height:36px;padding:5px}.clip-card .clip-actions .icon{width:19px;height:19px}}
+
+/* v51: channel creator shown only after an authorized admin RPC */
+.admin-channel-creator{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:11px 0;padding:13px 14px;border:1px solid var(--line);border-radius:13px;background:var(--surface-2,rgba(127,100,255,.06));overflow-wrap:anywhere}
+.admin-channel-creator>b{width:100%}.admin-channel-creator>strong{font-weight:750}.admin-channel-creator>small{width:100%;opacity:.75;line-height:1.6;word-break:break-word}.admin-channel-creator>button{margin-top:5px;min-height:40px}
+@media(max-width:760px){.admin-channel-creator{padding:11px 12px}.admin-channel-creator>button{width:100%}}
+
+/* v52: explicit visibility warning while chat media remains in a public Storage bucket. */
+.attachment-warning{color:#ffb9b9;font-size:11px;line-height:1.35;margin-top:5px;white-space:normal;max-width:420px}
+
+/* v53 moderated account & audit UI */
+.admin-review-results{max-height:min(60vh,650px);overflow-y:auto;overscroll-behavior:contain;display:grid;gap:10px}
+.admin-review-message{background:var(--soft,#202638);padding:12px;border:1px solid var(--line,#343c50);border-radius:12px;overflow-wrap:anywhere}
+.admin-review-message p{white-space:pre-wrap;margin:7px 0}
+.admin-owner-panel{overflow-wrap:anywhere;line-height:1.6}
+.admin-severity{font-size:11px;color:#ffae75}
+.admin-card small{overflow-wrap:anywhere}
+.auth-notice{font-size:11px!important;line-height:1.5;margin:10px 0!important;color:var(--muted)}
+.auth-notice a{color:var(--accent);text-decoration:underline}
+@media(max-width:600px){.admin-tabs{overflow-x:auto;display:flex;scrollbar-width:thin;-webkit-overflow-scrolling:touch}.admin-tabs button{flex-shrink:0;min-height:40px}.admin-review-results{max-height:62vh}.admin-owner-panel{font-size:13px}}
+/* v53 audit metadata legibility on compact screens */
+.admin-card .admin-copy>small{font-size:11px;line-height:1.55;letter-spacing:normal;word-break:break-word;overflow-wrap:anywhere;white-space:normal;opacity:.9}
+.admin-user .admin-copy{line-height:1.5}
+.admin-card button{letter-spacing:normal}
+@media(max-width:420px){.admin-card{padding:14px}.admin-actions button{padding:9px 8px;font-size:11px}.admin-user .admin-copy>small{font-size:10.5px}}

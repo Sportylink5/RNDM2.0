@@ -4,7 +4,7 @@ export const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'
 export const sid = value => String(value ?? '');
 export function safeURL(value) {
   const text=String(value || '').trim();if(!text)return '';
-  try { const url = new URL(text, location.href); return ['https:', 'http:'].includes(url.protocol) ? url.href : ''; } catch { return ''; }
+  try { const url = new URL(text, location.href); return (url.protocol==='https:' || (url.protocol==='http:' && ['localhost','127.0.0.1','[::1]'].includes(url.hostname) && ['localhost','127.0.0.1','[::1]'].includes(location.hostname))) ? url.href : ''; } catch { return ''; }
 }
 export function richText(value) {
   return String(value || '').split(/(https?:\/\/[^\s<>]+)/g).map(part => {
@@ -21,6 +21,7 @@ export function avatar(person, size = '', kind = '') {
 }
 const atlas = ['chats','contacts','channels','saved','settings','search','attach','emoji','mic','send','plus','back'];
 const paths = {
+  play:'M8 5l11 7-11 7z', pause:'M7 5v14M17 5v14',
   random:'M12 2l3.4 6.7L23 10l-5.5 5.4 1.3 7.6L12 19.4 5.2 23l1.3-7.6L1 10l7.6-1.3L12 2z',
   stars:'M12 2.7l2.85 5.77 6.37.92-4.61 4.49 1.09 6.34L12 17.22l-5.70 3 1.09-6.34-4.61-4.49 6.37-.92L12 2.7z',
   calendar:'M4 5h16v16H4zM8 3v4M16 3v4M4 9h16M8 13h3M8 17h7',

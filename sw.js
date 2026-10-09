@@ -1,11 +1,11 @@
-const VERSION='47.0.0';
-const CACHE='rndm-v47-shell';
+const VERSION='53.0.0';
+const CACHE='rndm-v53-security-shell';
 const SHELL=[
-  './index.html','./style.css?v=47.0.0','./config.js?v=47.0.0',
-  './app.js?v=47.0.0','./core.js?v=47.0.0','./api.js?v=47.0.0',
-  './views.js?v=47.0.0','./admin.js?v=47.0.0',
-  './calls.js?v=47.0.0','./clips.js?v=47.0.0',
-  './theme.js?v=47.0.0','./supabase-2.117.2.js?v=47.0.0',
+  './index.html','./redirect.js?v=53.0.0','./bootstrap.js?v=53.0.0','./file-warning.js?v=53.0.0','./pwa-register.js?v=53.0.0','./style.css?v=53.0.0','./config.js?v=53.0.0',
+  './app.js?v=53.0.0','./core.js?v=53.0.0','./api.js?v=53.0.0',
+  './views.js?v=53.0.0','./admin.js?v=53.0.0',
+  './calls.js?v=53.0.0','./clips.js?v=53.0.0',
+  './theme.js?v=53.0.0','./supabase-2.117.2.js?v=53.0.0',
   './manifest.webmanifest','./icon-192.png','./icon-512.png',
   './star-gold.webp','./gift-gold.webp'
 ];
