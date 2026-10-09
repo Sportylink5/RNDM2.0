@@ -1,4 +1,4 @@
-import {$,esc,icon,avatar,errorText} from './core.js?v=56.0.0';
+import {$,esc,icon,avatar,errorText} from './core.js?v=55.0.0';
 const must=r=>{if(r.error)throw r.error;return r.data;};
 
 export class Calls {

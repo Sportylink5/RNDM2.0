@@ -1,4 +1,4 @@
-import {timeoutFetch, sid, unique, safeURL} from './core.js?v=56.0.0';
+import {timeoutFetch, sid, unique, safeURL} from './core.js?v=55.0.0';
 
 function must(result) { if (result.error) throw result.error; return result.data; }
 const now = () => new Date().toISOString();
@@ -16,15 +16,6 @@ export class MessengerAPI {
   }
   async session() { const data = must(await this.sb.auth.getSession()); this.uid = data.session?.user.id || null; return data.session; }
   async giftCatalog(){return must(await this.sb.from('rndm_gift_catalog').select('id,name,emoji,price,rarity,collection').eq('is_active',true).order('sort_order'))||[];}
-
-  async caseTypes(){return must(await this.sb.from('rndm_case_types').select('id,name,emoji,price,common_pct,rare_pct,exclusive_pct').eq('active',true).order('sort_order'))||[];}
-  async caseInventory(){return must(await this.sb.from('rndm_case_inventory').select('id,gift_id,case_id,acquired_at,rndm_gift_catalog(name,emoji,rarity,case_only,price),rndm_case_types(price)').eq('owner_id',this.uid).is('exchanged_at',null).order('acquired_at',{ascending:false}).limit(100))||[];}
-  async exchangeGift(source,itemId){return must(await this.sb.rpc('rndm_exchange_gift',{p_source:source,p_item:String(itemId)}));}
-  async caseOpen(caseId){return must(await this.sb.rpc('rndm_case_open',{p_case:caseId}));}
-  async caseSend(itemId,targetId,note=''){return must(await this.sb.rpc('rndm_case_send',{p_item:itemId,p_target:targetId,p_note:note}));}
-  async donationConfig(){return must(await this.sb.rpc('rndm_donation_public'));}
-  async donationRequests(){return must(await this.sb.from('rndm_donation_requests').select('id,reference,status,created_at,decided_at').eq('user_id',this.uid).order('created_at',{ascending:false}).limit(10))||[];}
-  async donationSubmit(reference,comment=''){return must(await this.sb.rpc('rndm_donation_submit',{p_reference:reference,p_comment:comment}));}
   async starsWallet(){return must(await this.sb.rpc('rndm_wallet_state'));}
   async myGifts(){return must(await this.sb.rpc('rndm_my_gifts',{max_rows:60}))||[];}
   async claimDailyStars(){const rows=must(await this.sb.rpc('claim_daily_reward'));return Array.isArray(rows)?rows[0]:rows;}

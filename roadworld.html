@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self' https://rijqlmrcnshswtoweoai.supabase.co wss://rijqlmrcnshswtoweoai.supabase.co https://overpass.kumi.systems https://overpass-api.de; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; form-action 'self'; upgrade-insecure-requests">
+<meta name="theme-color" content="#111b2e"><title>RNDM World · Drive the City</title><link rel="icon" href="icon-192.png"><link rel="stylesheet" href="roadworld.css?v=55.0.0">
+</head>
+<body>
+<main id="game" aria-label="Трёхмерная автомобильная игра">
+ <canvas id="scene" aria-label="Дорога, здания и автомобиль"></canvas>
+ <div class="world-top"><a class="return" href="index.html" id="return">← RNDM Chat</a><div class="world-logo"><span class="world-logo-mark">✦</span><div><b>RNDM WORLD</b><small>DRIVE THE CITY · <span id="modeLabel">SOLO</span></small></div></div><button class="mini-button" id="openMap" aria-label="Выбрать место">🌐 Карта</button></div>
+ <div class="world-status" id="status" role="status">Загрузка мира…</div>
+ <div class="world-telemetry"><div class="speed"><strong id="speed">0</strong><span>КМ/Ч</span></div><div class="speed-strip"><span id="driveMode">МАШИНА</span><span>·</span><span id="locationLabel">Северное Бутово</span></div></div>
+ <div class="world-counter" id="worldCounter">🌍 Загрузка дорог</div>
+ <div class="world-players" id="players" hidden></div>
+ <div class="world-help"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> — движение　<kbd>J</kbd> — ускорение　<kbd>F</kbd> — выйти / сесть　<kbd>X</kbd> — сброс　<kbd>M</kbd> — карта</div>
+ <div class="touch-controls"><div class="touch-steer"><button type="button" data-control="left">◀</button><button type="button" data-control="right">▶</button></div><div class="touch-drive"><button type="button" data-control="f">🚶</button><button type="button" data-control="brake">ТОРМОЗ</button><button type="button" data-control="boost">⚡</button><button type="button" data-control="gas">ГАЗ</button></div></div>
+ <div class="map-panel" id="mapPanel" hidden><div class="map-head"><b>🌐 Реальные дороги OpenStreetMap</b><button id="closeMap" type="button" aria-label="Закрыть">×</button></div><p>Выбери место. Дома и дороги строятся по геометрии OSM. Окна, деревья и детали улиц дополняются процедурно. Без доступа к карте откроется демонстрационный район.</p><div class="city-grid"><button data-place="55.5705,37.5779" type="button">🇷🇺 Северное Бутово</button><button data-place="55.7558,37.6173" type="button">🇷🇺 Центр Москвы</button><button data-place="52.5200,13.4050" type="button">🇩🇪 Берлин</button><button data-place="48.8566,2.3522" type="button">🇫🇷 Париж</button><button data-place="40.7143,-74.0060" type="button">🇺🇸 Нью-Йорк</button></div><div class="coord-fields"><label>Широта<input id="latitude" inputmode="decimal" type="number" min="-85" max="85" step="0.00001" value="55.5705"></label><label>Долгота<input id="longitude" inputmode="decimal" type="number" min="-180" max="180" step="0.00001" value="37.5779"></label></div><button class="load-map" id="loadMap">Загрузить район</button><div class="map-note" id="mapNote"></div></div>
+ <div class="start-screen" id="startScreen"><div class="start-card"><span class="start-pill">В МЕССЕНДЖЕРЕ RNDM CHAT</span><h1>ТВОЙ ГОРОД.<br><em>ТВОЯ ДОРОГА.</em></h1><p>Исследуй улицы, езди на автомобиле, гуляй между домами и катайся вместе с друзьями.</p><div class="world-buttons"><button id="startGame" type="button">▶ НАЧАТЬ ПОЕЗДКУ</button><button id="choosePlace" type="button">⌖ ВЫБРАТЬ ГОРОД</button></div><small id="startNotice">Реальные дороги и контуры зданий — © OpenStreetMap contributors</small></div></div>
+ <div class="credit"><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap contributors</a> · RNDM World — оригинальная мини-игра</div>
+</main>
+<script src="supabase-2.117.2.js?v=55.0.0"></script><script src="config.js?v=55.0.0"></script><script type="module" src="roadworld.js?v=55.0.0"></script>
+</body></html>
