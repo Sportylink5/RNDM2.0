@@ -1,4 +1,4 @@
-/* RNDM World v55 — original browser driving scene.
+/* RNDM World v56 — 3D driving and interactive OSM city map.
    Road and building footprints: OpenStreetMap contributors, via Overpass API.
    Procedural facades are illustrative and NOT verified representations of actual buildings. */
 const $=id=>document.getElementById(id);
@@ -17,11 +17,12 @@ const car={x:0,z:0,yaw:0,speed:0,boost:0,onFoot:false,step:0};
 const keys={gas:false,brake:false,left:false,right:false,boost:false};
 const players=new Map();let parked={x:0,z:0,yaw:0};let supa=null,myId='',netTimer=0,networkWorking=false;
 const colors={};
+let buildingGeometry=false;
 function status(text){$('status').textContent=text||'';}
 function rnd(seed){let state=Math.abs(seed)|0;return()=>{state=(Math.imul(state,1664525)+1013904223)|0;return(state>>>0)/4294967296;};}
 function v(x,y,z){return {x,y,z};}
 function colorMix(hex,f=1){if(!/^#[0-9a-f]{6}$/i.test(hex))return hex;return '#'+[1,3,5].map(i=>Math.min(255,Math.max(0,Math.round(parseInt(hex.slice(i,i+2),16)*f))).toString(16).padStart(2,'0')).join('');}
-function face(pts,color,layer=0,stroke=''){if(pts.length>2)worldFaces.push({pts,color,layer,stroke,cx:pts.reduce((n,p)=>n+p.x,0)/pts.length,cz:pts.reduce((n,p)=>n+p.z,0)/pts.length});}
+function face(pts,color,layer=0,stroke=''){if(pts.length>2)worldFaces.push({pts,color,layer,stroke,detail:buildingGeometry&&layer>=12,cx:pts.reduce((n,p)=>n+p.x,0)/pts.length,cz:pts.reduce((n,p)=>n+p.z,0)/pts.length});}
 function rectXZ(a,b,width,y,color,layer=0){const dx=b.x-a.x,dz=b.z-a.z,len=Math.hypot(dx,dz);if(len<.1)return;const nx=-dz/len*width/2,nz=dx/len*width/2;face([v(a.x+nx,y,a.z+nz),v(b.x+nx,y,b.z+nz),v(b.x-nx,y,b.z-nz),v(a.x-nx,y,a.z-nz)],color,layer);}
 function sampleRoad(a,b,width,name='Улица',type='residential'){
  const len=Math.hypot(b.x-a.x,b.z-a.z);if(len<.4)return;
@@ -36,8 +37,8 @@ function polygonArea(pts){let s=0;for(let i=0;i<pts.length;i++){const b=pts[(i+1
 function distToRoad(x,z){let best=1e6;for(const r of roads){const dx=r.b.x-r.a.x,dz=r.b.z-r.a.z,len2=dx*dx+dz*dz;const t=Math.max(0,Math.min(1,((x-r.a.x)*dx+(z-r.a.z)*dz)/(len2||1)));best=Math.min(best,Math.hypot(r.a.x+t*dx-x,r.a.z+t*dz-z)-r.width/2);}return best;}
 function pointInPoly(x,z,pts){let inside=false;for(let i=0,j=pts.length-1;i<pts.length;j=i++){const a=pts[i],b=pts[j];if(((a.z>z)!=(b.z>z))&&(x<(b.x-a.x)*(z-a.z)/(b.z-a.z)+a.x))inside=!inside;}return inside;}
 function building(poly,level,style,seed){
- if(poly.length<3)return;poly=poly.slice(0,48);const area=Math.abs(polygonArea(poly));if(area<9||area>18000)return;
- const rng=rnd(seed), floors=Math.min(10,Math.max(1,Math.round(level||2+Math.floor(rng()*4)))),h=Math.min(35,floors*3.15+0.8);
+ if(poly.length<3)return;poly=poly.slice(0,48);const area=Math.abs(polygonArea(poly));if(area<9||area>80000)return;
+ buildingGeometry=true;const rng=rnd(seed), floors=Math.min(10,Math.max(1,Math.round(level||2+Math.floor(rng()*4)))),h=Math.min(35,floors*3.15+0.8);
  const palette=['#cebfa5','#b4afa7','#c99f82','#d1c2aa','#b7c2bc','#9e9899','#e2d1b7','#b3a08f'];
  const base=style?.wall||palette[Math.floor(rng()*palette.length)],roof=style?.roof||(['#6c5d57','#45494e','#935c4d','#4b565b','#73716d'][Math.floor(rng()*5)]);
  const outline='#766d64';const centerX=poly.reduce((s,p)=>s+p.x,0)/poly.length,centerZ=poly.reduce((s,p)=>s+p.z,0)/poly.length;
@@ -49,7 +50,9 @@ function building(poly,level,style,seed){
   let wallColor=colorMix(base,[1,.94,.84,.9][i%4]);
   face([v(a.x,0,a.z),v(b.x,0,b.z),v(b.x,h,b.z),v(a.x,h,a.z)],wallColor,10,outline);
   if(len<3)continue;
-  const columns=Math.min(12,Math.max(1,Math.floor((len-1)/2.85)));
+  const distant=worldSource==='OSM'&&Math.hypot(centerX,centerZ)>195;
+  if(distant)continue;
+  const columns=Math.min(10,Math.max(1,Math.floor((len-1)/3.05)));
   const margin=(len-columns*1.05)/(columns+1);
   const floorTop=Math.min(floors,10);
   for(let row=0;row<floorTop;row++){
@@ -74,6 +77,7 @@ function building(poly,level,style,seed){
  }
  // Roof vents and small details.
  if(floors>=3){const x=centerX,z=centerZ;face([v(x-1,h+.14,z-.65),v(x+1,h+.14,z-.65),v(x+1,h+1.35,z-.65),v(x-1,h+1.35,z-.65)],'#aaa59c',24);}
+ buildingGeometry=false;
 }
 function tree(x,z,scale=1,conifer=false,seed=1){if(Math.hypot(x,z)>520)return;const rng=rnd(seed);const h=(3.9+rng()*2.7)*scale,r=.95*scale;trees.push({x,z,scale});
  const dark=conifer?'#2c594b':'#497e50',mid=conifer?'#34644e':'#5c9460',lite=conifer?'#3d7957':'#75a76a';
@@ -86,27 +90,57 @@ function tree(x,z,scale=1,conifer=false,seed=1){if(Math.hypot(x,z)>520)return;co
 function lamppost(x,z,seed=1){const h=6.3,r=.065;lamps.push({x,z});face([v(x-r,0,z),v(x+r,0,z),v(x+r,h,z),v(x-r,h,z)],'#424d58',8);face([v(x,h,z),v(x+1.5,h,z),v(x+1.5,h+.18,z),v(x,h+.18,z)],'#4a555a',9);face([v(x+1.18,h-.16,z),v(x+1.6,h-.16,z),v(x+1.6,h-.02,z),v(x+1.18,h-.02,z)],'#fff8c5',10);}
 function busStop(x,z){face([v(x-2,0,z),v(x+2,0,z),v(x+2,0,z+1),v(x-2,0,z+1)],'#d1c3af',3);for(const xx of [x-1.7,x+1.7])face([v(xx,0,z),v(xx+.13,0,z),v(xx+.13,3,z),v(xx,3,z)],'#56656b',8);face([v(x-2,3,z-.3),v(x+2,3,z-.3),v(x+2,3,z+1.25),v(x-2,3,z+1.25)],'#455a65',11);face([v(x-1.6,.8,z+1),v(x+1.6,.8,z+1),v(x+1.6,2.65,z+1),v(x-1.6,2.65,z+1)],'#7cabb1',9);face([v(x-.85,.47,z+.4),v(x+.85,.47,z+.4),v(x+.85,.6,z+.4),v(x-.85,.6,z+.4)],'#91735b',13);}
 function resetWorld(){surfaces=[];buildings=[];trees=[];lamps=[];civCars=[];roads=[];parks=[];worldFaces=[];roadNames=[];}
-function createFallback(seed=21){resetWorld();const rng=rnd(seed);for(const p of [-120,0,120]){sampleRoad({x:-420,z:p},{x:420,z:p},p===0?12:8,p===0?'Центральный проспект':'Улица Солнечная');sampleRoad({x:p,z:-420},{x:p,z:420},p===0?12:8,p===0?'Главная улица':'Парковая улица');}
- for(let gx=-3;gx<=3;gx++)for(let gz=-3;gz<=3;gz++){
-  const x=gx*47+22,z=gz*47+23;
-  if(Math.abs(x)<22||Math.abs(z)<22||Math.abs(x-120)<22||Math.abs(z-120)<22||Math.abs(x+120)<22||Math.abs(z+120)<22)continue;
-  if((gx===-2&&gz===2)||(gx===1&&gz===-2)){for(let t=0;t<9;t++)tree(x-12+rng()*26,z-9+rng()*22,1+rng()*.18,false,seed+t*11);continue;}
-  if(rng()>.12){const w=12+rng()*9,d=10+rng()*14,levels=1+Math.floor(rng()*6);building([{x:x-w/2,z:z-d/2},{x:x+w/2,z:z-d/2},{x:x+w/2,z:z+d/2},{x:x-w/2,z:z+d/2}],levels,{balcony:levels>=4},gx*233+gz*17+seed);}
-  for(let j=0;j<2;j++)if(rng()>.24)tree(x+18+rng()*9,z+(rng()-.5)*25,.83+rng()*.25,rng()>.75,seed+gx*77+gz*18+j);
+function createFallback(seed=21){
+ resetWorld();worldSource='DEMO';const rng=rnd(seed);const steps=[-270,-210,-150,-90,-30,30,90,150,210,270];
+ // A recognizable urban street grid with blocks close to the starting point.
+ for(const x of [-300,-220,-140,-60,0,60,140,220,300]){
+  const main=Math.abs(x)<1;sampleRoad({x,z:-340},{x,z:340},main?12:8.2,main?'Центральный проспект':`Улица ${Math.abs(x)}`);
  }
- for(let z=-285;z<=310;z+=35){for(const side of [-1,1]){const px=side*16,pz=z+side*7;if(distToRoad(px,pz)>1&&!buildings.some(b=>pointInPoly(px,pz,b.poly)))tree(px,pz,.65+rng()*.35,rng()>.78,Math.round(px*23+pz*7+seed));}}
- for(const z of [-320,-190,-68,53,175,292]){lamppost(10,z,seed);lamppost(-10,z+25,seed);}
- for(const x of [-319,-185,-68,53,177,300]){lamppost(x,9,seed);}busStop(34,4);
- civCars=[{x:-5,z:50,yaw:Math.PI,speed:.0,color:'#4c6579'},{x:5,z:-65,yaw:0,speed:.0,color:'#b9c3c9'},{x:5,z:95,yaw:0,speed:0,color:'#a16861'},{x:-5,z:-195,yaw:Math.PI,speed:0,color:'#464e60'}];
- worldSource='DEMO';worldReady=true;roadNames=['Центральный проспект','Парковая улица'];
+ for(const z of [-300,-220,-140,-60,60,140,220,300]){
+  const main=Math.abs(z-60)<1;sampleRoad({x:-335,z},{x:335,z},main?11:7.5,main?'Садовая улица':'Переулок');
+ }
+ // Urban blocks, residential houses, clinics and shops between roads.
+ let n=0;
+ const roadXs=[-300,-220,-140,-60,0,60,140,220,300],roadZs=[-300,-220,-140,-60,60,140,220,300];
+ for(let ix=0;ix<roadXs.length-1;ix++)for(let iz=0;iz<roadZs.length-1;iz++){
+  const left=roadXs[ix],right=roadXs[ix+1],bottom=roadZs[iz],top=roadZs[iz+1];
+  const blockX=(left+right)/2,blockZ=(bottom+top)/2;
+  const garden=(ix===0&&iz===4)||(ix===5&&iz===1)||(ix===6&&iz===6);
+  if(garden){for(let t=0;t<13;t++)tree(left+14+rng()*(right-left-28),bottom+14+rng()*(top-bottom-28),.85+rng()*.32,rng()<.24,n++);continue;}
+  const cols=(right-left)>70?2:1;
+  const rows=(top-bottom)>70?2:1;
+  for(let cx=0;cx<cols;cx++)for(let cz=0;cz<rows;cz++){
+   if(rng()<.08)continue;
+   const centerX=left+(right-left)*(cx+.5)/cols;
+   const centerZ=bottom+(top-bottom)*(cz+.5)/rows;
+   const cellW=(right-left)/cols,cellD=(top-bottom)/rows;
+   const w=Math.max(10,cellW-(12+rng()*7));const d=Math.max(11,cellD-(12+rng()*6));
+   const bx=centerX+(rng()-.5)*1.8,bz=centerZ+(rng()-.5)*1.8;
+   let levels=2+Math.floor(rng()*7);
+   if(Math.abs(bx)<95&&Math.abs(bz)<165)levels=4+Math.floor(rng()*5);
+   const wall=['#d0b6a1','#e1d0b3','#b8bcb8','#bfa596','#c7bfae','#a9acaa'][Math.floor(rng()*6)];
+   building([{x:bx-w/2,z:bz-d/2},{x:bx+w/2,z:bz-d/2},{x:bx+w/2,z:bz+d/2},{x:bx-w/2,z:bz+d/2}],levels,{wall,balcony:levels>=5},++n*29+seed);
+   if(rng()<.6)tree(bx+w/2+3.8,bz,.75+rng()*.30,false,n*11);
+  }
+ }
+ for(let zz=-315;zz<315;zz+=38){lamppost(10,zz);lamppost(-10,zz+16);}
+ for(let xx=-255;xx<=260;xx+=44){lamppost(xx,-51);lamppost(xx,69);}
+ // Short pedestrian crossings at intersections.
+ for(let z of [-220,-140,-60,60,140,220])for(const x of [-140,-60,0,60,140]){
+  if(Math.hypot(x,z)>290)continue;
+  for(let k=-2;k<=2;k++)rectXZ({x:x+k*1.55,z:z-4},{x:x+k*1.55,z:z+4},.82,.133,'#e6e2d5',6);
+ }
+ busStop(14,22);
+ civCars=[{x:4.2,z:85,yaw:0,speed:0,color:'#647c90'},{x:-4,z:142,yaw:Math.PI,speed:0,color:'#dad7c6'},{x:5,z:-86,yaw:0,speed:0,color:'#a46654'},{x:-5,z:192,yaw:0,speed:0,color:'#667069'}];
+ worldSource='DEMO';worldReady=true;roadNames=['Центральный проспект','Садовая улица'];
 }
 function geoPoint(lat,lon){const latRad=center.lat*Math.PI/180;return {x:(lon-center.lon)*111320*Math.cos(latRad),z:(lat-center.lat)*111320};}
-function fromOSM(data){if(!data||!Array.isArray(data.elements))throw new Error('Нет данных карты');const nodes=new Map(),ways=[];for(const e of data.elements){if(e.type==='node')nodes.set(e.id,e);else if(e.type==='way')ways.push(e);}resetWorld();const rng=rnd(Math.round(center.lat*10000+center.lon*10000));
+function fromOSM(data){if(!data||!Array.isArray(data.elements))throw new Error('Нет данных карты');const nodes=new Map(),ways=[];for(const e of data.elements){if(e.type==='node')nodes.set(e.id,e);else if(e.type==='way')ways.push(e);}resetWorld();worldSource='OSM';const rng=rnd(Math.round(center.lat*10000+center.lon*10000));
  for(const e of ways){const tags=e.tags||{},pts=(e.nodes||[]).map(id=>nodes.get(id)).filter(Boolean).map(n=>geoPoint(n.lat,n.lon)).filter(p=>Number.isFinite(p.x)&&Number.isFinite(p.z));if(pts.length<2)continue;
   if(tags.highway){const width=roadWidth(tags.highway);if(tags.highway==='construction')continue;for(let i=0;i<pts.length-1;i++){if(Math.hypot((pts[i].x+pts[i+1].x)/2,(pts[i].z+pts[i+1].z)/2)<620)sampleRoad(pts[i],pts[i+1],width,tags.name||tags['name:ru']||'Улица',tags.highway);}if(tags.name)roadNames.push(tags.name);}
-  else if(tags.building){const poly=pts.at(0).x===pts.at(-1).x&&pts.at(0).z===pts.at(-1).z?pts.slice(0,-1):pts;
+  else if(tags.building||tags['building:part']){const poly=pts.at(0).x===pts.at(-1).x&&pts.at(0).z===pts.at(-1).z?pts.slice(0,-1):pts;
     const avgx=poly.reduce((s,p)=>s+p.x,0)/poly.length,avgz=poly.reduce((s,p)=>s+p.z,0)/poly.length;
-    if(Math.hypot(avgx,avgz)>400||poly.length>50||buildings.length>=(deviceW<760?70:110))continue;
+    if(Math.hypot(avgx,avgz)>540||poly.length>140||buildings.length>=300)continue;
     const floors=Math.max(1,Math.min(12,Number(tags['building:levels'])||Number(tags.height)/3.15||2+Math.floor(rng()*5)));
     const colorNames={'brick':'#b98a74','concrete':'#b8bbb8','glass':'#83a7b0','wood':'#c19a73','plaster':'#cbc4ab'};
     const wall=/^#[0-9a-f]{6}$/i.test(tags['building:colour'])?tags['building:colour'] : colorNames[tags['building:material']]||undefined;
@@ -119,7 +153,23 @@ function fromOSM(data){if(!data||!Array.isArray(data.elements))throw new Error('
  if(trees.length<22){for(const r of roads.slice(0,90)){const dx=r.b.x-r.a.x,dz=r.b.z-r.a.z,len=Math.hypot(dx,dz);if(len<18)continue;for(let t=11;t<len-4;t+=23){const side=rng()>.5?1:-1,dist=r.width/2+3;const px=r.a.x+dx*t/len-dz/len*dist*side,pz=r.a.z+dz*t/len+dx/len*dist*side;if(Math.hypot(px,pz)<320&&!buildings.some(b=>pointInPoly(px,pz,b.poly)))tree(px,pz,.84+rng()*.32,false,Math.floor(px+pz+20000));}}
  }
  for(const r of roads.slice(0,90)){const dx=r.b.x-r.a.x,dz=r.b.z-r.a.z,len=Math.hypot(dx,dz);if(len>55&&rng()>.42){const t=.37;const s=r.width/2+2.8;const px=r.a.x+dx*t-dz/len*s,pz=r.a.z+dz*t+dx/len*s;if(Math.hypot(px,pz)<280)lamppost(px,pz);}}
- if(roads.length<3||buildings.length<3){createFallback();assignStart();throw new Error('В этом районе недостаточно дорог и домов');}worldSource='OSM';worldReady=true;
+ if(roads.length<3)throw new Error('Здесь не нашлись дороги OpenStreetMap');
+ if(buildings.length<5){
+   // Keep actual roads; create visibly synthetic filler near them rather than blank landscape.
+   for(const r of roads.filter(r=>r.width>=5).slice(0,90)){
+     if(buildings.length>65)break;
+     const midpoint={x:(r.a.x+r.b.x)/2,z:(r.a.z+r.b.z)/2};
+     const dd=Math.hypot(r.b.x-r.a.x,r.b.z-r.a.z);if(dd<9||Math.hypot(midpoint.x,midpoint.z)>225)continue;
+     for(const side of [-1,1]){
+       const nx=-(r.b.z-r.a.z)/dd*side,nz=(r.b.x-r.a.x)/dd*side;
+       const bx=midpoint.x+nx*(r.width/2+17),bz=midpoint.z+nz*(r.width/2+17);
+       if(distToRoad(bx,bz)<7||buildings.some(b=>Math.hypot(b.x-bx,b.z-bz)<25))continue;
+       building([{x:bx-10,z:bz-10},{x:bx+10,z:bz-10},{x:bx+10,z:bz+10},{x:bx-10,z:bz+10}],2+Math.floor(rng()*6),{},Math.floor(bx*19+bz));
+     }
+   }
+ }
+ if(buildings.length<3)throw new Error('Здесь нет подходящей застройки');
+ worldSource='OSM';worldReady=true;
  civCars=[];for(const r of roads.slice(0,65)){if(r.width<6||rng()>.12)continue;const angle=Math.atan2(r.b.x-r.a.x,r.b.z-r.a.z);civCars.push({x:r.a.x*.47+r.b.x*.53,z:r.a.z*.47+r.b.z*.53,yaw:angle,speed:0,color:['#515967','#a55f57','#e6dac6','#759198'][Math.floor(rng()*4)]});}
 }
 function resize(){dpr=Math.min(devicePixelRatio||1,1.5);deviceW=canvas.clientWidth;deviceH=canvas.clientHeight;canvas.width=Math.round(deviceW*dpr);canvas.height=Math.round(deviceH*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);}window.addEventListener('resize',resize);resize();
@@ -128,15 +178,35 @@ function projection(point,cam){const dx=point.x-cam.x,dz=point.z-cam.z,dy=point.
  const depth=fwd*cam.cos-dy*cam.sin,up=dy*cam.cos+fwd*cam.sin;
  if(depth<1.25)return null;return {x:deviceW/2+right*cam.f/depth,y:deviceH*.55-up*cam.f/depth,d:depth};}
 function makeCamera(){const yaw=car.yaw,off=car.onFoot?9:17,height=car.onFoot?4.1:9;
- const cam={x:car.x-Math.sin(yaw)*off,z:car.z-Math.cos(yaw)*off,y:height,yaw,sin:Math.sin(.31),cos:Math.cos(.31),f:Math.min(deviceW*1.30,deviceH*1.45)};return cam;}
+ const cam={x:car.x-Math.sin(yaw)*off,z:car.z-Math.cos(yaw)*off,y:height,yaw,sin:Math.sin(.20),cos:Math.cos(.20),f:Math.min(deviceW*1.03,deviceH*.98)};return cam;}
 function drawSky(){let g=ctx.createLinearGradient(0,0,0,deviceH);g.addColorStop(0,'#638bad');g.addColorStop(.27,'#b8cbd2');g.addColorStop(.43,'#cbd9d1');g.addColorStop(.44,'#9cb294');g.addColorStop(1,'#648e71');ctx.fillStyle=g;ctx.fillRect(0,0,deviceW,deviceH);
  const sx=deviceW*.74,sy=deviceH*.19;const sun=ctx.createRadialGradient(sx,sy,6,sx,sy,deviceW*.35);sun.addColorStop(0,'#ffefcfbb');sun.addColorStop(.2,'#f9e6b345');sun.addColorStop(1,'#ffffff00');ctx.fillStyle=sun;ctx.fillRect(0,0,deviceW,deviceH);
  ctx.fillStyle='#ffffff1d';for(let i=0;i<5;i++){const x=(i*217+100+deviceW*.1)%deviceW,y=60+(i%3)*25;ctx.beginPath();ctx.ellipse(x,y,90,12,0,0,Math.PI*2);ctx.fill();}}
 function distanceSqToCam(cx,cz,cam){const dx=cx-cam.x,dz=cz-cam.z;return dx*dx+dz*dz;}
-function drawFace(f,cam){const verts=f.pts.map(p=>projection(p,cam));if(verts.some(p=>!p))return;const xs=verts.map(p=>p.x),ys=verts.map(p=>p.y);
- if(Math.max(...xs)<-110||Math.min(...xs)>deviceW+110||Math.max(...ys)<-110||Math.min(...ys)>deviceH+110)return;
- ctx.beginPath();ctx.moveTo(verts[0].x,verts[0].y);for(let i=1;i<verts.length;i++)ctx.lineTo(verts[i].x,verts[i].y);ctx.closePath();ctx.fillStyle=f.color;ctx.fill();
- if(f.stroke&&Math.min(...verts.map(p=>p.d))<130){ctx.strokeStyle=f.stroke;ctx.lineWidth=.7;ctx.stroke();}}
+function cameraCoordinates(point,cam){
+ const dx=point.x-cam.x,dz=point.z-cam.z,dy=point.y-cam.y;
+ const right=dx*Math.cos(cam.yaw)-dz*Math.sin(cam.yaw);
+ const fwd=dx*Math.sin(cam.yaw)+dz*Math.cos(cam.yaw);
+ return {x:right,y:dy*cam.cos+fwd*cam.sin,d:fwd*cam.cos-dy*cam.sin};
+}
+function drawFace(f,cam){
+ // Clip every polygon at the near plane. v55 discarded the entire facade/road
+ // whenever just one corner was behind the camera, producing huge missing patches.
+ const near=.65,vertices=f.pts.map(p=>cameraCoordinates(p,cam)),clipped=[];
+ for(let i=0;i<vertices.length;i++){
+  const a=vertices[i],b=vertices[(i+1)%vertices.length];const inA=a.d>=near,inB=b.d>=near;
+  if(inA)clipped.push(a);
+  if(inA!==inB){const t=(near-a.d)/(b.d-a.d);clipped.push({x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t,d:near});}
+ }
+ if(clipped.length<3)return;
+ const projected=clipped.map(p=>({x:deviceW/2+p.x*cam.f/p.d,y:deviceH*.55-p.y*cam.f/p.d,d:p.d}));
+ const xs=projected.map(p=>p.x),ys=projected.map(p=>p.y);
+ if(Math.max(...xs)<-25||Math.min(...xs)>deviceW+25||Math.max(...ys)<-25||Math.min(...ys)>deviceH+25)return;
+ ctx.beginPath();ctx.moveTo(projected[0].x,projected[0].y);
+ for(let i=1;i<projected.length;i++)ctx.lineTo(projected[i].x,projected[i].y);
+ ctx.closePath();ctx.fillStyle=f.color;ctx.fill();
+ if(f.stroke&&Math.min(...projected.map(p=>p.d))<120){ctx.strokeStyle=f.stroke;ctx.lineWidth=.55;ctx.stroke();}
+}
 function dynamicFace(list,pts,color,layer=0){list.push({pts,color,layer,cx:pts.reduce((s,p)=>s+p.x,0)/pts.length,cz:pts.reduce((s,p)=>s+p.z,0)/pts.length});}
 function carMesh(x,z,yaw,body='#c23e6e',scale=1,withPlate=true){const out=[];const s=scale;const p=(lx,ly,lz)=>v(x+(lx*Math.cos(yaw)+lz*Math.sin(yaw))*s,ly*s,z+(-lx*Math.sin(yaw)+lz*Math.cos(yaw))*s);
  const poly=(verts,color,layer=20)=>dynamicFace(out,verts.map(a=>p(...a)),color,layer);
@@ -170,7 +240,10 @@ function drawCarScene(cam){let dynamic=[];
  }
 }
 function drawScene(){if(!deviceW||!deviceH)return;drawSky();const cam=makeCamera();const visible=[];
- for(const f of worldFaces){if(distanceSqToCam(f.cx,f.cz,cam)>385*385)continue;const pt=projection(v(f.cx,.8,f.cz),cam);if(!pt)continue;visible.push({...f,depth:pt.d});}
+ for(const f of worldFaces){const distance2=distanceSqToCam(f.cx,f.cz,cam);
+ if(distance2>285*285||(f.detail&&distance2>(deviceW<700?105:132)**2))continue;
+ const point=cameraCoordinates(v(f.cx,0,f.cz),cam);
+ if(point.d<-12)continue;visible.push({...f,depth:point.d});}
  visible.sort((a,b)=>b.depth-a.depth || a.layer-b.layer);
  for(const f of visible)drawFace(f,cam);
  drawCarScene(cam);drawVignette();}
@@ -191,17 +264,66 @@ function assignStart(){const best=roads.filter(r=>r.width>=5).reduce((a,r)=>{con
  car.x=best?(best.a.x+best.b.x)/2:0;car.z=best?(best.a.z+best.b.z)/2:0;car.yaw=best?Math.atan2(best.b.x-best.a.x,best.b.z-best.a.z):0;car.speed=0;parked={x:car.x,z:car.z,yaw:car.yaw};
 }
 function fitNumbers(){const lat=Number($('latitude').value),lon=Number($('longitude').value);if(!Number.isFinite(lat)||!Number.isFinite(lon)||lat< -85||lat>85||lon< -180||lon>180)throw Error('Некорректные координаты');return {lat,lon};}
-const endpoints=['https://overpass.kumi.systems/api/interpreter','https://overpass-api.de/api/interpreter'];
-async function fetchOSM(){if(loading)return;loading=true;const lat=center.lat,lon=center.lon;
- status('Загружаем реальные здания и дороги OpenStreetMap…');$('worldCounter').textContent='🌍 OSM · загрузка';
- let err=null;
- const query=`[out:json][timeout:22];(way["highway"](around:440,${lat},${lon});way["building"](around:440,${lat},${lon});node["natural"="tree"](around:440,${lat},${lon});way["leisure"="park"](around:440,${lat},${lon}););out body;>;out skel qt;`;
- for(const host of endpoints){const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12500);
-  try {const response=await fetch(host,{method:'POST',body:'data='+encodeURIComponent(query),headers:{'content-type':'application/x-www-form-urlencoded'},signal:controller.signal,cache:'no-store'});
-   if(!response.ok)throw Error('OSM HTTP '+response.status);const data=await response.json();if(center.lat!==lat||center.lon!==lon){clearTimeout(timer);return;}
-   fromOSM(data);assignStart();status('Карта построена по реальным дорогам и контурам домов (OSM).');$('worldCounter').textContent=`🗺️ OSM · ${roads.length} участков дорог · ${buildings.length} зданий`;loading=false;clearTimeout(timer);setTimeout(()=>{if(worldSource==='OSM')status('');},6500);return;
-  }catch(e){err=e;}finally{clearTimeout(timer);}}
- loading=false;status('OSM сейчас недоступен. Открыт демонстрационный район; можно попробовать карту позже.');$('worldCounter').textContent='🏙️ Демо-район';console.warn('[RNDM World] OSM:',err?.message||err);
+const endpoints=[
+ 'https://overpass.kumi.systems/api/interpreter',
+ 'https://overpass.private.coffee/api/interpreter',
+ 'https://overpass-api.de/api/interpreter',
+ 'https://overpass.nchc.org.tw/api/interpreter'
+];
+let osmRun=0;
+const overpassCache=new Map();
+async function queryOSM(endpoint,query,signal){
+ // GET is allowed by more public Overpass installations than CORS preflighted POST.
+ const url=endpoint+'?data='+encodeURIComponent(query);
+ const response=await fetch(url,{method:'GET',signal,cache:'default',referrerPolicy:'no-referrer'});
+ if(!response.ok)throw Error('HTTP '+response.status+' · '+new URL(endpoint).hostname);
+ const result=await response.json();
+ if(!Array.isArray(result?.elements)||result.elements.length<4)throw Error('Пустой ответ OSM');
+ return result;
+}
+async function fetchOSM(){
+ const run=++osmRun,lat=center.lat,lon=center.lon;
+ loading=true;status('Загрузка реальных улиц и зданий OSM…');$('worldCounter').textContent='🌍 OSM · загрузка';
+ const cacheKey=lat.toFixed(4)+','+lon.toFixed(4);
+ const query=`[out:json][timeout:18];(way["highway"](around:590,${lat},${lon});way["building"](around:590,${lat},${lon});way["building:part"](around:450,${lat},${lon});node["natural"="tree"](around:450,${lat},${lon});way["leisure"="park"](around:590,${lat},${lon}););out body;>;out skel qt;`;
+ let err=null;let data=overpassCache.get(cacheKey);
+ // Authenticated Supabase proxy works on mobile networks where Overpass blocks browser CORS.
+ if(!data){
+  try{
+   if(!supa&&window.supabase?.createClient&&window.RNDM_CONFIG)setupSupabase();
+   if(supa){
+    const session=await supa.auth.getSession();
+    if(session.data?.session?.access_token){
+     const result=await Promise.race([
+       supa.functions.invoke('rndm-world-osm',{body:{latitude:lat,longitude:lon}}),
+       new Promise((_,reject)=>setTimeout(()=>reject(Error('Тайм-аут OSM proxy')),11500))
+     ]);
+     if(result.error)throw Error(String(result.error.message||result.error));
+     if(Array.isArray(result.data?.elements))data=result.data;
+    }
+   }
+  }catch(e){err=e;}
+ }
+ if(!data){for(const host of endpoints){
+  if(run!==osmRun)return;
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),9800);
+  try{data=await queryOSM(host,query,controller.signal);overpassCache.set(cacheKey,data);if(overpassCache.size>4)overpassCache.delete(overpassCache.keys().next().value);break;}
+  catch(e){err=e;}finally{clearTimeout(timer);}
+ }}
+ if(run!==osmRun)return;
+ loading=false;
+ if(data){try{
+   fromOSM(data);assignStart();
+   status('Загружено из OpenStreetMap. Высота, окна и фасады приблизительные.');
+   $('worldCounter').textContent=`🏘 OSM · ${buildings.length} домов · ${roads.length} дорог`;
+   setTimeout(()=>{if(worldSource==='OSM'&&run===osmRun)status('');},6500);return;
+  }catch(e){err=e;}
+ }
+ // Falling back is a visual approximation, not an actual map of a chosen city.
+ createFallback(Math.round(lat*1000+lon*100));assignStart();
+ status('OSM недоступен: показан ПРИМЕР района, не настоящая карта. Нажми «Карта», чтобы повторить.');
+ $('worldCounter').textContent=`🏘 Пример · ${buildings.length} домов`;
+ console.warn('[RNDM World] Не удалось загрузить OSM:',err?.message||err);
 }
 function maybeShowWorld(){if(!worldReady){createFallback();assignStart();}}
 function setupSupabase(){if(!window.supabase?.createClient||!window.RNDM_CONFIG)throw Error('Не удалось загрузить библиотеку Supabase');const c=window.RNDM_CONFIG;supa=window.supabase.createClient(c.url,c.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});return supa;}
@@ -221,9 +343,139 @@ function escapeHTML(t){return String(t||'').replace(/[&<>"']/g,m=>({'&':'&amp;',
 async function start(){if(playing)return;const button=$('startGame');button.disabled=true;try{
  if(groupMode)await joinGroup();maybeShowWorld();playing=true;$('startScreen').hidden=true;fetchOSM().catch(e=>status(e.message));}
  catch(e){status(String(e.message||e));$('startNotice').textContent='Ошибка запуска: '+String(e.message||e);button.disabled=false;}}
-$('startGame').addEventListener('click',start);$('choosePlace').onclick=()=>{$('mapPanel').hidden=false;};$('openMap').onclick=()=>{$('mapPanel').hidden=false;};$('closeMap').onclick=()=>{$('mapPanel').hidden=true;};
-for(const b of document.querySelectorAll('[data-place]'))b.onclick=()=>{const [lat,lon]=b.dataset.place.split(',');$('latitude').value=lat;$('longitude').value=lon;$('mapNote').textContent='Выбраны координаты. Нажми «Загрузить район». ';};
-$('loadMap').onclick=async()=>{try{if(groupMode)throw Error('В групповой игре место выбирает создатель комнаты при первом запуске.');center=fitNumbers();$('mapPanel').hidden=true;createFallback(Math.round(center.lat*1000+center.lon*100));assignStart();fetchOSM().catch(()=>{});if(!playing){$('startNotice').textContent='Выбрано место: '+center.lat.toFixed(4)+', '+center.lon.toFixed(4);}}catch(e){$('mapNote').textContent=String(e.message||e);}};
+
+// Slippy map: no external JS library, native mouse/touch pan, wheel/pinch zoom,
+// OSM raster tiles with attribution. If tiles are offline, show a map grid.
+const mapCanvas=$('cityMap');const mapCtx=mapCanvas.getContext('2d');
+const worldMap={lat:center.lat,lon:center.lon,zoom:13,tiles:new Map(),queued:new Set(),selected:{...center},name:'Северное Бутово',drag:null,pinch:0,frame:0};
+function mercX(lon,z){return (lon+180)/360*Math.pow(2,z)*256;}
+function mercY(lat,z){return (1-Math.asinh(Math.tan(lat*Math.PI/180))/Math.PI)/2*Math.pow(2,z)*256;}
+function invMercX(x,z){return x/(Math.pow(2,z)*256)*360-180;}
+function invMercY(y,z){return Math.atan(Math.sinh(Math.PI*(1-2*y/(Math.pow(2,z)*256))))*180/Math.PI;}
+function resizeWorldMap(){if($('mapPanel').hidden)return;
+ const rect=mapCanvas.getBoundingClientRect(),ratio=Math.min(window.devicePixelRatio||1,2);
+ if(!rect.width||!rect.height)return;
+ mapCanvas.width=Math.round(rect.width*ratio);mapCanvas.height=Math.round(rect.height*ratio);
+ mapCtx.setTransform(ratio,0,0,ratio,0,0);requestMapDraw();}
+function requestMapDraw(){if(worldMap.frame)return;worldMap.frame=requestAnimationFrame(()=>{worldMap.frame=0;renderWorldMap();});}
+function panMap(dx,dy){const zoom=worldMap.zoom;
+ const px=mercX(worldMap.lon,zoom)-dx,py=mercY(worldMap.lat,zoom)-dy;
+ worldMap.lon=Math.max(-179.99,Math.min(179.99,invMercX(px,zoom)));
+ worldMap.lat=Math.max(-84.9,Math.min(84.9,invMercY(py,zoom)));requestMapDraw();}
+function mapCoordinates(clientX,clientY){const r=mapCanvas.getBoundingClientRect(),xx=clientX-r.left-r.width/2,yy=clientY-r.top-r.height/2,z=worldMap.zoom;
+ return {lat:Math.max(-84.9,Math.min(84.9,invMercY(mercY(worldMap.lat,z)+yy,z))),lon:Math.max(-179.99,Math.min(179.99,invMercX(mercX(worldMap.lon,z)+xx,z)))};}
+function pickMapLocation(lat,lon,name='Выбранная точка',zoom=null){
+ if(!Number.isFinite(lat)||!Number.isFinite(lon))return;
+ worldMap.lat=lat;worldMap.lon=lon;worldMap.selected={lat,lon};worldMap.name=name;
+ if(zoom!==null)worldMap.zoom=zoom;
+ $('latitude').value=lat.toFixed(5);$('longitude').value=lon.toFixed(5);
+ $('chosenPlace').textContent='📍 '+name;
+ $('mapNote').textContent=`${lat.toFixed(5)}, ${lon.toFixed(5)} · Нажми «Загрузить район»`;
+ requestMapDraw();
+}
+function loadTile(x,y,z){const max=2**z;
+ if(x<0||x>=max||y<0||y>=max)return null;
+ const key=`${z}/${x}/${y}`;
+ if(worldMap.tiles.has(key))return worldMap.tiles.get(key);
+ if(worldMap.queued.size>=18)return null;
+ const img=new Image();const tile={img,done:false,failed:false};worldMap.tiles.set(key,tile);worldMap.queued.add(key);
+ img.onload=()=>{tile.done=true;worldMap.queued.delete(key);requestMapDraw();};
+ img.onerror=()=>{tile.failed=true;worldMap.queued.delete(key);requestMapDraw();};
+ img.referrerPolicy='strict-origin-when-cross-origin';img.src=`https://tile.openstreetmap.org/${z}/${x}/${y}.png`;
+ if(worldMap.tiles.size>110){for(const k of worldMap.tiles.keys()){if(worldMap.tiles.size<=85)break;if(!worldMap.queued.has(k))worldMap.tiles.delete(k);}}
+ return tile;
+}
+function renderWorldMap(){
+ if($('mapPanel').hidden)return;const w=mapCanvas.clientWidth,h=mapCanvas.clientHeight,z=worldMap.zoom;
+ mapCtx.fillStyle='#b3c6bb';mapCtx.fillRect(0,0,w,h);
+ const cx=mercX(worldMap.lon,z),cy=mercY(worldMap.lat,z),ox=cx-w/2,oy=cy-h/2;
+ const minX=Math.floor(ox/256),maxX=Math.floor((ox+w)/256);
+ const minY=Math.floor(oy/256),maxY=Math.floor((oy+h)/256);
+ let painted=0;
+ for(let x=minX;x<=maxX;x++)for(let y=minY;y<=maxY;y++){
+  const sx=x*256-ox,sy=y*256-oy,t=loadTile(x,y,z);
+  if(t?.done){mapCtx.drawImage(t.img,sx,sy,256,256);painted++;}
+  else{mapCtx.fillStyle=(x+y)%2?'#bacabb':'#bdc9b2';mapCtx.fillRect(sx,sy,256,256);
+   mapCtx.strokeStyle='#a0b4a7';mapCtx.strokeRect(sx,sy,256,256);
+   mapCtx.fillStyle='#6c8076';mapCtx.font='12px system-ui';mapCtx.fillText('OSM '+z+'/'+x+'/'+y,sx+20,sy+29);}
+ }
+ const px=mercX(worldMap.selected.lon,z)-ox,py=mercY(worldMap.selected.lat,z)-oy;
+ if(px>=-15&&px<=w+15&&py>=-15&&py<=h+15){
+  mapCtx.beginPath();mapCtx.arc(px,py,11,0,Math.PI*2);mapCtx.fillStyle='#764ff0';mapCtx.fill();
+  mapCtx.lineWidth=3;mapCtx.strokeStyle='#fff';mapCtx.stroke();
+  mapCtx.beginPath();mapCtx.arc(px,py,3,0,Math.PI*2);mapCtx.fillStyle='#fff';mapCtx.fill();
+ }
+ if(!painted){mapCtx.fillStyle='#152543d1';mapCtx.fillRect(9,10,Math.min(315,w-18),42);
+  mapCtx.fillStyle='#fff';mapCtx.font='12px system-ui';mapCtx.fillText('Картографические тайлы загружаются…',18,26);
+  mapCtx.fillText('Точку можно выбрать и без них',18,41);}
+}
+function zoomWorldMap(delta){const newZoom=Math.max(3,Math.min(18,worldMap.zoom+delta));worldMap.zoom=newZoom;requestMapDraw();}
+let mapMoved=false;
+mapCanvas.addEventListener('pointerdown',e=>{
+ mapCanvas.setPointerCapture?.(e.pointerId);worldMap.drag={x:e.clientX,y:e.clientY};mapMoved=false;
+});
+mapCanvas.addEventListener('pointermove',e=>{if(!worldMap.drag)return;const dx=e.clientX-worldMap.drag.x,dy=e.clientY-worldMap.drag.y;
+ if(Math.abs(dx)+Math.abs(dy)>3)mapMoved=true;
+ if(mapMoved){panMap(dx,dy);worldMap.drag={x:e.clientX,y:e.clientY};}
+});
+mapCanvas.addEventListener('pointerup',e=>{
+ if(!mapMoved){const p=mapCoordinates(e.clientX,e.clientY);pickMapLocation(p.lat,p.lon,'Точка на карте');}
+ worldMap.drag=null;
+});
+mapCanvas.addEventListener('pointercancel',()=>worldMap.drag=null);
+mapCanvas.addEventListener('wheel',e=>{e.preventDefault();zoomWorldMap(e.deltaY<0?1:-1);},{passive:false});
+$('mapZoomIn').onclick=()=>zoomWorldMap(1);$('mapZoomOut').onclick=()=>zoomWorldMap(-1);
+// Two finger gestures on iOS / mobile: reserve one touch to pan, two to zoom.
+mapCanvas.addEventListener('touchmove',e=>{if(e.touches.length===2){
+ e.preventDefault();const dx=e.touches[0].clientX-e.touches[1].clientX,dy=e.touches[0].clientY-e.touches[1].clientY;
+ const dist=Math.hypot(dx,dy);if(worldMap.pinch&&Math.abs(dist/worldMap.pinch-1)>.22){zoomWorldMap(dist>worldMap.pinch?1:-1);worldMap.pinch=dist;}
+ else if(!worldMap.pinch)worldMap.pinch=dist;
+}},{passive:false});
+mapCanvas.addEventListener('touchend',e=>{if(e.touches.length<2)worldMap.pinch=0;});
+function openCityMap(){if(groupMode)$('mapNote').textContent='В групповой поездке смена места недоступна: локация общая для всех.';
+ $('mapPanel').hidden=false;worldMap.lat=center.lat;worldMap.lon=center.lon;worldMap.selected={...center};
+ resizeWorldMap();}
+function closeCityMap(){$('mapPanel').hidden=true;}
+window.addEventListener('resize',resizeWorldMap);
+// Geocoding runs only on deliberate search, no auto-address probing.
+$('searchCity').addEventListener('submit',async e=>{
+ e.preventDefault();const search=$('citySearchInput');const q=search.value.trim().slice(0,90);
+ if(q.length<3){$('searchFeedback').textContent='Введи название города или улицы (не менее 3 символов).';return;}
+ const b=$('searchSubmit');b.disabled=true;$('searchFeedback').textContent='Ищу…';
+ try{
+  const ctl=new AbortController();const timeout=setTimeout(()=>ctl.abort(),8500);
+  let resp;
+  try{resp=await fetch('https://photon.komoot.io/api/?q='+encodeURIComponent(q)+'&limit=6&lang=ru',{signal:ctl.signal});}
+  finally{clearTimeout(timeout);}
+  if(!resp.ok)throw Error('Поиск временно недоступен');
+  const json=await resp.json();const list=(json.features||[]).filter(x=>x.geometry?.coordinates?.length===2);
+  const output=$('searchResults');output.textContent='';
+  if(!list.length){$('searchFeedback').textContent='Не найдено. Выбери точку на карте.';return;}
+  for(const place of list){const [lon,lat]=place.geometry.coordinates;
+   const name=[place.properties?.name,place.properties?.city,place.properties?.state,place.properties?.country].filter(Boolean).filter((t,i,a)=>a.indexOf(t)===i).join(', ');
+   const btn=document.createElement('button');btn.type='button';btn.className='search-place';btn.textContent='📍 '+name;
+   btn.addEventListener('click',()=>{pickMapLocation(lat,lon,name,14);output.textContent='';$('searchFeedback').textContent='Точка выбрана';});output.append(btn);
+  }
+  $('searchFeedback').textContent='Выбери один из результатов:';
+ }catch(err){$('searchFeedback').textContent='Не удалось выполнить поиск. Карта и координаты доступны без поиска.';}
+ finally{b.disabled=false;}
+});
+$('startGame').addEventListener('click',start);
+$('choosePlace').onclick=()=>openCityMap();
+$('openMap').onclick=()=>openCityMap();
+$('closeMap').onclick=()=>closeCityMap();
+for(const b of document.querySelectorAll('[data-place]'))b.onclick=()=>{
+ const [lat,lon]=b.dataset.place.split(',').map(Number);
+ pickMapLocation(lat,lon,b.textContent.trim(),12);
+};
+$('loadMap').onclick=async()=>{
+ try{
+  if(groupMode)throw Error('В групповой поездке карта общая. Для смены места запусти новую комнату.');
+  center=fitNumbers();closeCityMap();createFallback(Math.round(center.lat*1000+center.lon*100));assignStart();
+  fetchOSM().catch(e=>status(e.message));
+  if(!playing)$('startNotice').textContent='Выбрано место: '+center.lat.toFixed(5)+', '+center.lon.toFixed(5);
+ }catch(e){$('mapNote').textContent=String(e.message||e);}
+};
 function toggleFoot(){if(!car.onFoot){parked={x:car.x,z:car.z,yaw:car.yaw};car.onFoot=true;}else{if(Math.hypot(car.x-parked.x,car.z-parked.z)>6){status('Подойди к своей машине, чтобы сесть (F).');return;}car.x=parked.x;car.z=parked.z;car.yaw=parked.yaw;car.onFoot=false;}car.speed=0;status(car.onFoot?'Пешком: W/A/S/D · F — сесть в машину':'За рулём: W/A/S/D · J — ускорение');setTimeout(()=>{if(playing)status('');},2400);}
 const bindings={KeyW:'gas',ArrowUp:'gas',KeyS:'brake',ArrowDown:'brake',KeyA:'left',ArrowLeft:'left',KeyD:'right',ArrowRight:'right',KeyJ:'boost',ShiftLeft:'boost'};
 window.addEventListener('keydown',e=>{if(e.target instanceof HTMLInputElement||$('mapPanel').hidden===false)return;if(bindings[e.code]){keys[bindings[e.code]]=true;e.preventDefault();}if(e.repeat)return;if(e.code==='KeyF'){toggleFoot();e.preventDefault();}if(e.code==='KeyX'){assignStart();e.preventDefault();}if(e.code==='KeyM'){$('mapPanel').hidden=!$('mapPanel').hidden;e.preventDefault();}});
@@ -236,6 +488,6 @@ for(const b of document.querySelectorAll('[data-control]')){
  b.addEventListener('pointerdown',down);for(const event of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(event,up);
 }
 window.addEventListener('pagehide',()=>{if(netTimer)clearInterval(netTimer);if(supa&&roomId&&myId)supa.rpc('rndm_world_leave',{p_conversation_id:roomId}).catch(()=>{});});
-createFallback();assignStart();resize();requestAnimationFrame(loop);$('worldCounter').textContent='🏙️ Демонстрационный район';
+createFallback();assignStart();resize();requestAnimationFrame(loop);$('worldCounter').textContent=`🏘 Пример · ${buildings.length} домов`;
 if(!groupMode)status('Готов к поездке · выбери город или начни в демо-районе');
 else if(!roomId){$('startNotice').textContent='Открой групповой чат и отправь /group, чтобы создать приглашение.';}

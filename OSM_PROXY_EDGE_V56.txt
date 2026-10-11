@@ -1,0 +1,13 @@
+RNDM World v56: Authenticated Supabase Edge Function "rndm-world-osm".
+
+The Edge Function is deployed in the existing RNDM Supabase project. It:
+- checks the Supabase user token server-side,
+- accepts only latitude/longitude within valid ranges,
+- reads cached OSM responses for nearby positions,
+- uses a server-side limit of 8 uncached requests / 10 minutes / account,
+- requests OpenStreetMap/Overpass via GET from public endpoints when needed,
+- returns OSM elements; the browser uses a procedural fallback if there is no response.
+
+World map slippy raster uses https://tile.openstreetmap.org with attribution.
+Search uses https://photon.komoot.io/api/. Both require the user's internet connection.
+This is not a guarantee of live OSM availability; endpoints may rate-limit.

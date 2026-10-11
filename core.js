@@ -23,6 +23,7 @@ const atlas = ['chats','contacts','channels','saved','settings','search','attach
 const paths = {
   play:'M8 5l11 7-11 7z', pause:'M7 5v14M17 5v14',
   random:'M12 2l3.4 6.7L23 10l-5.5 5.4 1.3 7.6L12 19.4 5.2 23l1.3-7.6L1 10l7.6-1.3L12 2z',
+  donate:'M12 21C-5 10 5-2 12 7c7-9 17 3 0 14z',
   stars:'M12 2.7l2.85 5.77 6.37.92-4.61 4.49 1.09 6.34L12 17.22l-5.70 3 1.09-6.34-4.61-4.49 6.37-.92L12 2.7z',
   calendar:'M4 5h16v16H4zM8 3v4M16 3v4M4 9h16M8 13h3M8 17h7',
   gift:'M3 10h18v11H3zM2 7h20v4H2zM12 7v14M12 7C6 7 5 4.9 6.7 3.6 9 1.6 12 7zM12 7c6 0 7-2.1 5.3-3.4C15 1.6 12 7 12 7z',

@@ -1,15 +1,17 @@
-import {$,$$,esc,icon,ib,avatar,sid,unique,preview,safeURL,richText,day,time,bytes,errorText,readLocal,writeLocal} from './core.js?v=55.0.0';
-import {MessengerAPI} from './api.js?v=55.0.0';
-import * as V from './views.js?v=55.0.0';
-import {Admin,staffRole} from './admin.js?v=55.0.0';
-import {Calls} from './calls.js?v=55.0.0';
-import {Clips} from './clips.js?v=55.0.0';
-import {applyColors,validColors,defaultColors} from './theme.js?v=55.0.0';
+import {$,$$,esc,icon,ib,avatar,sid,unique,preview,safeURL,richText,day,time,bytes,errorText,readLocal,writeLocal} from './core.js?v=58.1.0';
+import {MessengerAPI} from './api.js?v=58.1.0';
+import * as V from './views.js?v=58.1.0';
+import {Admin,staffRole} from './admin.js?v=58.1.0';
+import {Calls} from './calls.js?v=58.1.0';
+import {Clips} from './clips.js?v=58.1.0';
+import {DonateHub} from './donate.js?v=58.1.0';
+import {applyColors,validColors,defaultColors} from './theme.js?v=58.1.0';
 
 const defaults={notes:[],muted:[],wallpaper:'default',enterSend:true,notifications:false,notificationSound:false,colors:null};
-const app={user:null,profile:null,route:'chats',folder:'all',active:null,info:null,dialogs:[],channels:[],friends:[],prefs:{},drafts:{},state:{...defaults},messages:[],reactions:[],peopleMap:{},replyLookup:{},pins:[],reply:null,edit:null,files:new Map(),pending:new Set(),epoch:0,messageEpoch:0,more:false,rt:[],globalRt:[],stateChain:Promise.resolve(),draftTimers:new Map(),refreshing:false};
-let calls,clips,admin;
+const app={user:null,profile:null,route:'chats',folder:'all',active:null,info:null,dialogs:[],channels:[],channelResults:[],friends:[],prefs:{},drafts:{},state:{...defaults},messages:[],reactions:[],peopleMap:{},replyLookup:{},pins:[],reply:null,edit:null,files:new Map(),pending:new Set(),epoch:0,messageEpoch:0,more:false,rt:[],globalRt:[],stateChain:Promise.resolve(),draftTimers:new Map(),refreshing:false};
+let calls,clips,admin,donateHub;
 let api,toastTimer,searchTimer,messageSearchTimer,typingTimer,refreshTimer,listTimer,messageSizeObserver,record=null,voiceBusy=false,authMode='login',stopped=false,recoverySeen=false;
+let channelSearchLoading=false,channelSearchError='',channelSearchVersion=0;
 let previousRoute='chats',previousChatId=null;
 let randomTimer=null,randomToken=0,randomSearching=false,randomMatch=null,randomPerson=null,randomCount=null,randomInFlight=null;
 let randomLanguage='any',randomInterest='any';
@@ -76,7 +78,7 @@ function clearDraft(active,original) {
 }
 function cancelEdit(){if(!app.edit)return;const restore=app.edit.restore;app.edit=null;if($('#messageInput'))$('#messageInput').value=restore;renderCompose();}
 function stopSubscriptions(){app.rt.forEach(ch=>api.unwatch(ch));app.rt=[];clearTimeout(refreshTimer);clearTimeout(typingTimer);}
-function stopAll(){stopRandomSearch(true).catch(()=>{});admin?.stop();calls?.stop().catch(()=>{});clips?.stop();stopped=true;++app.epoch;++app.messageEpoch;stopSubscriptions();app.globalRt.forEach(ch=>api.unwatch(ch));app.globalRt=[];clearInterval(listTimer);cancelVoice();}
+function stopAll(){donateHub?.stop();stopRandomSearch(true).catch(()=>{});admin?.stop();calls?.stop().catch(()=>{});clips?.stop();stopped=true;++app.epoch;++app.messageEpoch;stopSubscriptions();app.globalRt.forEach(ch=>api.unwatch(ch));app.globalRt=[];clearInterval(listTimer);cancelVoice();}
 
 
 const RU_PROFANITY=[/бл(?:я|е)(?:д|т)\w*/giu,/ху[йеяё]\w*/giu,/пизд\w*/giu,/еб(?:а|у|ё|е|и)\w*/giu,/ёб\w*/giu,/су(?:ка|чк)\w*/giu,/мудак\w*/giu];
@@ -106,7 +108,7 @@ function applyIncomingCensorship(text){
 function applyLanguage(){
  const lang=app.profile?.app_language||localStorage.getItem('rndm-language')||'ru';
  document.documentElement.lang=lang;
- const labels={notifications:['Уведомления','Notifications'],random:['Рулетка','Random chat'],chats:['Чаты','Chats'],contacts:['Контакты','Contacts'],channels:['Каналы','Channels'],tapolka:['Тапалка','Tap game'],stars:['Звёзды','Stars'],clips:['Клипы','Clips'],calls:['Звонки','Calls'],settings:['Настройки','Settings'],saved:['Избранное','Saved'],admin:['Админка','Admin'],profile:['Профиль','Profile']};
+ const labels={notifications:['Уведомления','Notifications'],random:['Рулетка','Random chat'],chats:['Чаты','Chats'],contacts:['Контакты','Contacts'],channels:['Каналы','Channels'],tapolka:['Тапалка','Tap game'],stars:['Звёзды','Stars'],donate:['Донат','Support'],clips:['Клипы','Clips'],calls:['Звонки','Calls'],settings:['Настройки','Settings'],saved:['Избранное','Saved'],admin:['Админка','Admin'],profile:['Профиль','Profile']};
  const dict={'Мой RNDM':'My RNDM','Настройки':'Settings','Профиль':'Profile','Посмотреть мой профиль':'View my profile','Обложка профиля':'Profile cover','Загрузить обложку':'Upload cover','Имя пользователя':'Username','Имя':'Name','О себе':'About','Сохранить профиль':'Save profile','Изменить фото':'Change photo','Язык приложения / Language':'App language / Язык','Язык интерфейса / Interface language':'Interface language / Язык','Цензура':'Content filter','Оформление':'Appearance','Аккаунт':'Account','Сохранить / Save':'Save / Сохранить','Подарки':'Gifts','Звёзды':'Stars','Написать':'Message','Добавить':'Add friend','🎁 Подарить':'🎁 Send gift','Звёзды и подарки':'Stars and gifts','Открыть кошелёк':'Open wallet','Редактировать профиль':'Edit profile','Твои цвета':'Your colors','Выйти из аккаунта':'Sign out','Изменить пароль':'Change password','Статус':'Status','Клипы':'Clips','Звонки':'Calls','Сохранить цвета':'Save colors','Общение и приватность':'Chat & privacy','Тапалка':'Tap game','Котик':'Cat','Энергия':'Energy','Задания на сегодня':'Today’s tasks','Улучшения котика':'Cat upgrades','Восстановление':'Regeneration','Вместимость энергии':'Energy capacity','Публикации':'Posts','Новая публикация':'New post','Закрепить':'Pin','Удалить':'Delete','Написать сообщение':'Message','Написать':'Message','Написать публикацию':'Write a post','Отправить подарок':'Send gift','Подарок':'Gift','Друзья':'Friends','Найти случайного собеседника':'Find a random partner','Начать поиск':'Start searching','Остановить поиск':'Stop searching','Другой человек':'Find another person','Добавить в друзья':'Add friend','Новые':'Latest','Популярные':'Popular','Подписки':'Following','Подписаться':'Follow','Клипы':'Clips','Хештег':'Hashtag','Первый клип — за тобой':'Be the first to post','Выложить':'Upload','Музыка профиля':'Profile music','Название трека':'Track title','Ссылка на аудио':'Audio URL','Сохранить музыку':'Save music','Посмотреть публикации в профиле':'View profile posts','Поиск в переписке':'Search messages','Прикрепить файл':'Attach file','Записать голосовое':'Record voice','Отложить сообщение':'Schedule message','Отложенная отправка':'Scheduled message','Выключить звук':'Mute','Включить звук':'Unmute','Закреплено':'Pinned','Обновить':'Refresh','Завершить':'End','Предпросмотр':'Preview','Открыть чат':'Open chat','Профиль':'Profile','Сохранить':'Save','Получено':'Claimed','Сегодня':'Today','Рейтинг канала':'Leaderboard','Загрузить ещё':'Load more','Обложка':'Cover','История знакомств':'Meeting history','Избранное пусто':'Saved collection is empty','Выйти':'Sign out','Закрыть':'Close','Уведомления':'Notifications','Непрочитанные':'Unread','Прочитать всё':'Mark all read','История знакомств':'Match history','За неделю':'This week','За всё время':'All time','Редкий':'Rare','Легендарный':'Legendary','Порядок блоков профиля':'Profile sections order','Сначала подарки':'Gifts first','Сначала публикации':'Posts first','Проверить соединение':'Check connection','Отмена':'Cancel','Отправить':'Send','Переписка':'Conversation','Сохранить оформление':'Save appearance','Кошелёк':'Wallet','Активность':'Activity','Проверить':'Check'};
  const backward=Object.fromEntries(Object.entries(dict).map(([a,b])=>[b,a]));
  const table=lang==='en'?dict:backward;
@@ -138,7 +140,7 @@ async function repairFrontendCache(reload=true){
   }
   if(reload){
     const url=new URL(location.href);
-    url.searchParams.set('updated',window.RNDM_CONFIG?.version||'55.0.0');
+    url.searchParams.set('updated',window.RNDM_CONFIG?.version||'58.1.0');
     location.replace(url.href);
   }
 }
@@ -159,7 +161,7 @@ async function boot() {
     const message=String(error?.message||'');
     const outdated=/\bis not a function\b|\b(?:undefined|null)\b.*\b(?:property|properties)\b/i.test(message);
     if(outdated){
-      const flag='rndm-repair-once-'+(window.RNDM_CONFIG?.version||'55.0.0');
+      const flag='rndm-repair-once-'+(window.RNDM_CONFIG?.version||'58.1.0');
       try{
         if(sessionStorage.getItem(flag)!=='1'){
           sessionStorage.setItem(flag,'1');
@@ -216,6 +218,7 @@ async function start(user) {
   admin=new Admin(api,{toast,modal:showModal,confirm:confirmAction,close:()=>modal.close(),onProfile:showPerson});
   calls=new Calls(api,toast);calls.start();
   clips=new Clips(api,{toast,modal:showModal,confirm:confirmAction,onProfile:showPerson,onGift:openGiftShop});
+  donateHub=new DonateHub(api,{toast,onWallet:()=>navigate('stars'),profile:()=>app.profile});
   api.heartbeat().catch(()=>{});clearInterval(listTimer);let tick=0;
   listTimer=setInterval(()=>{if(stopped || document.hidden || !navigator.onLine)return;tick++;if(tick%2===0)refreshStories().catch(()=>{});if(app.active)refreshMessages().catch(()=>{});if(tick%2===0)refreshLists().catch(()=>{});if(tick%20===0)api.heartbeat().catch(()=>{});if(tick%2===0)refreshNotificationBadge().catch(()=>{});if(['direct','group'].includes(app.active?.kind))updateTypers();},15000);
   app.globalRt.forEach(ch=>api.unwatch(ch));app.globalRt=[];
@@ -227,6 +230,7 @@ async function start(user) {
   else if(params.get('view')==='channels'){await navigate('channels',false);if(params.get('channel'))await openChannel(params.get('channel'),false);}
   else if(params.get('view')==='contacts')await navigate('contacts');
   else if(params.get('view')==='random'){await navigate('random',false);}
+  else if(params.get('view')==='donate'){await navigate('donate',false);}
   else if(params.get('view')==='stars'){await navigate('stars',false);}else if(params.get('view')==='notifications'){await navigate('notifications',false);}
   else if(params.get('view')==='clips'){await navigate('clips',false);}
   else if(params.get('view')==='admin'){await navigate('admin',false);}
@@ -243,7 +247,23 @@ function notifyMessage(payload){
   try{const n=new Notification(app.dialogs.find(x=>x.id===sid(m.conversation_id))?.title||'RNDM Chat',{body:preview(m).slice(0,140),icon:new URL('icon-192.svg',location.href).href,tag:'rndm-'+m.id});n.onclick=()=>{window.focus();openConversation(m.conversation_id).catch(()=>{});n.close();};}catch{}
 }
 function wireShell() {
-  $('#listSearch').addEventListener('input',()=>{renderSidebar();applyLanguage();clearTimeout(searchTimer);if(['contacts','chats'].includes(app.route))searchTimer=setTimeout(searchPeople,320);});
+  $('#listSearch').addEventListener('input',()=>{
+    renderSidebar();applyLanguage();clearTimeout(searchTimer);
+    if(['contacts','chats'].includes(app.route))searchTimer=setTimeout(searchPeople,320);
+    else if(app.route==='channels'){
+      const version=++channelSearchVersion;
+      const query=$('#listSearch').value.trim();
+      app.channelResults=[];channelSearchError='';channelSearchLoading=query.replace(/^@/,'').length>=2;
+      renderSidebar();applyLanguage();
+      if(channelSearchLoading)searchTimer=setTimeout(async()=>{
+        try{const found=await api.searchChannels(query);
+          if(version!==channelSearchVersion||app.route!=='channels'||$('#listSearch').value.trim()!==query)return;
+          app.channelResults=found;channelSearchError='';
+        }catch(e){if(version!==channelSearchVersion||app.route!=='channels')return;channelSearchError=errorText(e);app.channelResults=[];}
+        finally{if(version===channelSearchVersion&&app.route==='channels'){channelSearchLoading=false;renderSidebar();applyLanguage();}}
+      },330);
+    }
+  });
   $('#listSearch').addEventListener('keydown',e=>{if(e.key==='Escape'){e.currentTarget.value='';renderSidebar();applyLanguage();}});
 }
 function renderSidebarError(error){$('#dialogList').innerHTML=`<div class="sidebar-empty"><p>${esc(errorText(error))}</p><button class="secondary" data-action="refresh-list">Повторить</button></div>`;}
@@ -253,11 +273,12 @@ function renderSidebar() {
   const route=app.route, search=$('#listSearch').value.trim().toLowerCase();
   const starBadge=$('#starBalanceNav');if(starBadge&&app.profile)starBadge.textContent=Number(app.profile.stars||0).toLocaleString('ru-RU');
   $$('.nav-item').forEach(el=>el.classList.toggle('active',el.dataset.nav===route));
-  $('#sectionTitle').textContent={random:'Рулетка',chats:'Чаты',contacts:'Контакты',channels:'Каналы',saved:'Избранное',settings:'Настройки',clips:'Клипы',calls:'Звонки',admin:'Админка',tapolka:'Тапалка',stars:'Звёзды',notifications:'Уведомления',profile:'Профиль'}[route]||'RNDM';
+  $('#sectionTitle').textContent={random:'Рулетка',chats:'Чаты',contacts:'Контакты',channels:'Каналы',saved:'Избранное',settings:'Настройки',clips:'Клипы',calls:'Звонки',admin:'Админка',tapolka:'Тапалка',stars:'Звёзды',donate:'Донат',notifications:'Уведомления',profile:'Профиль'}[route]||'RNDM';
   const count=route==='chats'?app.dialogs.length:route==='channels'?app.channels.length:route==='contacts'?app.friends.filter(x=>x.status==='accepted').length:0;
   $('#sectionCount').textContent=count;$('#sectionCount').hidden=!count;
-  $('#listSearch').closest('.searchbox').hidden=['random','saved','settings','clips','calls','admin','tapolka','stars','profile','notifications'].includes(route);
-  const tabs=route==='chats'?[['all','Все'],['direct','Личные'],['group','Группы'],['unread','Новые'],['archive','Архив']]:route==='channels'?[['all','Все'],['joined','Мои']]:[];
+  $('#listSearch').placeholder=route==='channels'?'Найти канал по названию или @адресу':'Поиск';
+  $('#listSearch').closest('.searchbox').hidden=['random','saved','settings','clips','calls','admin','tapolka','stars','donate','profile','notifications'].includes(route);
+  const tabs=route==='chats'?[['all','Все'],['direct','Личные'],['group','Группы'],['unread','Новые'],['archive','Архив']]:[];
   $('#folderTabs').innerHTML=tabs.map(([name,label])=>`<button type="button" data-folder="${name}" class="${app.folder===name?'active':''}">${label}</button>`).join('');$('#folderTabs').hidden=!tabs.length;
   const host=$('#dialogList');
   if(route==='chats'){
@@ -275,14 +296,18 @@ function renderSidebar() {
     const accepted=app.friends.filter(x=>x.status==='accepted'&&x.person&&(!search||(x.person.display_name+' '+x.person.username).toLowerCase().includes(search.replace(/^@/,''))));
     host.innerHTML=(incoming.length?`<div class="list-label">Заявки в друзья</div>${incoming.map(x=>`<div class="chat-row">${avatar(x.person)}<span class="row-content"><span class="row-name">${esc(x.person?.display_name || 'Пользователь')}</span><span class="row-bottom"><span class="row-preview">Хочет добавить тебя</span></span></span><button class="icon-button small" data-accept="${x.id}" aria-label="Принять заявку">${icon('check')}</button><button class="icon-button small" data-decline="${x.id}" aria-label="Отклонить заявку">${icon('close')}</button></div>`).join('')}`:'')+`<div class="list-label">Мои контакты</div>`+(accepted.map(x=>V.personRow(x.person)).join('')||'<div class="sidebar-empty"><p>Найди человека через поиск по имени или @username.</p></div>')+'<div id="peopleSearchResults"></div>';
   }else if(route==='channels'){
-    const rows=app.channels.filter(x=>(app.folder!=='joined'||x.joined||x.owner_id===app.user.id)&&(!search||(x.title+' '+x.description).toLowerCase().includes(search)));
-    host.innerHTML=`<button type="button" class="chat-row tap-channel-row" data-nav="tapolka"><span class="avatar tone-1 tap-avatar">R</span><span class="row-content"><span class="row-top"><span class="row-name">Тапалка</span><span class="row-time">GAME</span></span><span class="row-bottom"><span class="row-preview">Игровой канал · общий рейтинг тапов</span></span></span></button>`+(rows.map(x=>V.row({...x,preview:x.count+' подписчиков · '+(x.description||'')},app)).join('')||'<div class="sidebar-empty"><p>Других каналов пока нет.</p><button class="secondary" data-action="new-channel">Создать канал</button></div>');
+    const searching=search.length>0;
+    const rows=searching ? app.channelResults : app.channels;
+    const hint=searching?(channelSearchLoading?'<div class="sidebar-empty"><span class="spinner"></span><p>Ищем каналы…</p></div>':channelSearchError?`<div class="sidebar-empty"><p>${esc(channelSearchError)}</p><button class="secondary" data-action="channel-search-retry">Повторить поиск</button></div>`:'<div class="sidebar-empty"><p>Каналы не найдены. Попробуй другое название.</p></div>'):'<div class="sidebar-empty"><p>Тут появятся только твои подписки и собственные каналы. Чтобы найти новый, введи название в поиске выше.</p><button class="secondary" data-action="new-channel">Создать канал</button></div>';
+    host.innerHTML=`<div class="channel-list-note">${searching?'🔎 Результаты поиска':'⭐ Мои каналы'}<small>${searching?'Поиск по названию или @адресу':'Другие каналы доступны только через поиск'}</small></div>` + (rows.length?rows.map(x=>V.row({...x,preview:(Number(x.count)>0?x.count+' подписчиков · ':'')+(x.description||'Канал RNDM')},app)).join(''):hint);
   }else if(route==='random'){
     host.innerHTML='<div class="sidebar-empty"><span class="random-sidebar-ornament">✨</span><h3>Новые знакомства</h3><p>Выбирай тему и находи людей для общения.</p><button class="primary" data-action="random-start">Начать поиск</button></div>';
   }else if(route==='tapolka'){
     host.innerHTML='<div class="sidebar-empty"><div class="tap-mini">R</div><p>Отдельный игровой канал RNDM. Тапай и соревнуйся с другими.</p><button class="primary" data-nav="tapolka">Открыть тапалку</button></div>';
   }else if(route==='notifications'){
     host.innerHTML='<div class="sidebar-empty"><span style="font-size:38px">🔔</span><h3>Твои события</h3><p>Подарки, сообщения, звонки и новые знакомства.</p><button class="primary" data-action="notifications-refresh">Обновить события</button></div>';
+  }else if(route==='donate'){
+    host.innerHTML='<div class="sidebar-empty"><span style="font-size:46px">💜</span><h3>Поддержать RNDM</h3><p>Boosty, 1000 Stars и три кейса с эксклюзивными подарками.</p><button class="primary" data-nav="stars">Открыть кошелёк ⭐</button></div>';
   }else if(route==='stars'){
     host.innerHTML='<div class="sidebar-empty"><span style="font-size:42px">⭐</span><h3>Твой кошелёк</h3><p>Забирай ежедневные звёзды и дари подарки друзьям.</p><button class="primary" data-action="stars-refresh">Обновить баланс</button></div>';
   }else if(route==='saved'){
@@ -317,9 +342,9 @@ async function navigate(route,push=true) {
   if(app.route==='random' && route==='random'){renderRandomPage();return;}
   if(app.route==='random' && route!=='random')await stopRandomSearch(true).catch(()=>{});
   if(route==='admin'&&!staffRole(app.profile.app_role)){toast('Админка доступна только администрации.');route='chats';}
-  admin?.stop();
+  admin?.stop();donateHub?.stop();
   applyColors(app.state.colors);clips?.stop();captureDraft();cancelEdit();cancelVoice();stopSubscriptions();closePop();
-  ++app.epoch;++app.messageEpoch;app.active=null;app.info=null;app.reply=null;app.messages=[];app.route=route;app.folder='all';$('#listSearch').value='';$('#workspace').classList.toggle('in-chat',['settings','saved','tapolka','clips','calls','admin','profile','random','stars','notifications'].includes(route));
+  ++app.epoch;++app.messageEpoch;app.active=null;app.info=null;app.reply=null;app.messages=[];app.route=route;app.folder='all';++channelSearchVersion;channelSearchLoading=false;channelSearchError='';app.channelResults=[];$('#listSearch').value='';$('#workspace').classList.toggle('in-chat',['settings','saved','tapolka','clips','calls','admin','profile','random','stars','donate','notifications'].includes(route));
   if(push){const url=new URL(location.href);url.search='';if(route!=='chats'){url.searchParams.set('view',route);if(route==='profile'&&app.profileTarget)url.searchParams.set('user',app.profileTarget);}history.pushState({},'',url);}
   $('#pane').innerHTML=route==='settings'?V.settings(app):V.welcome();renderSidebar();applyLanguage();
   const epoch=app.epoch;
@@ -327,7 +352,7 @@ async function navigate(route,push=true) {
     if(route==='admin'){await admin.open($('#pane'));return;}
     if(route==='random'){await openRandomPage();return;}
     if(route==='tapolka'){await openTapolka();return;}
-    if(route==='stars'){await openStars();return;}if(route==='notifications'){await openNotifications();return;}
+    if(route==='stars'){await openStars();return;}if(route==='donate'){await donateHub.open($('#pane'));return;}if(route==='notifications'){await openNotifications();return;}
     if(route==='profile'){await openPublicProfile(app.profileTarget);return;}
     if(route==='clips'){await clips.open($('#pane'),new URL(location.href).searchParams.get('clip'));return;}
     if(route==='calls'){$('#pane').innerHTML='<header class="chat-header"><button class="icon-button back-mobile" data-action="back" aria-label="К чатам">'+icon('back')+'</button><h2>Звонки</h2><button class="secondary" data-action="refresh-calls">Обновить</button></header><section class="calls-history" id="callsHistory"></section>';await calls.history($('#callsHistory'));return;}
@@ -355,7 +380,9 @@ async function openConversation(id,push=true) {
 }
 async function openChannel(id,push=true) {
   admin?.stop();clips?.stop();captureDraft();cancelEdit();cancelVoice();stopSubscriptions();closePop();const epoch=++app.epoch;++app.messageEpoch;
-  app.route='channels';app.active=app.channels.find(x=>x.id===sid(id));if(!app.active){toast('Канал не найден');return;}
+  app.route='channels';let channel=app.channels.find(x=>x.id===sid(id))||app.channelResults.find(x=>x.id===sid(id));
+  if(!channel){try{channel=await api.channel(id);}catch(error){toast(errorText(error));return;}}
+  if(epoch!==app.epoch)return;app.active=channel;
   app.info=null;app.reply=null;app.reactions=[];app.messages=[];app.pins=[];$('#workspace').classList.add('in-chat');$('#pane').innerHTML=V.conversation(app);wireConversation();renderSidebar();applyLanguage();
   if(push)history.pushState({},'',location.pathname+'?view=channels&channel='+encodeURIComponent(id));
   try{await refreshMessages(true);if(epoch===app.epoch)subscribeActive();}catch(error){if(epoch===app.epoch)showError($('#messages'),error);}
@@ -556,12 +583,95 @@ async function newConversation() {
 async function openDirect(uid) { const cid=await api.direct(uid);if(!cid)throw new Error('Сервер не вернул адрес чата.');modal.close();await refreshLists();await openConversation(cid); }
 async function newGroup() {
   const friends=await api.friends();const people=friends.filter(x=>x.status==='accepted'&&x.person).map(x=>x.person);
-  showModal('Новая группа',`<form id="groupForm"><label class="field">Название<input id="groupName" placeholder="Например, Наш круг" maxlength="80" minlength="2" required></label><p class="muted" style="font-size:11px;margin:15px 0">Добавь участников из своих контактов.</p><div class="modal-list">${people.map(p=>`<label class="select-person"><input type="checkbox" name="member" value="${esc(p.id)}">${avatar(p,'small')}<div><b>${esc(p.display_name)}</b><small>@${esc(p.username)}</small></div></label>`).join('')||'<p class="muted" style="font-size:12px;padding:10px">Сначала добавь людей в контакты.</p>'}</div><div id="modalError"></div><div class="modal-actions"><button type="button" class="secondary" data-action="close-modal">Отмена</button><button type="submit" class="primary">Создать группу</button></div></form>`);
-  $('#groupForm').onsubmit=async e=>{e.preventDefault();const b=$('button[type=submit]',e.currentTarget);b.disabled=true;try{const ids=new FormData(e.currentTarget).getAll('member');if(!ids.length)throw new Error('Выбери хотя бы одного участника.');const cid=await api.group($('#groupName').value.trim(),ids);if(!cid)throw new Error('Сервер не подтвердил создание группы.');modal.close();await refreshLists();await openConversation(cid);}catch(error){showError($('#modalError'),error);}finally{b.disabled=false;}};
+  showModal('Новая группа',`<form id="groupForm"><label class="field">Название<input id="groupName" placeholder="Например, Наш круг" maxlength="80" minlength="2" required></label><label class="field">Аватарка группы (необязательно)<input id="newGroupAvatar" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif"></label><p class="muted" style="font-size:11px;margin:15px 0">Добавь участников из своих контактов.</p><div class="modal-list">${people.map(p=>`<label class="select-person"><input type="checkbox" name="member" value="${esc(p.id)}">${avatar(p,'small')}<div><b>${esc(p.display_name)}</b><small>@${esc(p.username)}</small></div></label>`).join('')||'<p class="muted" style="font-size:12px;padding:10px">Сначала добавь людей в контакты.</p>'}</div><div id="modalError"></div><div class="modal-actions"><button type="button" class="secondary" data-action="close-modal">Отмена</button><button type="submit" class="primary">Создать группу</button></div></form>`);
+  $('#groupForm').onsubmit=async e=>{e.preventDefault();const b=$('button[type=submit]',e.currentTarget);b.disabled=true;try{const ids=new FormData(e.currentTarget).getAll('member');if(!ids.length)throw new Error('Выбери хотя бы одного участника.');const cid=await api.group($('#groupName').value.trim(),ids);if(!cid)throw new Error('Сервер не подтвердил создание группы.');const picture=$('#newGroupAvatar')?.files?.[0];if(picture){try{await apiUploadChatAvatar(cid,picture,'group');}catch(imageError){toast('Группа создана, но фото не загрузилось: '+errorText(imageError));}}modal.close();await refreshLists();await openConversation(cid);}catch(error){showError($('#modalError'),error);}finally{b.disabled=false;}};
 }
+async function prepareChatAvatar(file) {
+  if(!file)throw new Error('Выбери фотографию.');
+  const type=String(file.type||'').toLowerCase();
+  if(!/^image\/(jpeg|png|webp|heic|heif)$/.test(type))throw new Error('Выбери JPG, PNG, WebP или HEIC.');
+  if(file.size>10*1024*1024||file.size<50)throw new Error('Фотография должна быть меньше 10 МБ.');
+  const source=URL.createObjectURL(file);
+  const img=new Image();
+  try {
+    await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(new Error('Телефон не смог открыть фото. Попробуй JPG.'));img.src=source;});
+    const width=img.naturalWidth,height=img.naturalHeight;
+    if(!width||!height)throw new Error('Неверное изображение.');
+    const canvas=document.createElement('canvas');
+    const scale=Math.min(1,512/Math.max(width,height));
+    canvas.width=Math.max(1,Math.round(width*scale));canvas.height=Math.max(1,Math.round(height*scale));
+    const ctx=canvas.getContext('2d');if(!ctx)throw new Error('Редактор фото недоступен.');
+    ctx.fillStyle='#ffffff';ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.drawImage(img,0,0,canvas.width,canvas.height);
+    const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',0.86));
+    if(!blob||!blob.size)throw new Error('Не удалось обработать фотографию.');
+    return new File([blob],'chat-avatar.jpg',{type:'image/jpeg'});
+  }finally{URL.revokeObjectURL(source);}
+}
+async function apiUploadChatAvatar(chatId,file,kind) {
+  const photo=await prepareChatAvatar(file);
+  const bucket=kind==='group'?'group-avatars':'channel-avatars';
+  const upload=await api.upload(bucket,photo,'images');
+  try {
+    if(kind==='group')await api.setGroupAvatar(chatId,upload.url);
+    else await api.setChannelAvatar(chatId,upload.url);
+    return upload.url;
+  }catch(error){
+    if(!/fetch|network|abort|timeout/i.test(error.message||''))await api.sb.storage.from(bucket).remove([upload.path]).catch(()=>{});
+    throw error;
+  }
+}
+async function openGroupInvite(){
+  const active={...app.active};
+  if(active.kind!=='group'||!app.info)throw new Error('Сначала открой группу.');
+  if(!app.info.members.some(m=>m.user_id===app.user.id&&['owner','admin'].includes(m.role)))
+    throw new Error('Добавлять участников может владелец или администратор.');
+  const already=new Set(app.info.members.map(m=>m.user_id));
+  const friends=await api.friends();
+  const people=friends.filter(x=>x.status==='accepted'&&x.person&&!already.has(x.person.id)).map(x=>x.person);
+  showModal('Добавить людей в группу',`<form id="inviteGroupForm"><p class="muted">Выбери друзей из контактов. Только владелец и администраторы могут добавлять людей. Не больше 200 участников в группе.</p><label class="searchbox modal-search">${icon('search')}<input type="search" id="inviteGroupSearch" placeholder="Имя или @username" autocomplete="off" aria-label="Поиск друзей"></label><div class="modal-list" id="inviteGroupList">${people.map(p=>`<label class="select-person"><input type="checkbox" name="member" value="${esc(p.id)}">${avatar(p,'small')}<div><b>${esc(p.display_name||p.username)}</b><small>@${esc(p.username)}</small></div></label>`).join('')||'<p class="muted" style="padding:12px">Все твои друзья уже в группе. Чтобы пригласить других, сначала добавь их в контакты.</p>'}</div><div id="inviteGroupError"></div><div class="modal-actions"><button type="button" class="secondary" data-action="close-modal">Отмена</button><button type="submit" class="primary" ${people.length?'':'disabled'}>Добавить участников</button></div></form>`);
+  const search=$('#inviteGroupSearch');search.oninput=()=>{
+    const query=search.value.trim().replace(/^@/,'').toLowerCase();
+    $$('#inviteGroupList .select-person').forEach(row=>row.hidden=!!query&&!row.textContent.toLowerCase().includes(query));
+  };
+  $('#inviteGroupForm').onsubmit=async event=>{
+    event.preventDefault();const form=event.currentTarget,btn=$('button[type=submit]',form);
+    btn.disabled=true;
+    try{
+      const ids=new FormData(form).getAll('member');if(!ids.length)throw new Error('Выбери хотя бы одного друга.');
+      const result=await api.addGroupMembers(active.id,ids);
+      modal.close();const n=Number(result?.count||0);
+      if(app.active?.id===active.id){app.info=await api.info(active.id);const presence=$('#presenceText');if(presence)presence.textContent=app.info.members.length+' участников';if($('#detail'))info();}
+      await refreshLists();toast(n?`Добавлено участников: ${n}`:'Все выбранные друзья уже в группе.');
+    }catch(error){showError($('#inviteGroupError'),error);}finally{if(btn.isConnected)btn.disabled=false;}
+  };
+}
+function openChatAvatarChooser(kind){
+  const active={...app.active};if(!active||!['group','channel'].includes(kind))return;
+  if(active.kind!==kind){toast('Открой нужную группу или канал.');return;}
+  const saved=kind==='group'?app.info?.conv?.avatar_url:active.avatar_url;
+  showModal(kind==='group'?'Аватарка группы':'Аватарка канала',`<form id="chatAvatarForm"><div class="avatar-change-preview">${avatar({display_name:active.title||app.info?.conv?.title||'Группа',avatar_url:saved},'large',kind==='group'?'contacts':'channels')}</div><p class="muted">Выбери фото для оформления. Мы автоматически уменьшим его до 512 пикселей. Можно выбрать фотографию из галереи iPhone.</p><label class="field">Новое фото<input id="chatAvatarPicture" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" required></label><div id="chatAvatarError"></div><div class="modal-actions"><button type="button" class="secondary" data-action="close-modal">Отмена</button><button class="primary" type="submit">Сохранить фото</button></div></form>`);
+  $('#chatAvatarForm').onsubmit=async event=>{
+    event.preventDefault();const button=$('button[type=submit]',event.currentTarget);button.disabled=true;
+    try{
+      const file=$('#chatAvatarPicture').files?.[0];const url=await apiUploadChatAvatar(active.id,file,kind);
+      if(kind==='group'){
+        const dialog=app.dialogs.find(x=>x.id===active.id);if(dialog)dialog.avatar_url=url;
+        if(app.active?.id===active.id){app.info.conv.avatar_url=url;app.active.avatar_url=url;}
+      }else{
+        for(const list of [app.channels,app.channelResults]){const ch=list.find(x=>x.id===active.id);if(ch)ch.avatar_url=url;}
+        if(app.active?.id===active.id)app.active.avatar_url=url;
+      }
+      modal.close();renderSidebar();
+      if(app.active?.id===active.id){const element=$('#pane .chat-header > .avatar');if(element)element.outerHTML=avatar({title:active.title||app.info?.conv?.title||'Группа',avatar_url:url},'',kind==='group'?'contacts':'channels');if($('#detail'))info();}
+      toast('Фото сохранено');
+    }catch(error){showError($('#chatAvatarError'),error);}finally{if(button.isConnected)button.disabled=false;}
+  };
+}
+
 function newChannel() {
-  showModal('Новый канал',`<form id="channelForm"><label class="field">Название<input id="channelName" placeholder="Имя твоего канала" minlength="2" maxlength="15" required></label><label class="field">Описание<textarea id="channelDescription" rows="3" maxlength="50" placeholder="О чём здесь будут публикации?"></textarea></label><p class="muted" style="font-size:11px;line-height:1.7">Публикации доступны читателям. Писать посты может владелец канала.</p><div id="modalError"></div><div class="modal-actions"><button type="button" class="secondary" data-action="close-modal">Отмена</button><button class="primary" type="submit">Создать канал</button></div></form>`);
-  $('#channelForm').onsubmit=async e=>{e.preventDefault();const b=$('button[type=submit]',e.currentTarget);b.disabled=true;try{const ch=await api.createChannel($('#channelName').value.trim(),$('#channelDescription').value.trim());modal.close();await navigate('channels');await openChannel(ch.id);}catch(error){showError($('#modalError'),error);}finally{b.disabled=false;}};
+  showModal('Новый канал',`<form id="channelForm"><label class="field">Название<input id="channelName" placeholder="Имя твоего канала" minlength="2" maxlength="15" required></label><label class="field">Описание<textarea id="channelDescription" rows="3" maxlength="50" placeholder="О чём здесь будут публикации?"></textarea></label><label class="field">Аватарка канала<input id="newChannelAvatar" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif"></label><p class="muted" style="font-size:11px;line-height:1.7">Публикации доступны читателям. Писать посты может владелец канала.</p><div id="modalError"></div><div class="modal-actions"><button type="button" class="secondary" data-action="close-modal">Отмена</button><button class="primary" type="submit">Создать канал</button></div></form>`);
+  $('#channelForm').onsubmit=async e=>{e.preventDefault();const b=$('button[type=submit]',e.currentTarget);b.disabled=true;try{const ch=await api.createChannel($('#channelName').value.trim(),$('#channelDescription').value.trim());const picture=$('#newChannelAvatar')?.files?.[0];if(picture){try{await apiUploadChatAvatar(ch.id,picture,'channel');}catch(imageError){toast('Канал создан, но фото не загрузилось: '+errorText(imageError));}}modal.close();await navigate('channels');await openChannel(ch.id);}catch(error){showError($('#modalError'),error);}finally{b.disabled=false;}};
 }
 async function showPerson(uid){
  if(modal.open)modal.close();
@@ -575,6 +685,8 @@ function chatMenu(anchor) {
   let html=`<button data-action="info">${icon('info')}Информация</button>`;
   if(['direct','group'].includes(a.kind))html+=`<button data-action="pin-chat">${icon('pin')}${pref.is_pinned?'Открепить чат':'Закрепить чат'}</button><button data-action="archive-chat">${icon('archive')}${pref.is_archived?'Вернуть из архива':'В архив'}</button><button data-action="mute-chat">${icon('mute')}${app.state.muted.includes(a.id)?'Включить уведомления':'Без уведомлений'}</button><button data-action="chat-wallpaper">${icon('image')}Фон чата</button><button data-action="schedule-message">🕒 Отложить сообщение</button>`;
   if(a.kind==='channel')html+=`<button data-action="join-channel">${icon(a.joined?'close':'plus')}${a.joined?'Отписаться':'Подписаться'}</button>`;
+  if(a.kind==='group'&&app.info?.members.some(m=>m.user_id===app.user.id&&['owner','admin'].includes(m.role)))html+=`<button data-action="group-invite">${icon('plus')}Добавить участников</button><button data-action="group-avatar">${icon('image')}Аватарка группы</button>`;
+  if(a.kind==='channel'&&a.owner_id===app.user.id)html+=`<button data-action="channel-avatar">${icon('image')}Аватарка канала</button>`;
   html+=`<button data-action="refresh-chat">${icon('refresh')}Обновить</button>`;showPop(anchor,html);
 }
 function messageMenu(id,anchor) {
@@ -589,12 +701,13 @@ function messageMenu(id,anchor) {
 function info() {
   const a=app.active;if(!a)return;
   $('#detail')?.remove();
-  const person=a.kind==='saved'?{display_name:'Избранное'}:a.kind==='channel'?a:app.info.profiles.find(p=>p.id!==app.user.id)||app.profile;
+  const person=a.kind==='saved'?{display_name:'Избранное'}:a.kind==='channel'?a:a.kind==='group'?{display_name:app.info.conv.title,avatar_url:app.info.conv.avatar_url}:app.info.profiles.find(p=>p.id!==app.user.id)||app.profile;
   const title=a.kind==='group'?app.info.conv.title:person.display_name || person.title || person.username;
   const attachments=app.messages.filter(x=>x.attachment_url&&!x.deleted_at),images=attachments.filter(x=>x.attachment_type?.startsWith('image/'));
   const html=`<aside class="detail" id="detail"><div class="detail-head"><h3>Информация</h3>${ib('close','Закрыть информацию','close-info')}</div><div class="detail-profile">${avatar(person,'large',a.kind==='group'?'contacts':a.kind==='channel'?'channels':a.kind==='saved'?'saved':'')}<h2>${esc(title)}</h2><p>${esc(a.description || person.bio || (a.kind==='saved'?'Твоё личное пространство':a.kind==='group'?app.info.members.length+' участников':person.username?'@'+person.username:''))}</p></div>
     ${['direct','group'].includes(a.kind)?`<section class="detail-section"><button class="detail-action" data-action="pin-chat">${icon('pin')}${app.prefs[a.id]?.is_pinned?'Открепить чат':'Закрепить чат'}</button><button class="detail-action" data-action="archive-chat">${icon('archive')}${app.prefs[a.id]?.is_archived?'Вернуть из архива':'Отправить в архив'}</button>${a.kind==='direct'?`<button class="detail-action" data-person="${esc(person.id)}">${icon('contacts')}Профиль собеседника</button>`:''}</section>`:''}
-    ${a.kind==='group'?`<section class="detail-section"><h3>Участники</h3>${app.info.profiles.map(p=>`<button class="detail-person" data-person="${esc(p.id)}">${avatar(p,'small')}<span><b>${esc(p.display_name || p.username)}</b><small>@${esc(p.username)}</small></span></button>`).join('')}</section>`:''}
+    ${a.kind==='group'?`<section class="detail-section"><h3>Участники · ${app.info.members.length}</h3>${app.info.members.some(m=>m.user_id===app.user.id&&['owner','admin'].includes(m.role))?`<div class="group-detail-tools"><button type="button" class="secondary" data-action="group-invite">${icon('plus')} Добавить участников</button><button type="button" class="secondary" data-action="group-avatar">${icon('image')} Изменить аватарку</button></div>`:''}${app.info.profiles.map(p=>`<button class="detail-person" data-person="${esc(p.id)}">${avatar(p,'small')}<span><b>${esc(p.display_name || p.username)}</b><small>@${esc(p.username)}</small></span></button>`).join('')}</section>`:''}
+    ${a.kind==='channel'&&a.owner_id===app.user.id?`<section class="detail-section"><button type="button" class="detail-action" data-action="channel-avatar">${icon('image')} Изменить аватарку канала</button></section>`:''}
     <section class="detail-section"><h3>Медиа и файлы</h3><p class="muted" style="font-size:10px;margin-bottom:13px">Из загруженной части переписки. Больше — через поиск.</p>${images.length?`<div class="media-grid">${images.map(m=>`<a href="${esc(safeURL(m.attachment_url))}" target="_blank" rel="noopener noreferrer"><img src="${esc(safeURL(m.attachment_url))}" alt="${esc(m.attachment_name || 'Изображение')}" loading="lazy"></a>`).join('')}</div>`:''}${attachments.filter(x=>!x.attachment_type?.startsWith('image/')).map(m=>`<a class="media-file" href="${esc(safeURL(m.attachment_url))}" target="_blank" rel="noopener noreferrer">${icon('file')}<span>${esc(m.attachment_name || 'Файл')}</span></a>`).join('')}${!attachments.length?'<p class="muted" style="font-size:12px">Файлов пока нет.</p>':''}</section></aside>`;
   $('#pane').insertAdjacentHTML('beforeend',html);
 }
@@ -992,6 +1105,9 @@ async function handleAction(action,button) {
   if(action==='retry-boot'){root.innerHTML='<div class="boot"><span class="spinner"></span><p>Подключаемся…</p></div>';boot();return;}
   if(action==='new'){if(app.route==='channels')newChannel();else guarded('new',newConversation);return;}
   if(action==='new-group'){guarded('new-group',newGroup);return;}if(action==='new-channel'){newChannel();return;}
+  if(action==='group-invite'){await guarded('group-invite',openGroupInvite,button);return;}
+  if(action==='group-avatar'||action==='channel-avatar'){openChatAvatarChooser(action==='group-avatar'?'group':'channel');return;}
+  if(action==='channel-search-retry'){const input=$('#listSearch');input.dispatchEvent(new Event('input'));return;}
   if(action==='clear-search'){$('#listSearch').value='';renderSidebar();applyLanguage();return;}
   if(action==='refresh-list'){guarded('list',refreshLists,button);return;}
   if(action==='back'){await navigate('chats');return;}
@@ -1027,7 +1143,7 @@ async function handleAction(action,button) {
   }
   if(action==='mute-chat'){const id=app.active.id;closePop();guarded('state',async()=>{await changeState(s=>({...s,muted:s.muted.includes(id)?s.muted.filter(x=>x!==id):[...s.muted,id]}));renderSidebar();applyLanguage();toast(app.state.muted.includes(id)?'Уведомления этого чата выключены':'Уведомления включены');});return;}
   if(action==='chat-wallpaper'){wallpaper();return;}
-  if(action==='join-channel'){const a={...app.active};closePop();guarded('join',async()=>{await api.join(a.id,a.joined);app.channels=await api.channels();if(app.active?.id===a.id)await openChannel(a.id,false);renderSidebar();applyLanguage();});return;}
+  if(action==='join-channel'){const a={...app.active};closePop();guarded('join',async()=>{await api.join(a.id,a.joined);app.channels=await api.channels();const changed=await api.channel(a.id);app.channelResults=app.channelResults.map(x=>x.id===a.id?changed:x);if(app.active?.id===a.id){app.active=changed;await openChannel(a.id,false);}renderSidebar();applyLanguage();});return;}
   if(action==='avatar'){$('#avatarInput').click();return;}if(action==='cover'){$('#coverInput').click();return;}if(action==='my-profile'){await showPerson(app.user.id);return;}
   if(action==='password'){changePassword();return;}
   if(action==='diagnose-calls'){await diagnoseCalls();return;}

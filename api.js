@@ -1,4 +1,4 @@
-import {timeoutFetch, sid, unique, safeURL} from './core.js?v=55.0.0';
+import {timeoutFetch, sid, unique, safeURL} from './core.js?v=58.1.0';
 
 function must(result) { if (result.error) throw result.error; return result.data; }
 const now = () => new Date().toISOString();
@@ -139,7 +139,7 @@ export class MessengerAPI {
     const declaredType=String(file.type||'').toLowerCase();
     if(blockedExtension.test(originalName)||/^(?:text\/html|image\/svg\+xml|application\/(?:javascript|x-javascript|x-msdownload|x-msdos-program|x-httpd-php|x-shockwave-flash|wasm|xml)|text\/javascript)/.test(declaredType))
       throw new Error('Этот тип файла может выполнять код. Передавай такой файл только внутри безопасного ZIP.');
-    const bucketLimit={'avatars':5,'market-files':20,'clips':100,'videos':250,'stories':50,'channel-files':50,'chat-files':50};
+    const bucketLimit={'avatars':5,'group-avatars':5,'channel-avatars':5,'market-files':20,'clips':100,'videos':250,'stories':50,'channel-files':50,'chat-files':50};
     const maxMb=bucketLimit[bucket]??50;
     if(file.size>maxMb*1024*1024)throw new Error('Для этого раздела максимальный размер файла — '+maxMb+' МБ.');
     const type=file.type || ({mp3:'audio/mpeg',m4a:'audio/mp4',mp4:'video/mp4',mov:'video/quicktime',webm:'video/webm',jpg:'image/jpeg',png:'image/png'})[originalName.split('.').pop().toLowerCase()] || 'application/octet-stream';
@@ -206,10 +206,45 @@ export class MessengerAPI {
   async accept(id) { must(await this.sb.rpc('accept_friend_request',{request_id:Number(id)})); }
   async removeFriend(id) { must(await this.sb.from('friendships').delete().eq('id',id)); }
   async group(title,ids) { const data=must(await this.sb.rpc('create_group',{group_title:title,member_ids:ids})); return typeof data==='string' ? data : data?.id || data?.conversation_id; }
-  async channels() {
-    const [channels,subs]=await Promise.all([this.sb.from('rndm_channels').select('*').order('created_at',{ascending:false}),this.sb.from('rndm_channel_subscriptions').select('channel_id,user_id')]);
-    const subscriptionRows=must(subs) || [];
-    return (must(channels) || []).map(ch=>({...ch,id:sid(ch.id),kind:'channel',title:ch.name,preview:ch.description || 'Канал RNDM',joined:subscriptionRows.some(x=>sid(x.channel_id)===sid(ch.id) && x.user_id===this.uid),count:subscriptionRows.filter(x=>sid(x.channel_id)===sid(ch.id)).length}));
+  async addGroupMembers(cid,ids){return must(await this.sb.rpc('rndm_group_add_members',{p_group:cid,p_users:ids}));}
+  async setGroupAvatar(cid,url){return must(await this.sb.rpc('rndm_group_set_avatar',{p_group:cid,p_url:url}));}
+  async setChannelAvatar(cid,url){const rows=must(await this.sb.from('rndm_channels').update({avatar_url:url}).eq('id',cid).eq('owner_id',this.uid).select('id'));if(!rows?.length)throw new Error('Нет прав на изменение аватара канала.');}
+  async channel(cid){
+    const ch=must(await this.sb.from('rndm_channels').select('*').eq('id',cid).maybeSingle());
+    if(!ch)throw new Error('Канал не найден.');
+    const [sub,count]=await Promise.all([
+      this.sb.from('rndm_channel_subscriptions').select('channel_id').eq('channel_id',cid).eq('user_id',this.uid).maybeSingle(),
+      this.sb.from('rndm_channel_subscriptions').select('channel_id',{count:'exact',head:true}).eq('channel_id',cid)
+    ]);
+    if(sub.error)throw sub.error;
+    return {...ch,id:sid(ch.id),kind:'channel',title:ch.name,preview:ch.description||'',joined:!!sub.data,count:Math.max(0,Number(count.count||ch.promo_subscribers||0))};
+  }
+  async channels(){
+    // Never automatically enumerate every public channel. Load only mine / subscribed.
+    const [sub,owned]=await Promise.all([
+      this.sb.from('rndm_channel_subscriptions').select('channel_id').eq('user_id',this.uid).limit(400),
+      this.sb.from('rndm_channels').select('*').eq('owner_id',this.uid).limit(400)
+    ]);
+    const subs=must(sub)||[],mine=must(owned)||[],ids=[...new Set([...subs.map(x=>x.channel_id),...mine.map(x=>x.id)])];
+    if(!ids.length)return [];
+    const rows=must(await this.sb.from('rndm_channels').select('*').in('id',ids).order('created_at',{ascending:false}).limit(400))||[];
+    return rows.map(ch=>({...ch,id:sid(ch.id),kind:'channel',title:ch.name,preview:ch.description||'',joined:subs.some(s=>s.channel_id===ch.id)||ch.owner_id===this.uid,count:Number(ch.promo_subscribers||0)}));
+  }
+  async searchChannels(query){
+    const value=String(query||'').trim().replace(/^@/,'').replace(/[^\p{L}\p{N}_ -]/gu,'').slice(0,40).trim();
+    if(value.length<2)return [];
+    const rows=must(await this.sb.from('rndm_channels').select('*')
+       .or(`name.ilike.%${value}%,handle.ilike.%${value}%`)
+       .order('created_at',{ascending:false}).limit(30))||[];
+    if(!rows.length)return [];
+    const [subs,counts]=await Promise.all([
+      this.sb.from('rndm_channel_subscriptions').select('channel_id').eq('user_id',this.uid).in('channel_id',rows.map(x=>x.id)),
+      this.sb.from('rndm_channel_subscriptions').select('channel_id').in('channel_id',rows.map(x=>x.id)).limit(3000)
+    ]);
+    if(subs.error)throw subs.error;
+    const joined=new Set((subs.data||[]).map(x=>x.channel_id));
+    const countMap={};for(const entry of counts.data||[])countMap[entry.channel_id]=(countMap[entry.channel_id]||0)+1;
+    return rows.map(ch=>({...ch,id:sid(ch.id),kind:'channel',title:ch.name,preview:ch.description||'',joined:joined.has(ch.id)||ch.owner_id===this.uid,count:Math.max(countMap[ch.id]||0,Number(ch.promo_subscribers||0))}));
   }
   async join(cid,leave=false) { if (leave) must(await this.sb.from('rndm_channel_subscriptions').delete().eq('channel_id',cid).eq('user_id',this.uid)); else must(await this.sb.from('rndm_channel_subscriptions').insert({channel_id:cid,user_id:this.uid})); }
   async createChannel(name,description) {

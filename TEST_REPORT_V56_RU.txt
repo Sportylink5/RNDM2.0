@@ -1,0 +1,20 @@
+RNDM CHAT v56 WORLD — TEST REPORT
+----------------------------------
+JS syntax: 16 / 16 valid
+Local imports: 14 versioned verified
+PWA precache references: 24 verified
+
+Browser mocked test of World (without real external Internet):
+- 320px: 172 houses, interactive map, touch selection, no horizontal overflow, no JS errors.
+- 390px: 172 houses, interactive map, touch selection, no horizontal overflow, no JS errors.
+- 1440px: 172 houses, interactive map, map selection, no horizontal overflow, no JS errors.
+- Synthetic OSM fixture contains 176 building ways: 176 processed at 390px and 1440px.
+- Search fallback mocked: selecting Berlin updates latitude/longitude and zoom successfully.
+- 3D polygons clip at near plane instead of vanishing when just one vertex is behind the camera.
+- Typical render benchmark (headless CPU, representative spawn): ~15 ms/frame 390px, ~27 ms/frame 1440px; varies by device/scene.
+- Supabase OSM proxy ACTIVE v2, RLS true for cache and request quota, direct guest access denied.
+
+NOT VERIFIED:
+- OSM tile downloads, Photon real search, Overpass real output, physical iPhone network,
+  iPhone PWA across upgrades, 2 live accounts in /group. All use external services/network.
+- Demo district is fictional; OSM building footprints represent map data, textures and windows are synthetic.

@@ -357,3 +357,57 @@
 .admin-user .admin-copy{line-height:1.5}
 .admin-card button{letter-spacing:normal}
 @media(max-width:420px){.admin-card{padding:14px}.admin-actions button{padding:9px 8px;font-size:11px}.admin-user .admin-copy>small{font-size:10.5px}}
+
+/* v58: groups, channel search, photo settings */
+.channel-list-note{padding:13px 15px 8px;font-size:11px;color:var(--accent);letter-spacing:.2px;font-weight:700;display:flex;flex-direction:column;gap:5px}
+.channel-list-note small{color:var(--muted);font-size:10px;font-weight:400;letter-spacing:0;line-height:1.5}
+.group-detail-tools{display:flex;flex-direction:column;gap:9px;margin-bottom:16px}
+.group-detail-tools .secondary{display:flex;align-items:center;justify-content:flex-start;gap:9px;width:100%;min-height:42px;font-size:12px;text-align:left;white-space:normal}
+.group-detail-tools .secondary .icon{width:18px;height:18px;flex-shrink:0}
+.avatar-change-preview{display:flex;justify-content:center;align-items:center;padding:8px 0 14px}
+.avatar-change-preview .avatar{width:112px;height:112px;border-radius:32px;font-size:30px}
+.avatar-change-preview .avatar img{width:100%;height:100%;object-fit:cover}
+#chatAvatarForm .field input[type=file],#groupForm .field input[type=file],#channelForm .field input[type=file]{min-width:0;width:100%;max-width:100%;font-size:12px;white-space:normal}
+#inviteGroupList .select-person[hidden]{display:none}
+#inviteGroupForm .modal-list{max-height:38dvh}
+@media(max-width:760px){.channel-list-note{padding:12px 15px 7px}.group-detail-tools .secondary{font-size:13px}.avatar-change-preview .avatar{width:98px;height:98px}}
+
+/* RNDM v58.1: actual collectible gift artworks throughout the site. */
+.gift-art{position:relative;display:inline-grid;place-items:center;isolation:isolate;width:72px;height:72px;flex:0 0 auto;vertical-align:middle;line-height:1}
+.gift-art>.gift-art-fallback{position:absolute;inset:0;display:grid;place-items:center;font-size:clamp(24px,55%,44px);line-height:1}
+.gift-art>img{position:relative;z-index:1;width:100%;height:100%;object-fit:contain;display:block;filter:drop-shadow(0 6px 8px #0005);background:transparent}
+.gift-art>img[hidden]{display:none!important}
+.gift-picker-emoji{display:grid;place-items:center;max-width:100%}
+.gift-picker-emoji>.gift-art{width:76px;height:76px}
+.gift-picker-card{min-height:162px}
+.star-catalog-gift>.gift-art{width:min(100%,72px);height:72px}
+.star-catalog-gift{min-height:143px;gap:6px}
+.star-history-emoji>.gift-art{width:49px;height:49px}
+.gift-showcase-list .gift-chip>.gift-art{width:64px;height:64px}
+.gift-chip{min-width:82px;max-width:112px;gap:5px}
+.gift-chip small{max-width:100%;white-space:normal;overflow-wrap:anywhere;text-align:center}
+.donate-case-emoji>.gift-art{width:86px;height:86px}
+.donate-exclusive>.gift-art{width:86px;height:86px}
+.donate-item-emoji>.gift-art{width:60px;height:60px}
+.donate-item-emoji{flex:0 0 60px;display:grid;place-items:center}
+.donate-inventory-item{min-height:86px}
+.donate-prize-visual>.gift-art{width:78px;height:78px}
+@media(max-width:760px){
+ .gift-picker-emoji>.gift-art{width:60px;height:60px}
+ .gift-picker-card{min-height:135px;padding:9px 4px;gap:5px}
+ .star-catalog-gift>.gift-art{width:62px;height:62px}
+ .star-catalog-gift{min-height:124px}
+ .star-history-emoji>.gift-art{width:38px;height:38px}
+ .donate-case-emoji>.gift-art{width:62px;height:62px}
+ .donate-exclusive>.gift-art{width:65px;height:65px}
+ .donate-item-emoji>.gift-art{width:52px;height:52px}
+ .donate-item-emoji{flex-basis:52px}
+ .donate-prize-visual>.gift-art{width:58px;height:58px}
+ .gift-showcase-list .gift-chip>.gift-art{width:55px;height:55px}
+}
+@media(max-width:380px){
+ .gift-picker-emoji>.gift-art{width:52px;height:52px}
+ .gift-picker-grid{gap:5px}
+ .donate-exclusive>.gift-art{width:58px;height:58px}
+ .donate-case-emoji>.gift-art{width:52px;height:52px}
+}
