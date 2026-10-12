@@ -1,1 +1,55 @@
-{"name":"RNDM Chat","short_name":"RNDM","id":"./","start_url":"./index.html?source=pwa","scope":"./","display":"standalone","display_override":["standalone","minimal-ui"],"background_color":"#0c101a","theme_color":"#0c101a","lang":"ru","icons":[{"src":"icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},{"src":"icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}],"shortcuts":[{"name":"Донат и кейсы","short_name":"Донат","description":"Boosty, поддержка RNDM и кейсы","url":"./index.html?view=donate","icons":[{"src":"icon-192.png","sizes":"192x192","type":"image/png"}]},{"name":"RNDM World — одиночная игра","short_name":"RNDM World","description":"Открыть город и прокатиться","url":"./roadworld.html?mode=solo","icons":[{"src":"icon-192.png","sizes":"192x192","type":"image/png"}]}]}
+{
+  "name": "RNDM Chat",
+  "short_name": "RNDM",
+  "id": "./",
+  "start_url": "./index.html?source=pwa",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
+  "background_color": "#101624",
+  "theme_color": "#101624",
+  "lang": "ru",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Чаты",
+      "short_name": "Чаты",
+      "url": "./index.html?view=chats",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Клипы",
+      "short_name": "Клипы",
+      "url": "./index.html?view=clips",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
+}

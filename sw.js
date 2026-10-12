@@ -1,12 +1,11 @@
-const VERSION='58.1.0';
-const CACHE='rndm-v58-1-gift-art-shell';
+const VERSION='59.1.0';
+const CACHE='rndm-v59-1-liquid-glass-tap-channel';
 const SHELL=[
-  './index.html','./redirect.js?v=58.1.0','./bootstrap.js?v=58.1.0','./file-warning.js?v=58.1.0','./pwa-register.js?v=58.1.0','./style.css?v=58.1.0','./config.js?v=58.1.0',
-  './app.js?v=58.1.0','./core.js?v=58.1.0','./api.js?v=58.1.0',
-  './views.js?v=58.1.0','./admin.js?v=58.1.0','./donate.js?v=58.1.0','./donate.css?v=58.1.0',
-  './calls.js?v=58.1.0','./clips.js?v=58.1.0',
-  './theme.js?v=58.1.0','./supabase-2.117.2.js?v=58.1.0',
-  './roadworld.html','./roadworld.css?v=58.1.0','./roadworld.js?v=58.1.0',
+  './index.html','./redirect.js?v=59.1.0','./bootstrap.js?v=59.1.0','./file-warning.js?v=59.1.0','./pwa-register.js?v=59.1.0','./style.css?v=59.1.0','./liquid-glass.css?v=59.1.0','./config.js?v=59.1.0',
+  './app.js?v=59.1.0','./core.js?v=59.1.0','./api.js?v=59.1.0',
+  './views.js?v=59.1.0','./admin.js?v=59.1.0','./donate.js?v=59.1.0','./donate.css?v=59.1.0',
+  './calls.js?v=59.1.0','./clips.js?v=59.1.0',
+  './theme.js?v=59.1.0','./supabase-2.117.2.js?v=59.1.0',
   './manifest.webmanifest','./icon-192.png','./icon-512.png',
   './star-gold.webp','./gift-gold.webp',
   './gift-balloon.webp',
@@ -66,10 +65,10 @@ self.addEventListener('fetch',event=>{
     event.respondWith(fetch(new Request(req,{cache:'no-store'})).then(response=>{
       if(response.ok){
         const copy=response.clone();
-        event.waitUntil(caches.open(CACHE).then(cache=>cache.put(isPage?(url.pathname.endsWith('/roadworld.html')?'./roadworld.html':'./index.html'):req,copy)).catch(()=>{}));
+        event.waitUntil(caches.open(CACHE).then(cache=>cache.put(isPage?'./index.html':req,copy)).catch(()=>{}));
       }
       return response;
-    }).catch(async()=>await caches.match(isPage?(url.pathname.endsWith('/roadworld.html')?'./roadworld.html':'./index.html'):req)||Response.error()));
+    }).catch(async()=>await caches.match(isPage?'./index.html':req)||Response.error()));
     return;
   }
   event.respondWith(caches.match(req).then(cached=>cached||fetch(req).then(response=>{

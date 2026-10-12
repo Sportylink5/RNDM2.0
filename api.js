@@ -1,4 +1,4 @@
-import {timeoutFetch, sid, unique, safeURL} from './core.js?v=58.1.0';
+import {timeoutFetch, sid, unique, safeURL} from './core.js?v=59.1.0';
 
 function must(result) { if (result.error) throw result.error; return result.data; }
 const now = () => new Date().toISOString();

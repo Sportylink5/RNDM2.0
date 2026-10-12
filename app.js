@@ -1,11 +1,11 @@
-import {$,$$,esc,icon,ib,avatar,sid,unique,preview,safeURL,richText,day,time,bytes,errorText,readLocal,writeLocal} from './core.js?v=58.1.0';
-import {MessengerAPI} from './api.js?v=58.1.0';
-import * as V from './views.js?v=58.1.0';
-import {Admin,staffRole} from './admin.js?v=58.1.0';
-import {Calls} from './calls.js?v=58.1.0';
-import {Clips} from './clips.js?v=58.1.0';
-import {DonateHub} from './donate.js?v=58.1.0';
-import {applyColors,validColors,defaultColors} from './theme.js?v=58.1.0';
+import {$,$$,esc,icon,ib,avatar,sid,unique,preview,safeURL,richText,day,time,bytes,errorText,readLocal,writeLocal} from './core.js?v=59.1.0';
+import {MessengerAPI} from './api.js?v=59.1.0';
+import * as V from './views.js?v=59.1.0';
+import {Admin,staffRole} from './admin.js?v=59.1.0';
+import {Calls} from './calls.js?v=59.1.0';
+import {Clips} from './clips.js?v=59.1.0';
+import {DonateHub} from './donate.js?v=59.1.0';
+import {applyColors,validColors,defaultColors} from './theme.js?v=59.1.0';
 
 const defaults={notes:[],muted:[],wallpaper:'default',enterSend:true,notifications:false,notificationSound:false,colors:null};
 const app={user:null,profile:null,route:'chats',folder:'all',active:null,info:null,dialogs:[],channels:[],channelResults:[],friends:[],prefs:{},drafts:{},state:{...defaults},messages:[],reactions:[],peopleMap:{},replyLookup:{},pins:[],reply:null,edit:null,files:new Map(),pending:new Set(),epoch:0,messageEpoch:0,more:false,rt:[],globalRt:[],stateChain:Promise.resolve(),draftTimers:new Map(),refreshing:false};
@@ -140,7 +140,7 @@ async function repairFrontendCache(reload=true){
   }
   if(reload){
     const url=new URL(location.href);
-    url.searchParams.set('updated',window.RNDM_CONFIG?.version||'58.1.0');
+    url.searchParams.set('updated',window.RNDM_CONFIG?.version||'59.1.0');
     location.replace(url.href);
   }
 }
@@ -161,7 +161,7 @@ async function boot() {
     const message=String(error?.message||'');
     const outdated=/\bis not a function\b|\b(?:undefined|null)\b.*\b(?:property|properties)\b/i.test(message);
     if(outdated){
-      const flag='rndm-repair-once-'+(window.RNDM_CONFIG?.version||'58.1.0');
+      const flag='rndm-repair-once-'+(window.RNDM_CONFIG?.version||'59.1.0');
       try{
         if(sessionStorage.getItem(flag)!=='1'){
           sessionStorage.setItem(flag,'1');
@@ -234,6 +234,7 @@ async function start(user) {
   else if(params.get('view')==='stars'){await navigate('stars',false);}else if(params.get('view')==='notifications'){await navigate('notifications',false);}
   else if(params.get('view')==='clips'){await navigate('clips',false);}
   else if(params.get('view')==='admin'){await navigate('admin',false);}
+  else if(params.get('view')==='tapolka'){await navigate('tapolka',false);}
   else if(params.get('view')==='calls'){await navigate('calls',false);}
   else if(params.get('view')==='settings')await navigate('settings');
   else if(params.get('view')==='saved')await navigate('saved',false);
@@ -250,17 +251,17 @@ function wireShell() {
   $('#listSearch').addEventListener('input',()=>{
     renderSidebar();applyLanguage();clearTimeout(searchTimer);
     if(['contacts','chats'].includes(app.route))searchTimer=setTimeout(searchPeople,320);
-    else if(app.route==='channels'){
+    else if(['channels','tapolka'].includes(app.route)){
       const version=++channelSearchVersion;
       const query=$('#listSearch').value.trim();
       app.channelResults=[];channelSearchError='';channelSearchLoading=query.replace(/^@/,'').length>=2;
       renderSidebar();applyLanguage();
       if(channelSearchLoading)searchTimer=setTimeout(async()=>{
         try{const found=await api.searchChannels(query);
-          if(version!==channelSearchVersion||app.route!=='channels'||$('#listSearch').value.trim()!==query)return;
+          if(version!==channelSearchVersion||!['channels','tapolka'].includes(app.route)||$('#listSearch').value.trim()!==query)return;
           app.channelResults=found;channelSearchError='';
-        }catch(e){if(version!==channelSearchVersion||app.route!=='channels')return;channelSearchError=errorText(e);app.channelResults=[];}
-        finally{if(version===channelSearchVersion&&app.route==='channels'){channelSearchLoading=false;renderSidebar();applyLanguage();}}
+        }catch(e){if(version!==channelSearchVersion||!['channels','tapolka'].includes(app.route))return;channelSearchError=errorText(e);app.channelResults=[];}
+        finally{if(version===channelSearchVersion&&['channels','tapolka'].includes(app.route)){channelSearchLoading=false;renderSidebar();applyLanguage();}}
       },330);
     }
   });
@@ -270,14 +271,14 @@ function renderSidebarError(error){$('#dialogList').innerHTML=`<div class="sideb
 function renderSidebar() {
   if(!$('#dialogList'))return;
   renderStories();
-  const route=app.route, search=$('#listSearch').value.trim().toLowerCase();
+  const route=app.route==='tapolka'?'channels':app.route, search=$('#listSearch').value.trim().toLowerCase();
   const starBadge=$('#starBalanceNav');if(starBadge&&app.profile)starBadge.textContent=Number(app.profile.stars||0).toLocaleString('ru-RU');
-  $$('.nav-item').forEach(el=>el.classList.toggle('active',el.dataset.nav===route));
-  $('#sectionTitle').textContent={random:'Рулетка',chats:'Чаты',contacts:'Контакты',channels:'Каналы',saved:'Избранное',settings:'Настройки',clips:'Клипы',calls:'Звонки',admin:'Админка',tapolka:'Тапалка',stars:'Звёзды',donate:'Донат',notifications:'Уведомления',profile:'Профиль'}[route]||'RNDM';
-  const count=route==='chats'?app.dialogs.length:route==='channels'?app.channels.length:route==='contacts'?app.friends.filter(x=>x.status==='accepted').length:0;
+  $$('.nav-item').forEach(el=>el.classList.toggle('active',el.dataset.nav===route||(el.classList.contains('nav-more')&&!['chats','contacts','random','channels','clips'].includes(route))));
+  $('#sectionTitle').textContent={random:'Рулетка',chats:'Чаты',contacts:'Контакты',channels:'Каналы',saved:'Избранное',settings:'Настройки',clips:'Клипы',calls:'Звонки',admin:'Админка',stars:'Звёзды',donate:'Донат',notifications:'Уведомления',profile:'Профиль'}[route]||'RNDM';
+  const count=route==='chats'?app.dialogs.length:route==='channels'?app.channels.length+1:route==='contacts'?app.friends.filter(x=>x.status==='accepted').length:0;
   $('#sectionCount').textContent=count;$('#sectionCount').hidden=!count;
   $('#listSearch').placeholder=route==='channels'?'Найти канал по названию или @адресу':'Поиск';
-  $('#listSearch').closest('.searchbox').hidden=['random','saved','settings','clips','calls','admin','tapolka','stars','donate','profile','notifications'].includes(route);
+  $('#listSearch').closest('.searchbox').hidden=['random','saved','settings','clips','calls','admin','stars','donate','profile','notifications'].includes(route);
   const tabs=route==='chats'?[['all','Все'],['direct','Личные'],['group','Группы'],['unread','Новые'],['archive','Архив']]:[];
   $('#folderTabs').innerHTML=tabs.map(([name,label])=>`<button type="button" data-folder="${name}" class="${app.folder===name?'active':''}">${label}</button>`).join('');$('#folderTabs').hidden=!tabs.length;
   const host=$('#dialogList');
@@ -289,7 +290,7 @@ function renderSidebar() {
       return !search||(x.title+' '+x.preview).toLowerCase().includes(search);
     }).sort((a,b)=>Number(app.prefs[b.id]?.is_pinned || 0)-Number(app.prefs[a.id]?.is_pinned || 0) || new Date(b.last || 0)-new Date(a.last || 0));
     let previousPinned=false;
-    host.innerHTML=(typeof V.randomSidebar==='function'?V.randomSidebar():`<button type="button" class="random-sidebar-entry" data-nav="random">✨ RNDM Рулетка →</button>`)+rows.map((item,i)=>{const pinned=!!app.prefs[item.id]?.is_pinned;let label='';if(i===0&&pinned)label='<div class="list-label">Закреплённые</div>';else if((i===0||previousPinned)&&!pinned)label='<div class="list-label">Все сообщения</div>';previousPinned=pinned;return label+V.row(item,app);}).join('') + (!rows.length ? `<div class="sidebar-empty">${icon(app.folder==='archive'?'archive':'chats')}<p>${search?'Чаты не найдены. Найди человека по имени или @username.':app.folder==='archive'?'В архиве пока пусто.':app.folder==='unread'?'Все сообщения прочитаны.':'Здесь появятся твои разговоры.'}</p>${!search?'<button class="secondary" data-action="new">Начать общение</button>':''}</div>` : '');
+    host.innerHTML=rows.map((item,i)=>{const pinned=!!app.prefs[item.id]?.is_pinned;let label='';if(i===0&&pinned)label='<div class="list-label">Закреплённые</div>';else if((i===0||previousPinned)&&!pinned)label='<div class="list-label">Все сообщения</div>';previousPinned=pinned;return label+V.row(item,app);}).join('') + (!rows.length ? `<div class="sidebar-empty">${icon(app.folder==='archive'?'archive':'chats')}<p>${search?'Чаты не найдены. Найди человека по имени или @username.':app.folder==='archive'?'В архиве пока пусто.':app.folder==='unread'?'Все сообщения прочитаны.':'Здесь появятся твои разговоры.'}</p>${!search?'<button class="secondary" data-action="new">Начать общение</button>':''}</div>` : '');
     if(search)host.insertAdjacentHTML('beforeend','<div id="peopleSearchResults"></div>');
   }else if(route==='contacts'){
     const incoming=app.friends.filter(x=>x.status==='pending'&&x.addressee===app.user.id);
@@ -299,11 +300,11 @@ function renderSidebar() {
     const searching=search.length>0;
     const rows=searching ? app.channelResults : app.channels;
     const hint=searching?(channelSearchLoading?'<div class="sidebar-empty"><span class="spinner"></span><p>Ищем каналы…</p></div>':channelSearchError?`<div class="sidebar-empty"><p>${esc(channelSearchError)}</p><button class="secondary" data-action="channel-search-retry">Повторить поиск</button></div>`:'<div class="sidebar-empty"><p>Каналы не найдены. Попробуй другое название.</p></div>'):'<div class="sidebar-empty"><p>Тут появятся только твои подписки и собственные каналы. Чтобы найти новый, введи название в поиске выше.</p><button class="secondary" data-action="new-channel">Создать канал</button></div>';
-    host.innerHTML=`<div class="channel-list-note">${searching?'🔎 Результаты поиска':'⭐ Мои каналы'}<small>${searching?'Поиск по названию или @адресу':'Другие каналы доступны только через поиск'}</small></div>` + (rows.length?rows.map(x=>V.row({...x,preview:(Number(x.count)>0?x.count+' подписчиков · ':'')+(x.description||'Канал RNDM')},app)).join(''):hint);
+    const showTapolka=!searching || ['тапалка','таполка','тап','котик','tapolka','cat','rndm','игровой'].some(term=>term.includes(search)||search.includes(term));
+    const tapolkaRow=showTapolka?`<button type="button" class="chat-row tapolka-channel-row ${app.route==='tapolka'?'active':''}" data-nav="tapolka" aria-label="Открыть игровой канал Котик Тапалка" aria-current="${app.route==='tapolka'?'page':'false'}"><span class="tapolka-channel-avatar" aria-hidden="true">🐱</span><span class="row-content"><span class="row-top"><span class="row-name">Котик · Тапалка</span><span class="tapolka-channel-label">RNDM</span></span><span class="row-bottom"><span class="row-preview">Игровой канал · очки, задания и рейтинг</span></span></span>${icon('chevron','pin-tiny')}</button>`:'';
+    host.innerHTML=`<div class="channel-list-note">${searching?'🔎 Результаты поиска':'⭐ Мои каналы'}<small>${searching?'Поиск по названию или @адресу':'Другие каналы доступны только через поиск'}</small></div>` + tapolkaRow + (rows.length?rows.map(x=>V.row({...x,preview:(Number(x.count)>0?x.count+' подписчиков · ':'')+(x.description||'Канал RNDM')},app)).join(''):(!tapolkaRow?hint:''));
   }else if(route==='random'){
     host.innerHTML='<div class="sidebar-empty"><span class="random-sidebar-ornament">✨</span><h3>Новые знакомства</h3><p>Выбирай тему и находи людей для общения.</p><button class="primary" data-action="random-start">Начать поиск</button></div>';
-  }else if(route==='tapolka'){
-    host.innerHTML='<div class="sidebar-empty"><div class="tap-mini">R</div><p>Отдельный игровой канал RNDM. Тапай и соревнуйся с другими.</p><button class="primary" data-nav="tapolka">Открыть тапалку</button></div>';
   }else if(route==='notifications'){
     host.innerHTML='<div class="sidebar-empty"><span style="font-size:38px">🔔</span><h3>Твои события</h3><p>Подарки, сообщения, звонки и новые знакомства.</p><button class="primary" data-action="notifications-refresh">Обновить события</button></div>';
   }else if(route==='donate'){
@@ -314,8 +315,8 @@ function renderSidebar() {
     host.innerHTML=V.row({id:'saved',kind:'saved',title:'Избранное',preview:'Твои заметки и сохранённые сообщения'},app)+'<div class="sidebar-empty"><p>Сохраняй важное через меню сообщения или добавляй заметки прямо здесь.</p></div>';
   }else if(route==='admin'){
     host.innerHTML='<div class="sidebar-empty"><p>Управление пользователями, жалобами и публикациями.</p><button class="secondary" data-nav="chats">Открыть чаты</button></div>';
-  }else if(route==='clips'||route==='calls'||route==='tapolka'){
-    host.innerHTML=`<div class="sidebar-empty"><p>${route==='clips'?'Смотри видео, делись своими клипами и общайся в комментариях.':route==='tapolka'?'Общий игровой канал: тапай и соревнуйся в рейтинге.':'Позвони из личного чата. История вызовов показана справа.'}</p><button class="secondary" data-nav="chats">Открыть чаты</button></div>`;
+  }else if(route==='clips'||route==='calls'){
+    host.innerHTML=`<div class="sidebar-empty"><p>${route==='clips'?'Смотри видео, делись своими клипами и общайся в комментариях.':'Позвони из личного чата. История вызовов показана справа.'}</p><button class="secondary" data-nav="chats">Открыть чаты</button></div>`;
   }else{
     host.innerHTML=`<div class="detail-profile">${avatar(app.profile,'large')}<h2>${esc(app.profile.display_name)}</h2><p>@${esc(app.profile.username)}</p></div><div class="sidebar-empty"><p>Настрой RNDM под себя.<br>Твой профиль, оформление и приватность.</p></div>`;
   }
@@ -327,7 +328,7 @@ async function refreshLists() {
   const uid=app.user.id;
   listRefreshPromise=(async()=>{
     const dialogs=await api.dialogs();if(app.user?.id!==uid||stopped)return;app.dialogs=dialogs;
-    if(app.route==='channels'){const channels=await api.channels();if(app.user?.id!==uid||stopped)return;app.channels=channels;}
+    if(['channels','tapolka'].includes(app.route)){const channels=await api.channels();if(app.user?.id!==uid||stopped)return;app.channels=channels;}
     if(app.route==='contacts'){const friends=await api.friends();if(app.user?.id!==uid||stopped)return;app.friends=friends;}
     renderSidebar();applyLanguage();connection(navigator.onLine?'RNDM · на связи':'Нет соединения',!navigator.onLine);
   })().finally(()=>listRefreshPromise=null);return listRefreshPromise;
@@ -339,6 +340,7 @@ async function searchPeople() {
 }
 async function navigate(route,push=true) {
   if(!app.user)return;
+  if(!['chats','random','contacts','channels','clips','calls','saved','stars','donate','settings','notifications','profile','admin','tapolka'].includes(route))route='chats';
   if(app.route==='random' && route==='random'){renderRandomPage();return;}
   if(app.route==='random' && route!=='random')await stopRandomSearch(true).catch(()=>{});
   if(route==='admin'&&!staffRole(app.profile.app_role)){toast('Админка доступна только администрации.');route='chats';}
@@ -504,28 +506,9 @@ function selectFile(file) {
   if(!file)return;if(app.edit){toast('Сначала закончи редактирование');return;}if(!file.size||file.size>window.RNDM_CONFIG.maxFileBytes){toast(file.size?'Максимальный размер — 50 МБ':'Файл пустой');return;}
   clearFile();app.files.set(activeKey(),{file,url:file.type.startsWith('image/')?URL.createObjectURL(file):null});$('#attachmentInput').value='';renderCompose();
 }
-function worldLink(mode,conversationId='') {
-  const link=new URL('roadworld.html',location.href);
-  link.searchParams.set('mode',mode);
-  if(mode==='group')link.searchParams.set('cid',conversationId);
-  return link.href;
-}
-async function launchWorld(mode){
-  const active=app.active;
-  if(!active)throw new Error('Открой заметки или чат.');
-  if(mode==='solo'){
-    if(active.kind!=='saved')throw new Error('Открой «Избранное» (Заметки) и введи /solo.');
-    location.assign(worldLink('solo'));return;
-  }
-  if(!['group','direct'].includes(active.kind))throw new Error('/group работает в группе или личном чате.');
-  const url=worldLink('group',active.id);
-  await api.send(active.id,'🚗 RNDM World — совместная поездка! Присоединяйся по ссылке: '+url);
-  location.assign(url);
-}
 async function send() {
   const active=app.active,input=$('#messageInput');if(!active||!input||record)return;
   const key=activeKey(),original=input.value,file=fileFor();let body=original.trim();if(app.pending.has(key)||(!body&&!file))return;
-  if(!app.edit&&!file&&['/solo','/group'].includes(body.toLowerCase())){try{await launchWorld(body.toLowerCase()==='/solo'?'solo':'group');}catch(error){if($('#sendError'))$('#sendError').textContent=errorText(error);}return;}
   if(body&&active.kind!=='saved'){const check=filterOutgoing(body);if(!check.ok){$('#sendError').textContent=check.reason;return;}body=check.text;}
   const reply=app.reply,edit=app.edit,epoch=app.epoch;app.pending.add(key);$('#sendError').textContent='';captureDraft();renderCompose();
   try {
@@ -682,7 +665,8 @@ async function showPerson(uid){
 
 function chatMenu(anchor) {
   const a=app.active;if(!a)return;const pref=app.prefs[a.id]||{};
-  let html=`<button data-action="info">${icon('info')}Информация</button>`;
+  let html=`<button data-action="info">${icon('info')}Информация</button><button data-action="chat-search">${icon('search')}Поиск по переписке</button>`;
+  if(a.kind==='direct')html+=`<button data-action="chat-gift">${icon('gift')}Подарить подарок</button>`;
   if(['direct','group'].includes(a.kind))html+=`<button data-action="pin-chat">${icon('pin')}${pref.is_pinned?'Открепить чат':'Закрепить чат'}</button><button data-action="archive-chat">${icon('archive')}${pref.is_archived?'Вернуть из архива':'В архив'}</button><button data-action="mute-chat">${icon('mute')}${app.state.muted.includes(a.id)?'Включить уведомления':'Без уведомлений'}</button><button data-action="chat-wallpaper">${icon('image')}Фон чата</button><button data-action="schedule-message">🕒 Отложить сообщение</button>`;
   if(a.kind==='channel')html+=`<button data-action="join-channel">${icon(a.joined?'close':'plus')}${a.joined?'Отписаться':'Подписаться'}</button>`;
   if(a.kind==='group'&&app.info?.members.some(m=>m.user_id===app.user.id&&['owner','admin'].includes(m.role)))html+=`<button data-action="group-invite">${icon('plus')}Добавить участников</button><button data-action="group-avatar">${icon('image')}Аватарка группы</button>`;
@@ -734,6 +718,7 @@ async function comments(id) {
   showModal('Комментарии',`<div id="commentsList" class="comments-list">${render(rows)}</div><form class="comment-form" id="commentForm"><textarea name="body" rows="2" maxlength="2000" required placeholder="Напиши комментарий…" aria-label="Комментарий"></textarea><button type="submit" class="primary" aria-label="Отправить комментарий">${icon('send')}</button></form><div id="modalError"></div>`);
   $('#commentForm').onsubmit=async e=>{e.preventDefault();const input=$('textarea',e.currentTarget),button=$('button',e.currentTarget),original=input.value,body=original.trim();if(!body)return;button.disabled=true;try{await api.comment(id,body);if(input.value===original)input.value='';const fresh=await api.comments(id);if($('#commentsList'))$('#commentsList').innerHTML=render(fresh);}catch(error){showError($('#modalError'),error);}finally{button.disabled=false;}};
 }
+
 let tapolkaPending=0,tapolkaTimer=null,tapolkaBusy=false,tapolkaMine=0,catState=null;
 
 function renderRandomPage(){
@@ -797,11 +782,11 @@ async function startRandomSearch(){
 
 async function openTapolka(){
   $('#pane').innerHTML='<div class="empty-messages"><span class="spinner"></span><h3>Открываем Тапалку…</h3></div>';
-  const [board,base,cosmetics,own]=await Promise.all([catBoardMode==='weekly'?api.catWeeklyBoard():api.tapolkaLeaderboard(20),api.catState(),api.catCosmeticState(),api.catMyScore()]);const state={...base,...cosmetics};
+  try{const [board,base,cosmetics,own]=await Promise.all([catBoardMode==='weekly'?api.catWeeklyBoard():api.tapolkaLeaderboard(20),api.catState(),api.catCosmeticState(),api.catMyScore()]);const state={...base,...cosmetics};
   if(app.route!=='tapolka')return;
   catState=state;tapolkaMine=Number(own||state.total_taps||0);
   $('#pane').innerHTML=V.tapolka(app,board,tapolkaMine,state);$$('[data-action="cat-board-mode"]').forEach(b=>b.classList.toggle('active',b.dataset.mode===catBoardMode));applyLanguage();
-}
+  }catch(error){if(app.route!=='tapolka')return;$('#pane').innerHTML=`<header class="chat-header"><button type="button" class="icon-button back-mobile" data-action="back" aria-label="К каналам">${icon('back')}</button><div class="header-title"><h2>🐱 Котик · Тапалка</h2><p>Игровой канал RNDM</p></div></header><div class="empty-messages"><h3>Канал временно недоступен</h3><p>${esc(errorText(error))}</p><button type="button" class="primary" data-action="tapolka-retry">Попробовать снова</button></div>`;}}
 async function flushTapolka(){
   if(tapolkaBusy||tapolkaPending<1)return;
   tapolkaBusy=true;const amount=Math.min(8,tapolkaPending);tapolkaPending-=amount;
@@ -889,7 +874,7 @@ document.addEventListener('click',event=>{
   if(d.story){openStory(d.story);return;}
   if(d.storyDelete){confirmAction('Удалить историю?','Она исчезнет из ленты.',async()=>{await api.deleteStory(d.storyDelete);await refreshStories();});return;}
   if(d.auth){const email=$('#authForm [name=email]')?.value||'';auth(d.auth,email);return;}
-  if(d.nav){navigate(d.nav).catch(error=>toast(errorText(error)));return;}
+  if(d.nav){if(modal.open&&modal.querySelector('.more-menu'))modal.close();navigate(d.nav).catch(error=>toast(errorText(error)));return;}
   if(d.folder){app.folder=d.folder;renderSidebar();applyLanguage();return;}
   if(d.open){guarded('open:'+d.open,()=>d.kind==='channel'?openChannel(d.open):d.kind==='saved'?openSaved():openConversation(d.open));return;}
   if(d.retryChat){guarded('retry',()=>openConversation(d.retryChat));return;}
@@ -1023,7 +1008,6 @@ async function searchGiftRecipients(text){
 }
 
 async function handleAction(action,button) {
-  if(action==='launch-world'){await guarded('world',()=>launchWorld(app.active?.kind==='saved'?'solo':'group'),button);return;}
   if(action==='notifications-filter'){notificationFilter=button.dataset.filter||'all';if(app.route==='notifications')$('#pane').innerHTML=V.notificationsPage(app,notificationList,notificationFilter);applyLanguage();return;}
   if(action==='notifications-refresh'){await guarded('notifications-refresh',openNotifications,button);return;}
   if(action==='notifications-all'){await guarded('notifications-all',async()=>{await api.markAllNotifications();await openNotifications();},button);return;}
@@ -1091,6 +1075,7 @@ async function handleAction(action,button) {
   if(action==='refresh-calls'){await calls.history($('#callsHistory'));return;}
   if(action==='tapolka-tap'){tapolkaTap();return;}
   if(action==='tapolka-refresh'){await guarded('tapolka-refresh',refreshTapolkaBoard,button);return;}
+  if(action==='tapolka-retry'){await guarded('tapolka-retry',openTapolka,button);return;}
   if(action==='close-modal'){modal.close();return;}if(action==='close-info'){$('#detail')?.remove();return;}
   if(action==='new-story'){newStory();return;}
   if(action==='profile-back'){if(previousChatId){const id=previousChatId;previousChatId=null;await openConversation(id);}else await navigate(previousRoute||'chats');return;}
@@ -1100,17 +1085,22 @@ async function handleAction(action,button) {
   if(action==='retry-stories'){refreshStories().catch(()=>{});return;}
   if(action==='story-prev'||action==='story-next'){showStory(storyIndex+(action==='story-next'?1:-1));return;}
   if(action==='reset-colors'){guarded('colors',async()=>{await changeState({colors:null});applyColors(null);$('#pane').innerHTML=V.settings(app);toast('Фирменные цвета восстановлены');},button);return;}
+  if(action==='more-menu'){
+    const menu=[['calls','Звонки','calls'],['saved','Избранное','saved'],['notifications','Уведомления','notifications'],['stars','Звёзды и подарки','stars'],['settings','Настройки','settings'],['donate','Поддержать RNDM','donate'],...(staffRole(app.profile?.app_role)?[['admin','Админка','shield']]:[])];
+    showModal('Разделы RNDM',`<div class="more-menu"><p>Все важные возможности, без лишних вкладок.</p><div class="more-menu-grid">${menu.map(([route,label,glyph])=>`<button class="more-menu-item ${app.route===route?'current':''}" type="button" data-nav="${route}">${icon(glyph)}<span>${esc(label)}</span>${icon('chevron')}</button>`).join('')}</div></div>`);
+    return;
+  }
   if(action==='theme'){setTheme(document.documentElement.dataset.theme==='light'?'dark':'light');return;}
   if(action==='repair-app'){await repairFrontendCache();return;}
   if(action==='retry-boot'){root.innerHTML='<div class="boot"><span class="spinner"></span><p>Подключаемся…</p></div>';boot();return;}
-  if(action==='new'){if(app.route==='channels')newChannel();else guarded('new',newConversation);return;}
+  if(action==='new'){if(['channels','tapolka'].includes(app.route))newChannel();else guarded('new',newConversation);return;}
   if(action==='new-group'){guarded('new-group',newGroup);return;}if(action==='new-channel'){newChannel();return;}
   if(action==='group-invite'){await guarded('group-invite',openGroupInvite,button);return;}
   if(action==='group-avatar'||action==='channel-avatar'){openChatAvatarChooser(action==='group-avatar'?'group':'channel');return;}
   if(action==='channel-search-retry'){const input=$('#listSearch');input.dispatchEvent(new Event('input'));return;}
   if(action==='clear-search'){$('#listSearch').value='';renderSidebar();applyLanguage();return;}
   if(action==='refresh-list'){guarded('list',refreshLists,button);return;}
-  if(action==='back'){await navigate('chats');return;}
+  if(action==='back'){await navigate(app.route==='tapolka'?'channels':'chats');return;}
   if(action==='info'){closePop();info();return;}if(action==='chat-menu'){chatMenu(button);return;}
   if(action==='chat-search'){$('#chatSearch').hidden=false;$('#messageSearch').focus();return;}
   if(action==='close-chat-search'){$('#chatSearch').hidden=true;$('#messageSearchResults').hidden=true;$('#messageSearch').value='';return;}

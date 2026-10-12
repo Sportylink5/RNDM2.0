@@ -19,8 +19,21 @@ export function avatar(person, size = '', kind = '') {
   let hash = 0; for (const char of name) hash = ((hash << 5) - hash + char.charCodeAt(0)) | 0;
   return `<span class="avatar ${size} tone-${Math.abs(hash) % 5}">${url ? `<img src="${esc(url)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : kind ? icon(kind) : esc(initials(name))}</span>`;
 }
-const atlas = ['chats','contacts','channels','saved','settings','search','attach','emoji','mic','send','plus','back'];
+// All controls use consistent scalable vector icons (no bitmap atlas dependency).
+const atlas = [];
 const paths = {
+  chats:'M21 11.5a8.5 8.5 0 0 1-8.5 8.5 9 9 0 0 1-4-.9L3 21l1.9-5A8.5 8.5 0 1 1 21 11.5z',
+  contacts:'M15.5 19.5v-1.8a4.3 4.3 0 0 0-4.3-4.3H5.8a4.3 4.3 0 0 0-4.3 4.3v1.8M8.5 3.5a3.7 3.7 0 1 1 0 7.4 3.7 3.7 0 0 1 0-7.4M19 8a3.2 3.2 0 0 1 0 6.4M18 15.5a3.6 3.6 0 0 1 4 3.8',
+  channels:'M4 5h16v14H4zM8 9h8M8 13h8M8 16h5',
+  saved:'M6 3h12v18l-6-4-6 4V3z',
+  settings:'M12 15.8a3.8 3.8 0 1 0 0-7.6 3.8 3.8 0 0 0 0 7.6M12 2v2M12 20v2M4.93 4.93l1.4 1.4M17.67 17.67l1.4 1.4M2 12h2M20 12h2M4.93 19.07l1.4-1.4M17.67 6.33l1.4-1.4',
+  search:'M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16M17 17l5 5',
+  attach:'M20 12.5l-8.4 8.4a6 6 0 0 1-8.5-8.5L13 2.5a4 4 0 0 1 5.7 5.7L8.8 18a2 2 0 0 1-2.8-2.8l8.5-8.5',
+  emoji:'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20M8 10h.01M16 10h.01M8 15a5 5 0 0 0 8 0',
+  mic:'M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3M5 11v1a7 7 0 0 0 14 0v-1M12 19v3M9 22h6',
+  send:'M22 2 11 13M22 2l-7 20-4-9-9-4z',
+  plus:'M12 5v14M5 12h14',
+  back:'M19 12H5M12 19l-7-7 7-7',
   play:'M8 5l11 7-11 7z', pause:'M7 5v14M17 5v14',
   random:'M12 2l3.4 6.7L23 10l-5.5 5.4 1.3 7.6L12 19.4 5.2 23l1.3-7.6L1 10l7.6-1.3L12 2z',
   donate:'M12 21C-5 10 5-2 12 7c7-9 17 3 0 14z',
