@@ -1,4 +1,4 @@
-/* RNDM Chat 59 — Liquid Glass. UI-only update; works with existing Supabase. */
+/* RNDM Chat 60 — Ultimate Liquid Glass. UI-only update; works with existing Supabase. */
 :root{
   --bg:#0b1020;--rail:#11182b;--panel:#151c2f;--pane:#0e1525;
   --surface:#222d43;--hover:#334159;--line:#eaf3ff1e;
@@ -313,3 +313,34 @@ body{
  .tapolka-hero{grid-area:hero}.cat-progression{grid-area:progress}.tapolka-board{grid-area:board}
  .tapolka-hero h1{font-size:clamp(24px,6.4vw,31px)}
 }
+
+
+/* v60 · Glass fidelity and accessibility */
+:root[data-glass=full] .rail,:root[data-glass=full] .sidebar,:root[data-glass=full] .chat-header,:root[data-glass=full] .composer-wrap,
+:root[data-glass=full] .popover,:root[data-glass=full] .modal{backdrop-filter:blur(30px) saturate(155%);-webkit-backdrop-filter:blur(30px) saturate(155%)}
+:root[data-glass=balanced] .rail,:root[data-glass=balanced] .sidebar,:root[data-glass=balanced] .chat-header,:root[data-glass=balanced] .composer-wrap,
+:root[data-glass=balanced] .popover,:root[data-glass=balanced] .modal{backdrop-filter:blur(13px) saturate(125%);-webkit-backdrop-filter:blur(13px) saturate(125%)}
+:root[data-glass=low] .rail,:root[data-glass=low] .sidebar,:root[data-glass=low] .chat-header,:root[data-glass=low] .composer-wrap,
+:root[data-glass=low] .popover,:root[data-glass=low] .modal{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:var(--panel);}
+:root[data-glass=low] .pane{background:var(--pane)}
+:root[data-glass=low] .workspace::before,:root[data-glass=low] .workspace::after{display:none}
+@media(prefers-reduced-transparency:reduce){:root:not([data-glass=full]) .rail,:root:not([data-glass=full]) .sidebar,:root:not([data-glass=full]) .chat-header,:root:not([data-glass=full]) .composer-wrap{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
+:where(button,input,textarea,select,a):focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+:where(button,input,textarea,select):disabled{cursor:not-allowed;opacity:.65}
+.v60-glass-setting{margin:12px 0 6px;border-radius:13px;gap:12px}
+.v60-glass-setting select{min-width:145px;max-width:48%;border:1px solid var(--glass-stroke);border-radius:11px;background:var(--surface);color:var(--text);padding:10px 8px;font:inherit;font-size:12px}
+@media(max-width:760px){.v60-glass-setting{flex-wrap:wrap}.v60-glass-setting select{max-width:100%}}
+@media(hover:none){.chat-row:hover{transform:none}.nav-item:hover{transform:none}}
+@supports not (backdrop-filter:blur(1px)){.rail,.sidebar,.chat-header,.composer-wrap{background:var(--panel)}}
+
+/* v61: unified inbox and browsable channel directory */
+.channel-inbox-row .avatar{background:linear-gradient(145deg,color-mix(in srgb,var(--accent) 28%,var(--surface)),color-mix(in srgb,#58cfc8 18%,var(--surface)))}
+.channel-mini-tag{font-size:9px;line-height:1;border-radius:6px;padding:4px 5px;flex:0 0 auto;color:var(--accent);background:color-mix(in srgb,var(--accent) 11%,transparent);border:1px solid color-mix(in srgb,var(--accent) 17%,transparent);font-weight:720}
+.channel-joined-mark{font-size:11px;font-weight:750;color:var(--mint);flex:0 0 auto}
+.directory-entry{display:flex;align-items:center;justify-content:center;gap:8px;width:calc(100% - 18px);margin:10px 9px 14px;padding:13px 11px;border-radius:15px;background:color-mix(in srgb,var(--accent) 9%,var(--glass-sheen));border:1px solid var(--glass-stroke);color:var(--text);font-size:12px;font-weight:700;transition:background .16s,transform .16s}
+.directory-entry:hover{background:color-mix(in srgb,var(--accent) 17%,var(--glass-sheen));transform:translateY(-1px)}
+.directory-entry .icon{width:16px;height:16px;color:var(--accent)}
+.inbox-channel-tip{font-size:11px;line-height:1.5;color:var(--muted);padding:8px 13px 4px}
+@media(max-width:760px){.channel-inbox-row .channel-mini-tag{font-size:8px}.directory-entry{min-height:46px}}
+@media(prefers-reduced-motion:reduce){.directory-entry{transition:none!important;transform:none!important}}

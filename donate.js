@@ -1,5 +1,5 @@
-import {esc,icon,safeURL,errorText} from './core.js?v=59.1.0';
-import {giftArt} from './gift-art.js?v=59.1.0';
+import {esc,icon,safeURL,errorText} from './core.js?v=64.0.0';
+import {giftArt} from './gift-art.js?v=64.0.0';
 
 const must=({data,error})=>{if(error)throw error;return data;};
 const money=n=>Number(n||0).toLocaleString('ru-RU');

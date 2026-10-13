@@ -1,4 +1,4 @@
-export const defaultColors={accent:'#9478ff',background:'#0d111b',incoming:'#1c2232',outgoing:'#493776'};
+export const defaultColors={accent:'#b299ff',background:'#13111d',incoming:'#272236',outgoing:'#514077'};
 export function validColors(value){return value&&Object.keys(defaultColors).every(k=>/^#[0-9a-f]{6}$/i.test(value[k]));}
 const rgb=hex=>hex.slice(1).match(/../g).map(v=>parseInt(v,16));
 const hex=values=>'#'+values.map(v=>Math.round(v).toString(16).padStart(2,'0')).join('');

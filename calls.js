@@ -1,4 +1,4 @@
-import {$,esc,icon,avatar,errorText} from './core.js?v=59.1.0';
+import {$,esc,icon,avatar,errorText} from './core.js?v=64.0.0';
 const must=r=>{if(r.error)throw r.error;return r.data;};
 
 export class Calls {
@@ -36,7 +36,7 @@ export class Calls {
     catch(e){throw new Error(e.name==='NotAllowedError'?'Разреши доступ к микрофону'+(mode==='video'?' и камере':'')+' в браузере.':e.name==='NotFoundError'?'Микрофон или камера не найдены.':e.message);}
   }
   async dial(person,mode='audio'){
-    if(this.active||this.busy)throw new Error('Сначала заверши текущий звонок.');this.busy=true;let stream;
+    if(this.active||this.busy)throw new Error('Сначала заверши текущий звонок.');if(!navigator.onLine)throw new Error('Для звонка требуется подключение к интернету.');this.busy=true;let stream;
     try{
       stream=await this.media(mode);if(this.stopped){stream.getTracks().forEach(t=>t.stop());return;}
       const data=must(await this.sb.rpc('invite_call',{p_target:person.id,p_mode:mode,p_client:this.client}));
@@ -60,7 +60,7 @@ export class Calls {
   async send(a,kind,payload={}){if(a.closed)return;must(await this.sb.rpc('send_call_signal_v2',{p_room:a.room,p_client:this.client,p_kind:kind,p_payload:payload}));}
   async setup(a){
     const box=document.createElement('section');box.id='activeCall';box.className='call-overlay';box.setAttribute('role','dialog');box.setAttribute('aria-label','Звонок');
-    box.innerHTML=`<div class="call-card"><div class="call-heading">${avatar(a.person)}<div><h2>${esc(a.person?.display_name||a.person?.username||'Пользователь')}</h2><p id="callStatus" role="status">Соединяем…</p></div></div><div class="call-media ${a.mode==='audio'?'audio-only':''}"><video id="remoteCallVideo" autoplay playsinline></video><video id="localCallVideo" autoplay muted playsinline></video>${a.mode==='audio'?'<div class="audio-avatar">'+avatar(a.person,'large')+'</div>':''}</div><button class="text-button" id="callPlay" hidden>Включить звук собеседника</button><div class="call-controls"><button class="secondary" id="callMic" aria-pressed="false">${icon('mic')}Микрофон</button>${a.mode==='video'?`<button class="secondary" id="callCam" aria-pressed="false">${icon('video')}Камера</button>`:''}<button class="primary call-end" id="callEnd">${icon('phone')}Завершить</button></div></div>`;
+    box.innerHTML=`<div class="call-card"><div class="call-heading">${avatar(a.person)}<div><h2>${esc(a.person?.display_name||a.person?.username||'Пользователь')}</h2><div class="call-status-row"><p id="callStatus" role="status">Соединяем…</p><span class="call-duration" id="callDuration"></span></div><div class="call-quality" id="callQuality"></div></div></div><div class="call-media ${a.mode==='audio'?'audio-only':''}"><video id="remoteCallVideo" autoplay playsinline></video><video id="localCallVideo" autoplay muted playsinline></video>${a.mode==='audio'?'<div class="audio-avatar">'+avatar(a.person,'large')+'</div>':''}</div><button class="text-button" id="callPlay" hidden>Включить звук собеседника</button><div class="call-controls"><button class="secondary" id="callMic" aria-pressed="false">${icon('mic')}Микрофон</button>${a.mode==='video'?`<button class="secondary" id="callCam" aria-pressed="false">${icon('video')}Камера</button>`:''}<button class="primary call-end" id="callEnd">${icon('phone')}Завершить</button></div></div>`;
     document.body.append(box);$('#localCallVideo').srcObject=a.stream;
     $('#callEnd').onclick=()=>this.end().catch(e=>this.toast(errorText(e)));
     $('#callMic').onclick=e=>{const tracks=a.stream.getAudioTracks(),enabled=!tracks[0]?.enabled;tracks.forEach(t=>t.enabled=enabled);e.currentTarget.setAttribute('aria-pressed',String(!enabled));e.currentTarget.classList.toggle('off',!enabled);};
@@ -72,7 +72,7 @@ export class Calls {
     a.pc.onicecandidate=e=>{if(e.candidate)this.send(a,'ice',{candidate:e.candidate.toJSON()}).catch(err=>this.status(errorText(err)));};
     a.pc.onconnectionstatechange=()=>{
       if(a.closed)return;const state=a.pc.connectionState;
-      if(state==='connected'){clearTimeout(a.timeout);clearTimeout(a.disconnect);this.status('На связи');}
+      if(state==='connected'){clearTimeout(a.timeout);clearTimeout(a.disconnect);a.connectedAt ||= Date.now();this.status('На связи');}
       else if(state==='failed'){this.toast('Соединение не установлено. Попробуй другую сеть; для сложных сетей нужен TURN.');this.end().catch(()=>{});}
       else if(state==='disconnected'){this.status('Связь прервалась…');clearTimeout(a.disconnect);a.disconnect=setTimeout(()=>this.end().catch(()=>{}),20000);}
     };
@@ -81,7 +81,15 @@ export class Calls {
     a.roomChannel=this.api.watch('call_rooms','id=eq.'+a.room,p=>{if(p.new?.status==='ended'&&!a.closed)this.end(false).catch(()=>{});});
     a.timer=setInterval(()=>this.pull(a),1000);
     a.timeout=setTimeout(()=>{if(this.active===a){this.toast('Нет ответа или не удалось установить соединение.');this.end().catch(()=>{});}},60000);
+    a.metrics=setInterval(()=>this.updateMetrics(a).catch(()=>{}),3000);
     await this.pull(a);
+  }
+  async updateMetrics(a){
+    if(a.closed||this.active!==a||!a.connectedAt)return;
+    const elapsed=Math.floor((Date.now()-a.connectedAt)/1000),duration=$('#callDuration');if(duration)duration.textContent=Math.floor(elapsed/60)+':'+String(elapsed%60).padStart(2,'0');
+    const stats=await a.pc.getStats();if(a.closed||this.active!==a)return;
+    let delay=null;for(const report of stats.values())if(report.type==='candidate-pair'&&report.state==='succeeded'&&report.nominated&&Number.isFinite(report.currentRoundTripTime))delay=Math.round(report.currentRoundTripTime*1000);
+    const quality=$('#callQuality');if(quality)quality.textContent=delay===null?'':(delay<180?'Хорошее соединение':delay<500?'Нестабильное соединение':'Слабое соединение')+' · '+delay+' мс';
   }
   pull(a){
     if(a.closed||a.pulling)return a.chain;a.pulling=true;
@@ -104,7 +112,7 @@ export class Calls {
   async flush(a){for(const c of a.ice.splice(0))await a.pc.addIceCandidate(c);}
   async end(notify=true){
     const a=this.active;if(!a)return;this.active=null;a.closed=true;
-    clearInterval(a.timer);clearTimeout(a.timeout);clearTimeout(a.disconnect);this.api.unwatch(a.channel);this.api.unwatch(a.roomChannel);
+    clearInterval(a.timer);clearInterval(a.metrics);clearTimeout(a.timeout);clearTimeout(a.disconnect);this.api.unwatch(a.channel);this.api.unwatch(a.roomChannel);
     a.pc?.close();a.stream?.getTracks().forEach(t=>t.stop());$('#activeCall')?.remove();
     if(notify){const r=await this.sb.rpc('end_call_room_v2',{p_room:a.room,p_client:this.client});if(r.error)must(await this.sb.rpc('finish_call_invite',{p_room:a.room}));}
   }
@@ -114,7 +122,7 @@ export class Calls {
       const rows=must(await this.sb.from('call_invites').select('*').or(`caller_id.eq.${this.api.uid},callee_id.eq.${this.api.uid}`).order('created_at',{ascending:false}).limit(50))||[];
       const people=await this.api.profiles(rows.map(r=>r.caller_id===this.api.uid?r.callee_id:r.caller_id));if(!host.isConnected)return;
       const labels={ringing:'Без ответа',accepted:'Принят',declined:'Отклонён',ended:'Завершён',missed:'Пропущен'};
-      host.innerHTML=rows.map(r=>{const p=people.find(p=>p.id===(r.caller_id===this.api.uid?r.callee_id:r.caller_id));return `<article class="call-history">${avatar(p)}<div><b>${esc(p?.display_name||p?.username||'Пользователь')}</b><p>${r.caller_id===this.api.uid?'Исходящий':'Входящий'} · ${labels[r.status]||esc(r.status)} · ${new Date(r.created_at).toLocaleString('ru-RU')}</p></div><button class="icon-button" data-call-user="${esc(p?.id||'')}" data-call-mode="${r.mode}" aria-label="Позвонить снова">${icon(r.mode==='video'?'video':'phone')}</button></article>`;}).join('')||'<div class="sidebar-empty"><p>Звонков пока нет. Открой личный чат и нажми на телефон или камеру.</p></div>';
+      host.innerHTML=rows.map(r=>{const p=people.find(p=>p.id===(r.caller_id===this.api.uid?r.callee_id:r.caller_id));return `<article class="call-history">${avatar(p)}<div><b>${esc(p?.display_name||p?.username||'Пользователь')}</b><p>${r.caller_id===this.api.uid?'Исходящий':'Входящий'} · ${labels[r.status]||esc(r.status)} · ${new Date(r.created_at).toLocaleString('ru-RU')}</p></div><button class="icon-button" data-call-user="${esc(p?.id||'')}" data-call-mode="${esc(r.mode==='video'?'video':'audio')}" aria-label="Позвонить снова">${icon(r.mode==='video'?'video':'phone')}</button></article>`;}).join('')||'<div class="sidebar-empty"><p>Звонков пока нет. Открой личный чат и нажми на телефон или камеру.</p></div>';
     }catch(e){host.innerHTML=`<div class="notice error-notice">${esc(errorText(e))}</div>`;}
   }
 }

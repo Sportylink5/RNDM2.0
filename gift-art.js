@@ -1,5 +1,5 @@
 /** RNDM gift artwork map. Only filenames bundled with the website are allowed. */
-import {esc} from './core.js?v=59.1.0';
+import {esc} from './core.js?v=64.0.0';
 
 const ART_IDS=new Set(["balloon", "bear", "butterfly", "cake", "candy", "car", "cat", "celestial_crown", "coffee", "comet", "cookie", "cosmic_gate", "crown", "diamond", "eternal_flame", "firework", "flower", "galaxy", "gift_box", "gold", "gold_dragon", "heart", "lucky_cat", "magic_orb", "moon", "mythic_mask", "neon_star", "owl", "paw", "rainbow", "relic_cat", "rndm_relic", "rocket", "rose", "sparkle", "sun", "trophy", "unicorn", "violet_comet"]);
 /** Render a real WebP where available, with an emoji fallback for unknown or failed assets. */

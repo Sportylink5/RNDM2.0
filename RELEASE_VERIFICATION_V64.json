@@ -1,0 +1,12 @@
+{
+  "version": "64.0.0",
+  "node_tests_passed": 36,
+  "js_syntax_files": 20,
+  "precache_files": 71,
+  "imports_html_sri": "passed",
+  "qr_decode_urls": 2,
+  "browser_qa": false,
+  "live_two_account_qa": false,
+  "database_changes_applied": false,
+  "channels_setup": "prepared only"
+}

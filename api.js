@@ -1,4 +1,4 @@
-import {timeoutFetch, sid, unique, safeURL} from './core.js?v=59.1.0';
+import {timeoutFetch, sid, unique, safeURL} from './core.js?v=64.0.0';
 
 function must(result) { if (result.error) throw result.error; return result.data; }
 const now = () => new Date().toISOString();
@@ -116,11 +116,39 @@ export class MessengerAPI {
     if (before) query=query.or(`created_at.lt.${before.created_at},and(created_at.eq.${before.created_at},id.lt.${before.id})`);
     return (must(await query) || []).reverse();
   }
+  async messageContext(cid,id,channel=false){
+    const table=channel?'rndm_channel_posts':'messages',col=channel?'channel_id':'conversation_id',timestamp=now();
+    const query=()=>{
+      let q=this.sb.from(table).select('*').eq(col,cid);
+      if(!channel)q=q.or(`scheduled_for.is.null,scheduled_for.lte.${timestamp}`).or(`expires_at.is.null,expires_at.gt.${timestamp}`);
+      return q;
+    };
+    const target=must(await query().eq('id',id).maybeSingle());
+    if(!target)throw new Error('Сообщение недоступно или больше не хранится в чате.');
+    const t=target.created_at,mid=target.id;
+    const [before,after]=await Promise.all([
+      query().or(`created_at.lt.${t},and(created_at.eq.${t},id.lt.${mid})`).order('created_at',{ascending:false}).order('id',{ascending:false}).limit(30),
+      query().or(`created_at.gt.${t},and(created_at.eq.${t},id.gt.${mid})`).order('created_at',{ascending:true}).order('id',{ascending:true}).limit(30)
+    ]);
+    const old=must(before)||[],next=must(after)||[];
+    return {rows:[...old.reverse(),target,...next],more:old.length===30};
+  }
+  async media(cid,channel=false,filter='all',offset=0,search=''){
+    const timestamp=now(),table=channel?'rndm_channel_posts':'messages',col=channel?'channel_id':'conversation_id';
+    let q=this.sb.from(table).select('*').eq(col,cid);
+    q=filter==='links'?q.ilike('body','%http%'):q.not('attachment_url','is',null);
+    const term=String(search).replace(/[^\p{L}\p{N} _-]/gu,'').trim().slice(0,80);if(term)q=q.or(`body.ilike.%${term}%,attachment_name.ilike.%${term}%`);
+    if(!channel)q=q.is('deleted_at',null).or(`scheduled_for.is.null,scheduled_for.lte.${timestamp}`).or(`expires_at.is.null,expires_at.gt.${timestamp}`);
+    if(['image','video','audio'].includes(filter))q=q.ilike('attachment_type',filter+'/%');
+    else if(filter==='file')q=q.or('attachment_type.is.null,and(attachment_type.not.ilike.image/%,attachment_type.not.ilike.video/%,attachment_type.not.ilike.audio/%)');
+    const start=Math.max(0,Number(offset)||0);
+    return must(await q.order('created_at',{ascending:false}).order('id',{ascending:false}).range(start,start+29))||[];
+  }
   async reactions(ids, channel = false) {
     if (!ids.length) return [];
-    return must(await this.sb.from(channel ? 'rndm_channel_reactions' : 'message_reactions').select('*').in(channel ? 'post_id' : 'message_id',ids)) || [];
+    const rows=[];for(let i=0;i<ids.length;i+=150)rows.push(...(must(await this.sb.from(channel ? 'rndm_channel_reactions' : 'message_reactions').select('*').in(channel ? 'post_id' : 'message_id',ids.slice(i,i+150)))||[]));return rows;
   }
-  async replyMessages(ids) { if (!ids.length) return []; return must(await this.sb.from('messages').select('id,body,sender_id,attachment_name,deleted_at').in('id',ids)) || []; }
+  async replyMessages(ids) {const rows=[];for(let i=0;i<ids.length;i+=150)rows.push(...(must(await this.sb.from('messages').select('id,body,sender_id,attachment_name,deleted_at').in('id',ids.slice(i,i+150)))||[]));return rows;}
   async pins(cid) { return must(await this.sb.from('pinned_messages').select('message_id,pinned_by').eq('conversation_id',cid)) || []; }
   async pinMessage(cid,mid,remove=false) {
     if (remove) {
@@ -139,6 +167,17 @@ export class MessengerAPI {
     const declaredType=String(file.type||'').toLowerCase();
     if(blockedExtension.test(originalName)||/^(?:text\/html|image\/svg\+xml|application\/(?:javascript|x-javascript|x-msdownload|x-msdos-program|x-httpd-php|x-shockwave-flash|wasm|xml)|text\/javascript)/.test(declaredType))
       throw new Error('Этот тип файла может выполнять код. Передавай такой файл только внутри безопасного ZIP.');
+    // Active-content formats are never rendered inline, even when disguised as a photo.
+    if(['avatars','group-avatars','channel-avatars'].includes(bucket)){
+      if(!['image/jpeg','image/png','image/webp','image/gif'].includes(declaredType)) throw new Error('Фото профиля должно быть JPEG, PNG, WebP или GIF.');
+      const head=new Uint8Array(await file.slice(0,16).arrayBuffer());
+      const str=Array.from(head).map(x=>String.fromCharCode(x)).join('');
+      const valid=declaredType==='image/jpeg'&&head[0]===255&&head[1]===216&&head[2]===255
+        ||declaredType==='image/png'&&str.startsWith('\x89PNG\r\n\x1a\n')
+        ||declaredType==='image/gif'&&(str.startsWith('GIF87a')||str.startsWith('GIF89a'))
+        ||declaredType==='image/webp'&&str.startsWith('RIFF')&&str.slice(8,12)==='WEBP';
+      if(!valid)throw new Error('Содержимое файла не соответствует формату изображения.');
+    }
     const bucketLimit={'avatars':5,'group-avatars':5,'channel-avatars':5,'market-files':20,'clips':100,'videos':250,'stories':50,'channel-files':50,'chat-files':50};
     const maxMb=bucketLimit[bucket]??50;
     if(file.size>maxMb*1024*1024)throw new Error('Для этого раздела максимальный размер файла — '+maxMb+' МБ.');
@@ -150,6 +189,9 @@ export class MessengerAPI {
     return {url:data.publicUrl,name:file.name,type,path,bucket};
   }
   async send(cid,body,file=null,extra={}) {
+    body=String(body||'');if(body.length>4000)throw new Error('В сообщении может быть до 4000 символов.');
+    const allowed=['reply_to','forwarded_from','scheduled_for','expires_at','attachment_url','attachment_name','attachment_type'];
+    extra=Object.fromEntries(Object.entries(extra).filter(([name])=>allowed.includes(name)));
     let upload=null;
     if (file) upload=await this.upload('chat-files',file);
     try {
@@ -193,7 +235,7 @@ export class MessengerAPI {
   async deleteStory(id){const rows=must(await this.sb.from('stories').delete().eq('id',id).eq('user_id',this.uid).select('id'));if(!rows?.length)throw new Error('Можно удалить только свою историю.');}
   async saveState(value) { must(await this.sb.from('user_state').upsert({user_id:this.uid,key,value,updated_at:now()},{onConflict:'user_id,key'})); }
   async people(query) {
-    const value=query.trim().replace(/^@/,'').replace(/[,()%\\]/g,' ').slice(0,70).trim(); if (value.length<2) return [];
+    const value=String(query||'').trim().replace(/^@/,'').replace(/[^\p{L}\p{N}_ -]/gu,' ').replace(/\s+/g,' ').slice(0,64).trim(); if (value.length<2) return [];
     return must(await this.sb.from('rndm_public_profiles').select('id,username,display_name,avatar_url,bio,last_seen,hide_last_seen').neq('id',this.uid).or(`username.ilike.%${value}%,display_name.ilike.%${value}%`).limit(30)) || [];
   }
   async friends() {
@@ -229,6 +271,23 @@ export class MessengerAPI {
     if(!ids.length)return [];
     const rows=must(await this.sb.from('rndm_channels').select('*').in('id',ids).order('created_at',{ascending:false}).limit(400))||[];
     return rows.map(ch=>({...ch,id:sid(ch.id),kind:'channel',title:ch.name,preview:ch.description||'',joined:subs.some(s=>s.channel_id===ch.id)||ch.owner_id===this.uid,count:Number(ch.promo_subscribers||0)}));
+  }
+  async directoryChannels(query='',offset=0,limit=30){
+    // Only rows that existing server-side RLS allows the current user to read.
+    // Do not copy channels into dialogs or create database records.
+    const safe=String(query||'').trim().replace(/^@/,'').replace(/[^\p{L}\p{N}_ -]/gu,'').slice(0,40).trim();
+    const page=Math.max(0,Number(offset)||0),size=Math.max(1,Math.min(50,Number(limit)||30));
+    let request=this.sb.from('rndm_channels').select('*');
+    if(safe.length>=2)request=request.or(`name.ilike.%${safe}%,handle.ilike.%${safe}%`);
+    else if(safe)request=request.ilike('name',`%${safe}%`);
+    const rows=must(await request.order('created_at',{ascending:false}).range(page,page+size-1))||[];
+    if(!rows.length)return [];
+    const existing=await this.sb.from('rndm_channel_subscriptions').select('channel_id').eq('user_id',this.uid).in('channel_id',rows.map(x=>x.id));
+    // If subscriptions are temporarily unavailable, still show the readable catalog.
+    const joined=new Set((existing.data||[]).map(x=>x.channel_id));
+    return rows.map(ch=>({...ch,id:sid(ch.id),kind:'channel',title:ch.name,
+      preview:ch.description||'Канал RNDM',joined:ch.owner_id===this.uid||joined.has(ch.id),
+      count:Number(ch.promo_subscribers||0)}));
   }
   async searchChannels(query){
     const value=String(query||'').trim().replace(/^@/,'').replace(/[^\p{L}\p{N}_ -]/gu,'').slice(0,40).trim();
@@ -266,6 +325,12 @@ export class MessengerAPI {
     try { return must(await this.sb.from('rndm_channel_posts').insert({channel_id:cid,author_id:this.uid,body,attachment_url:upload?.url || null,attachment_name:upload?.name || null,attachment_type:upload?.type || null}).select().single()); }
     catch(error) { if (upload && !/fetch|network|abort|timeout/i.test(error.message || '')) await this.sb.storage.from(upload.bucket).remove([upload.path]); throw error; }
   }
+  async channelTools(cid){if(this.channelToolsUnavailable)return null;const result=await this.sb.rpc('rndm_v64_channel_state',{p_channel:String(cid)});if(result.error){if(['PGRST202','42883'].includes(result.error.code)){this.channelToolsUnavailable=true;return null;}throw result.error;}return result.data;}
+  async channelPin(cid,mid=null){return must(await this.sb.rpc('rndm_v64_channel_pin',{p_channel:String(cid),p_post:mid===null?null:String(mid)}));}
+  async channelStaff(cid,user,role){return must(await this.sb.rpc('rndm_v64_channel_staff',{p_channel:String(cid),p_user:user,p_role:role}));}
+  async editPost(cid,mid,body){return {...must(await this.sb.from('rndm_channel_posts').update({body:String(body).trim().slice(0,4000)}).eq('channel_id',cid).eq('id',mid).eq('author_id',this.uid).select().single()),sender_id:this.uid};}
+  async commonGroups(uid,dialogs){const groups=dialogs.filter(x=>x.kind==='group').slice(0,400);if(!groups.length)return [];const rows=must(await this.sb.from('conversation_members').select('conversation_id').eq('user_id',uid).in('conversation_id',groups.map(x=>x.id)))||[];const ids=new Set(rows.map(x=>String(x.conversation_id)));return groups.filter(x=>ids.has(String(x.id)));}
+  async reportUser(uid,reason,details){if(!uid||uid===this.uid)throw new Error('Выбери другого пользователя.');return must(await this.sb.from('reports').insert({reporter_id:this.uid,target_user_id:uid,reason:String(reason).slice(0,80),details:String(details).slice(0,1000),status:'open'}).select('id').single());}
   async deletePost(mid) { const rows=must(await this.sb.from('rndm_channel_posts').delete().eq('id',mid).eq('author_id',this.uid).select('id')); if (!rows?.length) throw new Error('Сервер не подтвердил удаление.'); }
   async comments(pid) {
     const rows=must(await this.sb.from('rndm_channel_comments').select('*').eq('post_id',pid).order('created_at',{ascending:true})) || [];
@@ -284,7 +349,7 @@ export class MessengerAPI {
   watch(table,filter,callback,status) {
     return this.sb.channel('rndm30-'+table+'-'+crypto.randomUUID()).on('postgres_changes',{event:'*',schema:'public',table,...(filter ? {filter} : {})},callback).subscribe(status);
   }
-  unwatch(channel) { if (channel) this.sb.removeChannel(channel); }
+  unwatch(channel) {if(channel)try{Promise.resolve(this.sb.removeChannel(channel)).catch(()=>{});}catch{}}
 
 
   async catState(){return must(await this.sb.rpc('rndm_cat_state'));}

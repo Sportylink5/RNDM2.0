@@ -1,0 +1,8 @@
+{
+  "name": "rndm-chat",
+  "version": "64.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {"test": "node --test tests/verify.mjs"},
+  "engines": {"node": ">=22"}
+}

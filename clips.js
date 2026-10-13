@@ -1,13 +1,16 @@
-import {$,$$,esc,icon,avatar,safeURL,errorText} from './core.js?v=59.1.0';
+import {clipPreferences} from './organizer.js?v=64.0.0';
+import {$,$$,esc,icon,avatar,safeURL,errorText,sid} from './core.js?v=64.0.0';
 const must=r=>{if(r.error)throw r.error;return r.data;};
 export class Clips {
-  constructor(api,ui){this.api=api;this.sb=api.sb;this.ui=ui;this.epoch=0;this.sound=true;this.rows=[];this.locks=new Set();this.feedMode='recommended';this.tag='';this.following=new Set();this.playbackSpeed=1;this.userPaused=new WeakSet();}
-  stop(){++this.epoch;this.observer?.disconnect();if(this.host){this.host.onclick=null;$$('video',this.host).forEach(v=>{v.pause();v.removeAttribute('src');v.load();});}this.host=null;}
+  constructor(api,ui){this.api=api;this.sb=api.sb;this.ui=ui;this.epoch=0;this.sound=true;this.rows=[];this.locks=new Set();this.feedMode='recommended';this.tag='';this.following=new Set();this.playbackSpeed=1;this.userPaused=new WeakSet();this.controlCleanups=new Set();this.tagTimer=null;this.holdSuppressUntil=0;const prefs=clipPreferences(ui.preferences);this.autoplay=prefs.autoplay;this.dataSaver=prefs.dataSaver;this.sound=prefs.sound;this.playbackSpeed=prefs.speed;}
+  stop(){++this.epoch;clearTimeout(this.tagTimer);for(const cleanup of this.controlCleanups)cleanup();this.controlCleanups.clear();document.removeEventListener('visibilitychange',this.visibilityHandler);this.current=null;this.observer?.disconnect();this.preloadObserver?.disconnect();if(this.host){this.host.onclick=null;$$('video',this.host).forEach(v=>{v.pause();v.removeAttribute('src');v.load();});}this.host=null;}
   async open(host,clipId=null){
-    this.stop();this.host=host;this.rows=[];this.before=null;this.more=true;this.loading=false;
-    host.innerHTML=`<header class="chat-header"><button class="icon-button back-mobile" data-action="back" aria-label="К чатам">${icon('back')}</button><h2>Клипы</h2><div class="header-tools"><button class="secondary" id="clipStats">${icon('info')}Статистика</button><button class="secondary" id="clipUpload">${icon('plus')}Выложить</button></div></header><div class="clip-feed-tools"><div class="clip-feed-tabs" role="tablist"><button type="button" class="active" data-clip-feed="recommended">Для тебя</button><button type="button" data-clip-feed="latest">Новые</button><button type="button" data-clip-feed="popular">Популярные</button><button type="button" data-clip-feed="following">Подписки</button><button type="button" data-clip-feed="saved">Избранное</button></div><label class="clip-tag-filter"><span>＃</span><input id="clipTag" type="search" maxlength="40" placeholder="Хештег" aria-label="Поиск по хештегу"><button type="button" id="clipTagClear" aria-label="Очистить">×</button></label></div><div class="clips-feed" id="clipsFeed"><div class="sidebar-empty"><span class="spinner"></span><p>Загружаем клипы…</p></div></div><input id="clipFile" type="file" accept="video/mp4,video/webm,video/quicktime" hidden>`;
-    $$('[data-clip-feed]',host).forEach(b=>b.classList.toggle('active',b.dataset.clipFeed===this.feedMode));$('#clipStats').onclick=()=>this.analytics().catch(err=>this.ui.toast(errorText(err)));$('#clipUpload').onclick=()=>{const input=$('#clipFile');input.value='';input.click();};$('#clipFile').onchange=e=>this.upload(e.target.files[0]);
+    this.stop();this.host=host;this.rows=[];this.visibilityHandler=()=>{if(document.hidden)this.current?.pause();else if(this.autoplay&&this.current&&!this.userPaused.has(this.current))this.play(this.current);};document.addEventListener('visibilitychange',this.visibilityHandler);this.before=null;this.more=true;this.loading=false;
+    host.innerHTML=`<header class="chat-header"><button class="icon-button back-mobile" data-action="back" aria-label="К чатам">${icon('back')}</button><h2>Клипы</h2><div class="header-tools"><button class="secondary" id="clipSettings">Настройки</button><button class="secondary" id="clipStats">${icon('info')}Статистика</button><button class="secondary" id="clipUpload">${icon('plus')}Выложить</button></div></header><div class="clip-feed-tools"><div class="clip-feed-tabs" role="tablist"><button type="button" class="active" data-clip-feed="recommended">Для тебя</button><button type="button" data-clip-feed="latest">Новые</button><button type="button" data-clip-feed="popular">Популярные</button><button type="button" data-clip-feed="following">Подписки</button><button type="button" data-clip-feed="saved">Избранное</button></div><label class="clip-tag-filter"><span>＃</span><input id="clipTag" type="search" maxlength="40" placeholder="Хештег" aria-label="Поиск по хештегу"><button type="button" id="clipTagClear" aria-label="Очистить">×</button></label></div><div class="clips-feed" id="clipsFeed"><div class="sidebar-empty"><span class="spinner"></span><p>Загружаем клипы…</p></div></div><input id="clipFile" type="file" accept="video/mp4,video/webm,video/quicktime" hidden>`;
+    $$('[data-clip-feed]',host).forEach(b=>b.classList.toggle('active',b.dataset.clipFeed===this.feedMode));$('#clipSettings').onclick=()=>this.settings();$('#clipStats').onclick=()=>this.analytics().catch(err=>this.ui.toast(errorText(err)));$('#clipUpload').onclick=()=>{const input=$('#clipFile');input.value='';input.click();};$('#clipFile').onchange=e=>this.upload(e.target.files[0]);
     host.onclick=e=>{
+      const surface=e.target.closest('.clip-card');if(surface&&!e.target.closest('button,a,input,textarea')){if(Date.now()<this.holdSuppressUntil)return;const control=surface.querySelector('[data-clip-action="play"]');if(control)this.action(control).catch(err=>this.ui.toast(errorText(err)));return;}
+
       const tab=e.target.closest('[data-clip-feed]');
       if(tab){e.preventDefault();++this.epoch;this.loading=false;this.feedMode=tab.dataset.clipFeed;$$('[data-clip-feed]',host).forEach(b=>b.classList.toggle('active',b===tab));this.rows=[];this.before=null;this.load(false).catch(err=>this.ui.toast(errorText(err)));return;}
       const clear=e.target.closest('#clipTagClear');if(clear){++this.epoch;this.loading=false;$('#clipTag',host).value='';this.tag='';this.load(false).catch(err=>this.ui.toast(errorText(err)));return;}
@@ -23,7 +26,7 @@ export class Clips {
       }
       const b=e.target.closest('[data-clip-action]');if(b){e.preventDefault();this.action(b).catch(err=>this.ui.toast(errorText(err)));}
     };
-    const tagInput=$('#clipTag',host);let tagTimer;tagInput?.addEventListener('input',()=>{clearTimeout(tagTimer);tagTimer=setTimeout(()=>{++this.epoch;this.loading=false;this.tag=tagInput.value.trim().replace(/^#/, '').replace(/[^a-zA-Zа-яА-ЯёЁ0-9_]/g,'').slice(0,36);this.rows=[];this.before=null;this.load(false).catch(err=>this.ui.toast(errorText(err)));},380);});
+    const tagInput=$('#clipTag',host);tagInput?.addEventListener('input',()=>{clearTimeout(this.tagTimer);this.tagTimer=setTimeout(()=>{++this.epoch;this.loading=false;this.tag=tagInput.value.trim().replace(/^#/, '').replace(/[^a-zA-Zа-яА-ЯёЁ0-9_]/g,'').slice(0,36);this.rows=[];this.before=null;this.load(false).catch(err=>this.ui.toast(errorText(err)));},380);});
     await this.load(false,clipId);
   }
   async load(append=false,clipId=null){
@@ -61,7 +64,7 @@ export class Clips {
         };
         rows.sort((a,b)=>score(b)-score(a)||new Date(b.created_at)-new Date(a.created_at));
       }
-      if(!append){this.rows=[];feed.innerHTML='';}
+      if(!append){for(const cleanup of this.controlCleanups)cleanup();this.controlCleanups.clear();$$('video',feed).forEach(v=>v.pause());this.observer?.disconnect();this.current=null;this.rows=[];feed.innerHTML='';}
       const fresh=rows.filter(r=>!this.rows.some(x=>x.id===r.id));this.rows.push(...fresh);$('#clipMore',feed)?.remove();feed.insertAdjacentHTML('beforeend',fresh.map(r=>this.card(r)).join(''));
       if(!this.rows.length)feed.innerHTML='<div class="clips-empty">'+icon('clips')+'<h2>Нет подходящих клипов</h2><p>Попробуй другой хештег или подпишись на авторов.</p></div>';
       if(this.more)feed.insertAdjacentHTML('beforeend','<button class="secondary" id="clipMore">Загрузить ещё</button>');
@@ -73,18 +76,30 @@ export class Clips {
     finally{if(epoch===this.epoch)this.loading=false;}
   }
   card(r){
-    return `<article class="clip-card" data-clip-id="${esc(r.id)}"><video src="${esc(safeURL(r.video_url))}" playsinline webkit-playsinline loop preload="metadata" disablepictureinpicture controlslist="nodownload noplaybackrate noremoteplayback" aria-label="Клип ${esc(r.person?.display_name||'пользователя')}"></video><div class="clip-shade"></div><button type="button" class="clip-play-overlay paused" data-clip-action="play" aria-label="Воспроизвести" title="Нажми на видео, чтобы поставить на паузу"><span class="clip-play-symbol">${icon('play')}</span></button><button type="button" class="clip-speed-control" data-clip-action="speed" aria-label="Скорость воспроизведения ${this.playbackSpeed}×" title="Изменить скорость видео"><span class="clip-speed-value">${String(this.playbackSpeed).replace('.',',')}×</span></button><div class="clip-copy"><button class="clip-author clip-author-profile" type="button" data-person="${esc(r.user_id)}" aria-label="Открыть профиль автора ${esc(r.person?.display_name||r.person?.username||'')}">${avatar(r.person,'small')}<b>${esc(r.person?.display_name||r.person?.username||'Пользователь')}</b></button><p>${esc(r.caption)}</p>${r.user_id!==this.api.uid?`<div class="clip-creator-tools"><button type="button" data-clip-action="follow" class="${r.following?'selected':''}">${r.following?'✓ Подписки':'+ Подписаться'}</button><button type="button" data-clip-action="gift">🎁 Подарок</button></div>`:''}</div><div class="clip-actions"><button data-clip-action="sound" aria-label="${this.sound?'Выключить':'Включить'} звук">${icon(this.sound?'volume':'mute')}</button><button data-clip-action="like" class="${r.liked?'selected':''}" aria-label="Лайк" aria-pressed="${r.liked}">${icon('heart')}<span>${r.likes}</span></button><button data-clip-action="comments" aria-label="Комментарии">${icon('chats')}<span>${r.comments}</span></button><button data-clip-action="save" class="${r.saved?'selected':''}" aria-label="Сохранить" aria-pressed="${r.saved}">${icon('saved')}</button><button data-clip-action="share" aria-label="Поделиться">${icon('forward')}</button><button type="button" data-clip-action="download" class="clip-download-action" aria-label="Скачать видео" title="Скачать клип">${icon('download')}</button>${r.user_id===this.api.uid?`<button data-clip-action="delete" aria-label="Удалить свой клип">${icon('trash')}</button>`:''}</div><button class="clip-enable-sound" data-clip-action="enable-sound" hidden>Нажми, чтобы включить звук</button></article>`;
+    return `<article class="clip-card" data-clip-id="${esc(r.id)}"><video data-video-src="${esc(safeURL(r.video_url))}" playsinline webkit-playsinline loop preload="metadata" disablepictureinpicture controlslist="nodownload noplaybackrate noremoteplayback" aria-label="Клип ${esc(r.person?.display_name||'пользователя')}"></video><div class="clip-shade"></div><span class="clip-hold-hint" hidden>2×</span><input class="clip-progress" type="range" min="0" max="1000" value="0" aria-label="Перемотка клипа"><button type="button" class="clip-play-overlay paused" data-clip-action="play" aria-label="Воспроизвести" title="Нажми на видео, чтобы поставить на паузу"><span class="clip-play-symbol">${icon('play')}</span></button><button type="button" class="clip-speed-control" data-clip-action="speed" aria-label="Скорость воспроизведения ${this.playbackSpeed}×" title="Изменить скорость видео"><span class="clip-speed-value">${String(this.playbackSpeed).replace('.',',')}×</span></button><div class="clip-copy"><button class="clip-author clip-author-profile" type="button" data-person="${esc(r.user_id)}" aria-label="Открыть профиль автора ${esc(r.person?.display_name||r.person?.username||'')}">${avatar(r.person,'small')}<b>${esc(r.person?.display_name||r.person?.username||'Пользователь')}</b></button><p class="clip-caption">${esc(r.caption)}</p>${String(r.caption||'').length>130?'<button type="button" class="clip-caption-more" data-clip-action="caption">Ещё</button>':''}${r.user_id!==this.api.uid?`<div class="clip-creator-tools"><button type="button" data-clip-action="follow" class="${r.following?'selected':''}">${r.following?'✓ Подписки':'+ Подписаться'}</button><button type="button" data-clip-action="gift">🎁 Подарок</button></div>`:''}</div><div class="clip-actions"><button data-clip-action="sound" aria-label="${this.sound?'Выключить':'Включить'} звук">${icon(this.sound?'volume':'mute')}</button><button data-clip-action="like" class="${r.liked?'selected':''}" aria-label="Лайк" aria-pressed="${r.liked}">${icon('heart')}<span>${r.likes}</span></button><button data-clip-action="comments" aria-label="Комментарии">${icon('chats')}<span>${r.comments}</span></button><button data-clip-action="save" class="${r.saved?'selected':''}" aria-label="Сохранить" aria-pressed="${r.saved}">${icon('saved')}</button><button data-clip-action="share" aria-label="Поделиться">${icon('forward')}</button><button type="button" data-clip-action="download" class="clip-download-action" aria-label="Скачать видео" title="Скачать клип">${icon('download')}</button>${r.user_id===this.api.uid?`<button data-clip-action="delete" aria-label="Удалить свой клип">${icon('trash')}</button>`:''}</div><button class="clip-enable-sound" data-clip-action="enable-sound" hidden>Нажми, чтобы включить звук</button></article>`;
   }
   wireVideoControls(feed){
     $$('video',feed).forEach(video=>{
       if(video.dataset.rndmControls==='1')return;
       video.dataset.rndmControls='1';
       video.playbackRate=this.playbackSpeed;
+      this.wireScrubAndHold(video);
       video.addEventListener('play',()=>this.updatePlaybackUI(video));
       video.addEventListener('pause',()=>this.updatePlaybackUI(video));
       video.addEventListener('loadedmetadata',()=>{video.playbackRate=this.playbackSpeed;this.updatePlaybackUI(video);});
       this.updatePlaybackUI(video);
     });
+  }
+  wireScrubAndHold(video){
+    const card=video.closest('.clip-card'),progress=card.querySelector('.clip-progress'),hint=card.querySelector('.clip-hold-hint');let timer=null,point=null,held=false;
+    const cancel=()=>{clearTimeout(timer);timer=null;if(held){video.playbackRate=this.playbackSpeed;this.holdSuppressUntil=Date.now()+350;}held=false;point=null;if(hint)hint.hidden=true;};
+    this.controlCleanups.add(cancel);
+    card.addEventListener('pointerdown',event=>{if(event.target.closest('button,a,input,textarea')||event.button>0)return;cancel();point={x:event.clientX,y:event.clientY};timer=setTimeout(()=>{if(!point||!this.host||video.paused)return;held=true;video.playbackRate=2;if(hint)hint.hidden=false;},450);},{passive:true});
+    card.addEventListener('pointermove',event=>{if(point&&Math.hypot(event.clientX-point.x,event.clientY-point.y)>12)cancel();},{passive:true});
+    for(const name of ['pointerup','pointercancel','pointerleave'])card.addEventListener(name,cancel,{passive:true});
+    video.addEventListener('pause',cancel);
+    video.addEventListener('timeupdate',()=>{if(!progress||!Number.isFinite(video.duration)||video.duration<=0)return;if(document.activeElement!==progress)progress.value=String(Math.round(video.currentTime/video.duration*1000));progress.setAttribute('aria-valuetext',Math.floor(video.currentTime)+' из '+Math.floor(video.duration)+' секунд');});
+    progress?.addEventListener('input',()=>{if(Number.isFinite(video.duration)&&video.duration>0)video.currentTime=Math.min(video.duration,Math.max(0,Number(progress.value)/1000*video.duration));});
   }
   updatePlaybackUI(video){
     const card=video?.closest('.clip-card'),button=card?.querySelector('[data-clip-action="play"]');
@@ -94,31 +109,39 @@ export class Clips {
     const symbol=button.querySelector('.clip-play-symbol');
     if(symbol)symbol.innerHTML=icon(video.paused?'play':'pause');
   }
+  async savePreferences(patch){const prefs=clipPreferences({...this.preferences(),...patch});if(this.ui.onPreferences)await this.ui.onPreferences(prefs);this.autoplay=prefs.autoplay;this.dataSaver=prefs.dataSaver;this.sound=prefs.sound;this.playbackSpeed=prefs.speed;}
+  preferences(){return {autoplay:this.autoplay,dataSaver:this.dataSaver,sound:this.sound,speed:this.playbackSpeed};}
+  settings(){const host=this.host;const m=this.ui.modal('Настройки клипов',`<form id="clipPreferences"><label class="field"><span><input name="autoplay" type="checkbox" ${this.autoplay?'checked':''}> Автовоспроизведение</span></label><label class="field"><span><input name="dataSaver" type="checkbox" ${this.dataSaver?'checked':''}> Экономить трафик</span></label><p class="muted">Экономия отключает предварительную загрузку соседних видео.</p><button type="submit" class="primary">Сохранить</button></form>`);$('#clipPreferences').onsubmit=async e=>{e.preventDefault();const b=e.currentTarget.querySelector('button');b.disabled=true;try{const fd=new FormData(e.currentTarget);await this.savePreferences({autoplay:fd.has('autoplay'),dataSaver:fd.has('dataSaver')});if(!this.autoplay)this.current?.pause();if(this.host===host&&$('#clipsFeed',host))this.observe($('#clipsFeed',host));m?.close?.();this.ui.toast('Настройки клипов сохранены');}catch(error){this.ui.toast(errorText(error));}finally{b.disabled=false;}};}
   observe(feed){
-    this.observer?.disconnect();
+    this.observer?.disconnect();this.preloadObserver?.disconnect();
+    this.preloadObserver=new IntersectionObserver(entries=>{for(const entry of entries)if(entry.isIntersecting&&!this.dataSaver)this.ensureVideo($('video',entry.target));},{root:feed,rootMargin:'50% 0px',threshold:0});
+    $$('.clip-card',feed).forEach(card=>this.preloadObserver.observe(card));
     this.observer=new IntersectionObserver(entries=>entries.forEach(e=>{
       const v=$('video',e.target);if(!v)return;
       if(e.isIntersecting&&e.intersectionRatio>.65){
         $$('video',feed).forEach(other=>{if(other!==v)other.pause();});
         this.current=v;
-        if(!this.userPaused.has(v))this.play(v);
+        if(this.autoplay&&!this.userPaused.has(v))this.play(v);
       }else{
         v.pause();
         if(!e.isIntersecting)this.userPaused.delete(v);
       }
     }),{root:feed,threshold:[0,.65]});$$('.clip-card',feed).forEach(card=>this.observer.observe(card));
   }
+  ensureVideo(video){if(video&&!video.getAttribute('src')&&safeURL(video.dataset.videoSrc)){video.src=safeURL(video.dataset.videoSrc);video.load();}}
   async play(v){
-    v.playbackRate=this.playbackSpeed;
+    if(document.hidden||!this.host)return;
+    this.ensureVideo(v);v.playbackRate=this.playbackSpeed;
     v.muted=!this.sound;try{await v.play();$('.clip-enable-sound',v.parentElement).hidden=true;}
     catch(e){if(e.name==='NotAllowedError'){v.muted=true;v.play().catch(()=>{});$('.clip-enable-sound',v.parentElement).hidden=!this.sound;}else if(e.name!=='AbortError'){this.ui.toast('Браузер не воспроизводит это видео. Попробуй MP4 (H.264).');}}
     this.updatePlaybackUI(v);
   }
   async action(button){
-    const card=button.closest('[data-clip-id]'),r=this.rows.find(x=>x.id===card?.dataset.clipId),action=button.dataset.clipAction;if(!r)return;
+    const card=button.closest('[data-clip-id]'),r=this.rows.find(x=>sid(x.id)===card?.dataset.clipId),action=button.dataset.clipAction;if(!r)return;
     if(this.locks.has(action+r.id))return;this.locks.add(action+r.id);button.disabled=true;
     try{
-      if(action==='gift'){if(!this.ui.onGift)throw new Error('Отправка подарка временно недоступна');await this.ui.onGift(r.user_id);}
+      if(action==='caption'){const text=card.querySelector('.clip-caption');text.classList.toggle('expanded');button.textContent=text.classList.contains('expanded')?'Свернуть':'Ещё';}
+      else if(action==='gift'){if(!this.ui.onGift)throw new Error('Отправка подарка временно недоступна');await this.ui.onGift(r.user_id);}
       else if(action==='follow'){
         await this.api.followUser(r.user_id,r.following);
         r.following=!r.following;
@@ -134,7 +157,7 @@ export class Clips {
       else if(action==='speed'){
         const rates=[1,1.25,1.5,2];
         const current=rates.findIndex(rate=>Math.abs(rate-this.playbackSpeed)<.01);
-        this.playbackSpeed=rates[(current+1)%rates.length];
+        await this.savePreferences({speed:rates[(current+1)%rates.length]});
         $$('video',this.host).forEach(v=>{v.playbackRate=this.playbackSpeed;});
         $$('[data-clip-action="speed"]',this.host).forEach(b=>{
           const label=String(this.playbackSpeed).replace('.',',')+'×';
@@ -143,7 +166,7 @@ export class Clips {
         });
       }
       else if(action==='sound'||action==='enable-sound'){
-        this.sound=action==='enable-sound'?true:!this.sound;
+        await this.savePreferences({sound:action==='enable-sound'?true:!this.sound});
         this.current=$('video',card);this.current.muted=!this.sound;
         if(!this.current.paused){
           try{await this.current.play();}catch(err){if(err.name!=='NotAllowedError'&&err.name!=='AbortError')throw err;}
@@ -153,7 +176,7 @@ export class Clips {
       }else if(action==='like'||action==='save'){
         const field=action==='like'?'liked':'saved',table=action==='like'?'clip_likes':'clip_saves';
         must(await (r[field]?this.sb.from(table).delete().eq('clip_id',r.id).eq('user_id',this.api.uid):this.sb.from(table).insert({clip_id:r.id,user_id:this.api.uid})));r[field]=!r[field];
-        button.classList.toggle('selected',r[field]);button.setAttribute('aria-pressed',String(r[field]));if(action==='like'){r.likes+=r.liked?1:-1;$('span',button).textContent=r.likes;}
+        button.classList.toggle('selected',r[field]);button.setAttribute('aria-pressed',String(r[field]));if(action==='like'){r.likes=Math.max(0,r.likes+(r.liked?1:-1));$('span',button).textContent=r.likes;}
       }else if(action==='comments'){await this.comments(r);}
       else if(action==='share'){
         const url=new URL('index.html',location.href);url.searchParams.set('view','clips');url.searchParams.set('clip',r.id);
