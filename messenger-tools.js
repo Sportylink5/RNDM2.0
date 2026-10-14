@@ -1,4 +1,4 @@
-import {esc, sid, safeURL} from './core.js?v=64.0.0';
+import {esc, sid, safeURL} from './core.js?v=67.0.0';
 
 // One lane per open conversation. Realtime, polling and pagination cannot race.
 export class RequestLane {
@@ -39,7 +39,7 @@ export function exportText(rows,people={},title='RNDM Chat'){
   }).join('\n\n');
 }
 export function exportJSON(rows,title='RNDM Chat'){
-  return JSON.stringify({app:'RNDM Chat',version:'64.0.0',title,exported_at:new Date().toISOString(),
+  return JSON.stringify({app:'RNDM Chat',version:'67.0.0',title,exported_at:new Date().toISOString(),
     messages:sortMessages(rows).map(m=>({id:sid(m.id),sender_id:m.sender_id||m.author_id||null,body:m.deleted_at?'':m.body||'',created_at:m.created_at,
       edited_at:m.edited_at||null,deleted_at:m.deleted_at||null,reply_to:m.reply_to||null,
       attachment_url:m.deleted_at?null:safeURL(m.attachment_url)||null,attachment_name:m.deleted_at?null:m.attachment_name||null}))},null,2);

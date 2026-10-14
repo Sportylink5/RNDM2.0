@@ -1,5 +1,5 @@
-import {clipPreferences} from './organizer.js?v=64.0.0';
-import {$,$$,esc,icon,avatar,safeURL,errorText,sid} from './core.js?v=64.0.0';
+import {clipPreferences} from './organizer.js?v=67.0.0';
+import {$,$$,esc,icon,avatar,safeURL,errorText,sid} from './core.js?v=67.0.0';
 const must=r=>{if(r.error)throw r.error;return r.data;};
 export class Clips {
   constructor(api,ui){this.api=api;this.sb=api.sb;this.ui=ui;this.epoch=0;this.sound=true;this.rows=[];this.locks=new Set();this.feedMode='recommended';this.tag='';this.following=new Set();this.playbackSpeed=1;this.userPaused=new WeakSet();this.controlCleanups=new Set();this.tagTimer=null;this.holdSuppressUntil=0;const prefs=clipPreferences(ui.preferences);this.autoplay=prefs.autoplay;this.dataSaver=prefs.dataSaver;this.sound=prefs.sound;this.playbackSpeed=prefs.speed;}

@@ -1,4 +1,4 @@
-import {$,$$,esc,icon,avatar,safeURL,errorText} from './core.js?v=64.0.0';
+import {$,$$,esc,icon,avatar,safeURL,errorText} from './core.js?v=67.0.0';
 const must=r=>{if(r.error)throw r.error;return r.data;};
 export const staffRole=role=>['owner','admin','moderator'].includes(role);
 const rank={user:0,premium:10,verified:20,moderator:30,admin:40,owner:50};
@@ -23,7 +23,7 @@ export class Admin {
       // Every write is still authorized by its server RPC.
       this.writeReady=window.RNDM_CONFIG.adminWriteEnabled===true;
       this.offset=0;this.search='';this.kind='clips';this.reportFilter='open';this.tab='users';
-      host.innerHTML=`<header class="chat-header"><button class="icon-button back-mobile" data-action="back" aria-label="К чатам">${icon('back')}</button><h2>Админка</h2><span class="admin-role">${esc(roleNames[this.role])}</span><div class="header-tools"><button class="secondary" data-admin-action="refresh">Обновить</button></div></header><section class="admin-pane"><div class="admin-kpis" id="adminStats"></div><nav class="admin-tabs" aria-label="Разделы админки">${Object.entries({users:'Пользователи',security:'Подозрительная активность',reports:'Жалобы',content:'Публикации',audit:'Журнал'}).map(([key,label])=>`<button data-admin-tab="${key}" class="${key==='users'?'active':''}">${label}</button>`).join('')}</nav>${!this.writeReady?'<div class="notice admin-readiness">Блокировки, назначение ролей и удаление пока выключены. Можно просматривать пользователей и журнал, обрабатывать жалобы и редактировать публикации.</div>':''}<div id="adminPanel"></div></section>`;
+      host.innerHTML=`<header class="chat-header"><button class="icon-button back-mobile" data-action="back" aria-label="К чатам">${icon('back')}</button><h2>Админка</h2><span class="admin-role">${esc(roleNames[this.role])}</span><div class="header-tools"><button class="secondary" data-admin-action="refresh">Обновить</button></div></header><section class="admin-pane"><div class="admin-kpis" id="adminStats"></div><nav class="admin-tabs" aria-label="Разделы админки">${Object.entries({users:'Пользователи',security:'Подозрительная активность',reports:'Жалобы',content:'Публикации',audit:'Журнал',...(this.role==='owner'?{together:'🎮 Доступ к играм'}:{})}).map(([key,label])=>`<button data-admin-tab="${key}" class="${key==='users'?'active':''}">${label}</button>`).join('')}</nav>${!this.writeReady?'<div class="notice admin-readiness">Блокировки, назначение ролей и удаление пока выключены. Можно просматривать пользователей и журнал, обрабатывать жалобы и редактировать публикации.</div>':''}<div id="adminPanel"></div></section>`;
       host.onclick=event=>{const b=event.target.closest('button');if(!b)return;if(b.dataset.adminTab)this.switchTab(b.dataset.adminTab);else if(b.dataset.adminAction)this.action(b).catch(e=>this.ui.toast(message(e)));};
       this.stats(token).catch(()=>{});await this.switchTab('users');
     }catch(e){if(this.current(token))host.innerHTML=`<div class="empty-messages">${icon('shield')}<h3>Нет доступа</h3><p class="muted">${esc(message(e))}</p><button class="secondary" data-action="back">Вернуться к чатам</button></div>`;}
@@ -34,9 +34,9 @@ export class Admin {
     if(this.current(token)&&$('#adminStats',this.host))$('#adminStats',this.host).innerHTML=items.map(([,label],i)=>`<article><b>${results[i].status==='fulfilled'?results[i].value.toLocaleString('ru-RU'):'—'}</b><span>${label}</span></article>`).join('');
   }
   async switchTab(tab){
-    if(!this.host||!['users','security','reports','content','audit'].includes(tab))return;this.tab=tab;this.offset=0;this.search='';++this.requests;
+    if(!this.host||!['users','security','reports','content','audit',...(this.role==='owner'?['together']:[])].includes(tab))return;this.tab=tab;this.offset=0;this.search='';++this.requests;
     $$('[data-admin-tab]',this.host).forEach(b=>b.classList.toggle('active',b.dataset.adminTab===tab));
-    const panel=$('#adminPanel',this.host);this.pauseMedia();panel.innerHTML=`<form class="admin-toolbar" id="adminFilter">${tab==='content'?`<label class="field">Раздел<select id="adminKind">${Object.entries(kinds).map(([key,label])=>`<option value="${key}">${label}</option>`).join('')}</select></label>`:''}${tab==='reports'?'<label class="field">Статус<select id="adminReportFilter"><option value="open">Новые</option><option value="reviewing">В работе</option><option value="resolved">Решённые</option><option value="rejected">Отклонённые</option><option value="all">Все</option></select></label>':''}${tab==='users'||tab==='content'?'<label class="field admin-search">Поиск<input id="adminSearch" maxlength="80" placeholder="'+(tab==='users'?'Имя или @username':'Текст публикации или ID клипа')+'"></label><button class="primary" type="submit">Найти</button>':''}</form><div id="adminList"></div><div class="admin-pagination" id="adminPagination"></div>`;
+    const panel=$('#adminPanel',this.host);this.pauseMedia();panel.innerHTML=`<form class="admin-toolbar" id="adminFilter">${tab==='content'?`<label class="field">Раздел<select id="adminKind">${Object.entries(kinds).map(([key,label])=>`<option value="${key}">${label}</option>`).join('')}</select></label>`:''}${tab==='reports'?'<label class="field">Статус<select id="adminReportFilter"><option value="open">Новые</option><option value="reviewing">В работе</option><option value="resolved">Решённые</option><option value="rejected">Отклонённые</option><option value="all">Все</option></select></label>':''}${tab==='users'||tab==='content'||tab==='together'?'<label class="field admin-search">Поиск<input id="adminSearch" maxlength="80" placeholder="'+(tab==='users'||tab==='together'?'Имя или @username':'Текст публикации или ID клипа')+'"></label><button class="primary" type="submit">Найти</button>':''}</form>${tab==='together'?'<p class="muted" style="margin:12px 0">Выдавай тестовый доступ к 15 мини-играм без изменения роли пользователя. Только Owner может управлять этим списком. Пользователю достаточно обновить страницу, чтобы увидеть кнопку 🎮.</p>':''}<div id="adminList"></div><div class="admin-pagination" id="adminPagination"></div>`;
     if($('#adminKind',panel)){$('#adminKind',panel).value=this.kind;$('#adminKind',panel).onchange=()=>{this.kind=$('#adminKind',panel).value;this.offset=0;this.load().catch(()=>{});};}
     if($('#adminReportFilter',panel)){$('#adminReportFilter',panel).value=this.reportFilter;$('#adminReportFilter',panel).onchange=()=>{this.reportFilter=$('#adminReportFilter',panel).value;this.offset=0;this.load().catch(()=>{});};}
     $('#adminFilter',panel).onsubmit=e=>{e.preventDefault();this.search=cleanSearch($('#adminSearch',panel)?.value);this.offset=0;this.load().catch(()=>{});};
@@ -47,9 +47,10 @@ export class Admin {
     this.pauseMedia();host.innerHTML='<div class="sidebar-empty"><span class="spinner"></span><p>Загружаем…</p></div>';pagination.innerHTML='';
     try{
       let rows,count;
-      if(tab==='users'){
+      if(tab==='users'||tab==='together'){
         const result=must(await this.sb.rpc('rndm_staff_user_list',{p_search:this.search,p_offset:this.offset,p_limit:25}));
         rows=result?.rows||[];count=Number(result?.total||0);
+        if(tab==='together'){const ids=rows.map(r=>r.id);const access=ids.length?must(await this.sb.from('rndm_together_access').select('user_id,created_at').in('user_id',ids)):[];this.togetherGrants=new Map((access||[]).map(a=>[a.user_id,a]));}
       }else if(tab==='security'){
         rows=must(await this.sb.rpc('rndm_staff_security_events',{p_limit:100,p_only_open:true}))||[];
         count=rows.length;
@@ -70,7 +71,7 @@ export class Admin {
         const r=await this.sb.from('admin_audit').select('id,actor_id,target_user_id,action,details,created_at',{count:'exact'}).order('created_at',{ascending:false}).order('id',{ascending:false}).range(this.offset,this.offset+24);rows=must(r)||[];count=r.count;
       }
       if(!this.current(token)||request!==this.requests)return;this.rows=rows;this.total=count??rows.length;
-      host.innerHTML=rows.map(r=>tab==='users'?this.userCard(r):tab==='security'?this.securityCard(r):tab==='reports'?this.reportCard(r):tab==='content'?this.contentCard(r):this.auditCard(r)).join('')||'<div class="sidebar-empty"><p>Записей не найдено.</p></div>';
+      host.innerHTML=rows.map(r=>tab==='users'?this.userCard(r):tab==='together'?this.togetherCard(r):tab==='security'?this.securityCard(r):tab==='reports'?this.reportCard(r):tab==='content'?this.contentCard(r):this.auditCard(r)).join('')||'<div class="sidebar-empty"><p>Записей не найдено.</p></div>';
       if(tab!=='content'&&tab!=='security')pagination.innerHTML=`<button class="secondary" data-admin-action="prev" ${this.offset===0?'disabled':''}>Назад</button><span>${this.total?this.offset+1:0}–${this.offset+rows.length} из ${this.total}</span><button class="secondary" data-admin-action="next" ${this.offset+rows.length>=this.total?'disabled':''}>Далее</button>`;
       else if(tab==='content'&&rows.length===100)pagination.innerHTML='<p class="muted">Показаны последние 100 записей. Уточни поиск, чтобы найти нужную.</p>';
     }catch(e){if(this.current(token)&&request===this.requests)host.innerHTML=`<div class="notice error-notice">${esc(message(e))}</div><button class="secondary" data-admin-action="refresh">Повторить</button>`;}
@@ -80,6 +81,13 @@ export class Admin {
     const canRole=this.writeReady&&['owner','admin'].includes(this.role)&&p.id!==this.api.uid&&(this.role==='owner'||!['owner','admin'].includes(p.app_role));
     const canEdit=['owner','admin'].includes(this.role)&&(this.role==='owner'||!['owner','admin'].includes(p.app_role));
     return `<article class="admin-card admin-user">${avatar(p)}<div class="admin-copy"><h3>${esc(p.display_name||p.username||'Пользователь')}</h3><p>@${esc(p.username)} · ${esc(roleNames[p.app_role]||p.app_role)}</p><small>ID: ${esc(p.id)}<br>Регистрация (с точностью до секунды): ${date(p.created_at)}${p.created_at?`<br>UTC: ${esc(p.created_at)}`:''}</small><div class="admin-user-badges">${p.is_verified?'<span>✓ Verified</span>':''}${p.is_premium?'<span>★ Premium</span>':''}<span>⭐ ${Number(p.stars||0).toLocaleString('ru-RU')}</span><span>XP ${Number(p.xp||0).toLocaleString('ru-RU')}</span></div>${p.bio?`<p class="admin-user-bio">${esc(p.bio)}</p>`:''}${p.is_banned?`<p class="admin-ban">Заблокирован${p.banned_until?' до '+date(p.banned_until):' бессрочно'}<br>${esc(p.ban_reason||'Причина не указана')}</p>`:''}</div><div class="admin-actions"><button class="secondary" data-admin-action="user-edit" data-id="${esc(p.id)}" ${canEdit?'':'disabled'}>Редактировать</button>${this.role==='owner'?`<button class="secondary" data-admin-action="email" data-id="${esc(p.id)}">Почта</button><button class="secondary" data-admin-action="owner-detail" data-id="${esc(p.id)}">Время и входы</button><button class="secondary" data-admin-action="owner-review" data-id="${esc(p.id)}">Проверить сообщения</button>${p.app_role!=='owner'&&p.app_role!=='admin'&&p.id!==this.api.uid?`<button class="secondary danger" data-admin-action="owner-delete" data-id="${esc(p.id)}">Удалить аккаунт</button>`:''}`:''}<button class="secondary" data-admin-action="ban" data-id="${esc(p.id)}" ${canBan?'':'disabled'}>${p.is_banned?'Разблокировать':'Заблокировать'}</button><button class="secondary" data-admin-action="role" data-id="${esc(p.id)}" ${canRole?'':'disabled'}>Роль</button></div></article>`;
+  }
+  togetherCard(p){
+    const owner=p.app_role==='owner';
+    const grant=this.togetherGrants?.get(p.id);
+    const status=owner?'Owner · постоянный доступ':grant?'Доступ выдан '+date(grant.created_at):'Без доступа';
+    const actions=owner?'<span class="muted">🔒 Владелец — всегда разрешено</span>':`<button class="${grant?'secondary danger':'primary'}" data-admin-action="${grant?'together-revoke':'together-grant'}" data-id="${esc(p.id)}">${grant?'Отозвать доступ':'Выдать доступ'}</button>`;
+    return `<article class="admin-card admin-user">${avatar(p)}<div class="admin-copy"><h3>${esc(p.display_name||p.username||'Пользователь')}</h3><p>@${esc(p.username||'')} · ${esc(roleNames[p.app_role]||p.app_role)}</p><small>${esc(status)}</small></div><div class="admin-actions">${actions}</div></article>`;
   }
   securityCard(r){const user=r.subject_id?`<small>Аккаунт: ${esc(r.display_name||r.username||r.subject_id)} · ${esc(r.subject_id)}</small>`:'<small>Событие регистрации / сети</small>';
     return `<article class="admin-card"><h3>⚠️ ${esc(r.event_type)} <span class="admin-severity">Риск ${Number(r.severity)||1}/5</span></h3>${user}<p>${esc(r.detail||'Подозрительное действие')}</p><small>Зафиксировано: ${date(r.created_at)} · ${esc(r.source_key||'—').slice(0,40)}</small><div class="admin-actions">${r.subject_id?`<button class="secondary" data-admin-action="security-profile" data-id="${esc(r.id)}">Профиль</button>`:''}<button class="secondary" data-admin-action="security-resolve" data-id="${esc(r.id)}">Разобрано</button></div></article>`;
@@ -106,6 +114,17 @@ export class Admin {
       const note=window.prompt('Причина закрытия сигнала (минимум 5 символов):','Проверено вручную');
       if(note===null)return;
       await this.mutate('sec:'+id,button,()=>this.sb.rpc('rndm_staff_resolve_security_event',{p_event_id:Number(id),p_resolution:String(note)}).then(must));return;
+    }
+    if(action==='together-grant'||action==='together-revoke'){
+      if(this.role!=='owner'||this.tab!=='together')throw new Error('Доступом может управлять только Owner.');
+      if(row.app_role==='owner')throw new Error('Owner всегда имеет доступ.');
+      const granted=action==='together-grant';
+      const execute=()=>this.mutate('together:'+id,button,async()=>{
+        const result=granted?await this.sb.from('rndm_together_access').insert({user_id:id,granted_by:this.api.uid}):await this.sb.from('rndm_together_access').delete().eq('user_id',id);
+        must(result);
+      });
+      if(granted)await execute();else this.ui.confirm('Отозвать доступ к играм?',`@${row.username} больше не сможет создавать игровые комнаты и подключаться к ним.`,execute,'Отозвать доступ');
+      return;
     }
     if(action==='owner-detail'){await this.showAccountDetail(row);return;}
     if(action==='owner-review'){this.openMessageReview(row);return;}

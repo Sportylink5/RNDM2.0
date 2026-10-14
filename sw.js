@@ -1,15 +1,15 @@
-const VERSION='64.0.0';
+const VERSION='67.0.0';
 const CACHE_PREFIX='rndm-'+encodeURIComponent(new URL(self.registration.scope).pathname)+'-';
-const CACHE=CACHE_PREFIX+'v64-organizer';
+const CACHE=CACHE_PREFIX+'v67-together-invites';
 const SHELL=[
-  './index.html','./redirect.js?v=64.0.0','./bootstrap.js?v=64.0.0','./file-warning.js?v=64.0.0','./pwa-register.js?v=64.0.0','./style.css?v=64.0.0','./liquid-glass.css?v=64.0.0','./config.js?v=64.0.0',
-  './organizer.js?v=64.0.0','./qrcode-1.4.4.js?v=64.0.0',
-  './app.js?v=64.0.0','./core.js?v=64.0.0','./api.js?v=64.0.0',
-  './views.js?v=64.0.0','./admin.js?v=64.0.0','./donate.js?v=64.0.0','./donate.css?v=64.0.0',
-  './messenger-tools.js?v=64.0.0','./messenger.css?v=64.0.0','./polish.css?v=64.0.0','./gift-art.js?v=64.0.0','./inter.woff2',
+  './index.html','./redirect.js?v=67.0.0','./bootstrap.js?v=67.0.0','./file-warning.js?v=67.0.0','./pwa-register.js?v=67.0.0','./style.css?v=67.0.0','./liquid-glass.css?v=67.0.0','./config.js?v=67.0.0',
+  './organizer.js?v=67.0.0','./qrcode-1.4.4.js?v=67.0.0',
+  './app.js?v=67.0.0','./core.js?v=67.0.0','./api.js?v=67.0.0','./together.js?v=67.0.0','./together-games.js?v=67.0.0','./together.css?v=67.0.0',
+  './views.js?v=67.0.0','./admin.js?v=67.0.0','./donate.js?v=67.0.0','./donate.css?v=67.0.0',
+  './messenger-tools.js?v=67.0.0','./messenger.css?v=67.0.0','./polish.css?v=67.0.0','./gift-art.js?v=67.0.0','./inter.woff2',
   './privacy.html','./reset-password.html',
-  './calls.js?v=64.0.0','./clips.js?v=64.0.0',
-  './theme.js?v=64.0.0','./supabase-2.117.2.js?v=64.0.0',
+  './calls.js?v=67.0.0','./clips.js?v=67.0.0',
+  './theme.js?v=67.0.0','./supabase-2.117.2.js?v=67.0.0',
   './manifest.webmanifest','./icon-192.png','./icon-512.png',
   './star-gold.webp','./gift-gold.webp',
   './gift-balloon.webp',

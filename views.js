@@ -1,9 +1,9 @@
-import {bodyLinks} from './organizer.js?v=64.0.0';
-import {giftArt} from './gift-art.js?v=64.0.0';
-import {esc,icon,ib,avatar,time,day,preview,richText,safeURL,sid} from './core.js?v=64.0.0';
-import {inboxStats, trustedMedia} from './messenger-tools.js?v=64.0.0';
-import {staffRole} from './admin.js?v=64.0.0';
-import {defaultColors,validColors} from './theme.js?v=64.0.0';
+import {bodyLinks} from './organizer.js?v=67.0.0';
+import {giftArt} from './gift-art.js?v=67.0.0';
+import {esc,icon,ib,avatar,time,day,preview,richText,safeURL,sid} from './core.js?v=67.0.0';
+import {inboxStats, trustedMedia} from './messenger-tools.js?v=67.0.0';
+import {staffRole} from './admin.js?v=67.0.0';
+import {defaultColors,validColors} from './theme.js?v=67.0.0';
 
 export function shell(app) {
   const nav=[['chats','Чаты'],['random','Рулетка'],['clips','Клипы'],['contacts','Люди']];
@@ -73,7 +73,7 @@ export function conversation(app) {
     status=active.kind==='group' ? app.info.members.length+' участников' : person.hide_last_seen ? 'Последний визит скрыт' : online ? 'в сети' : person.last_seen ? 'был(а) '+day(person.last_seen).toLowerCase()+' в '+time(person.last_seen) : 'Личный чат';
   }
   const canSend=active.kind!=='channel' || active.owner_id===app.user.id || active.tools?.can_publish===true;
-  return `<header class="chat-header">${ib('back','К списку чатов','back','back-mobile')}${active.kind==='direct'?`<button type="button" class="chat-header-avatar" data-person="${esc(person.id)}" aria-label="Открыть профиль">${avatar(person)}</button>`:avatar(person,'',active.kind==='saved'?'saved':active.kind==='channel'?'channels':active.kind==='group'?'contacts':'')}<button type="button" class="header-title" ${active.kind==='direct'?`data-person="${esc(person.id)}" title="Открыть профиль"`:'data-action="info"'}><h2>${esc(title)}</h2><p id="presenceText" class="${status==='в сети'?'online':''}">${esc(status)}</p></button><div class="header-tools">${active.kind==='direct'?ib('phone','Аудиозвонок','call-audio')+ib('video','Видеозвонок','call-video'):''}${ib('search','Поиск по переписке','chat-search')}${ib('more','Действия с чатом','chat-menu')}</div></header>
+  return `<header class="chat-header">${ib('back','К списку чатов','back','back-mobile')}${active.kind==='direct'?`<button type="button" class="chat-header-avatar" data-person="${esc(person.id)}" aria-label="Открыть профиль">${avatar(person)}</button>`:avatar(person,'',active.kind==='saved'?'saved':active.kind==='channel'?'channels':active.kind==='group'?'contacts':'')}<button type="button" class="header-title" ${active.kind==='direct'?`data-person="${esc(person.id)}" title="Открыть профиль"`:'data-action="info"'}><h2>${esc(title)}</h2><p id="presenceText" class="${status==='в сети'?'online':''}">${esc(status)}</p></button><div class="header-tools">${app.togetherAccess===true&&['direct','group'].includes(active.kind)?'<button type="button" class="icon-button tg-header-button" data-action="together-open" title="RNDM Together · закрытый тест" aria-label="Открыть RNDM Together">🎮</button>':''}${active.kind==='direct'?ib('phone','Аудиозвонок','call-audio')+ib('video','Видеозвонок','call-video'):''}${ib('search','Поиск по переписке','chat-search')}${ib('more','Действия с чатом','chat-menu')}</div></header>
     <div id="pinnedBanner" class="pinned-banner" hidden></div><div id="selectionBar" class="selection-bar" hidden></div>
     <div class="chat-search" id="chatSearch" hidden><input type="search" id="messageSearch" placeholder="Поиск по всей переписке" aria-label="Поиск сообщений">${ib('close','Закрыть поиск','close-chat-search')}</div><div class="search-results" id="messageSearchResults" hidden></div>
     <div class="messages" id="messages" role="log" aria-label="Сообщения" aria-relevant="additions text"></div>${ib('down','К новым сообщениям','bottom','jump-bottom')}

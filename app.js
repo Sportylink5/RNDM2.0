@@ -1,17 +1,18 @@
-import {$,$$,esc,icon,ib,avatar,sid,unique,preview,safeURL,richText,day,time,bytes,errorText,readLocal,writeLocal} from './core.js?v=64.0.0';
-import {MessengerAPI} from './api.js?v=64.0.0';
-import * as V from './views.js?v=64.0.0';
-import {Admin,staffRole} from './admin.js?v=64.0.0';
-import {Calls} from './calls.js?v=64.0.0';
-import {Clips} from './clips.js?v=64.0.0';
-import {DonateHub} from './donate.js?v=64.0.0';
-import {applyColors,validColors,defaultColors} from './theme.js?v=64.0.0';
-import {RequestLane,inboxStats,sortMessages,trustedMedia,exportText,exportJSON,fileName,highlighted,emojiHTML} from './messenger-tools.js?v=64.0.0';
+import {$,$$,esc,icon,ib,avatar,sid,unique,preview,safeURL,richText,day,time,bytes,errorText,readLocal,writeLocal} from './core.js?v=67.0.0';
+import {MessengerAPI} from './api.js?v=67.0.0';
+import {Together} from './together.js?v=67.0.0';
+import * as V from './views.js?v=67.0.0';
+import {Admin,staffRole} from './admin.js?v=67.0.0';
+import {Calls} from './calls.js?v=67.0.0';
+import {Clips} from './clips.js?v=67.0.0';
+import {DonateHub} from './donate.js?v=67.0.0';
+import {applyColors,validColors,defaultColors} from './theme.js?v=67.0.0';
+import {RequestLane,inboxStats,sortMessages,trustedMedia,exportText,exportJSON,fileName,highlighted,emojiHTML} from './messenger-tools.js?v=67.0.0';
 
-import {normalizeFolders,itemKey,bodyLinks,profileQR} from './organizer.js?v=64.0.0';
+import {normalizeFolders,itemKey,bodyLinks,profileQR} from './organizer.js?v=67.0.0';
 const defaults={folders:[],clipPreferences:{},randomFilters:{language:'any',interest:'any'},notes:[],muted:[],wallpaper:'default',enterSend:true,notifications:false,notificationSound:false,notificationPreview:false,manualUnread:[],glassMode:'balanced',colors:null,fontSize:16,compact:false,reduceMotion:false};
-const app={user:null,profile:null,route:'chats',folder:'all',active:null,info:null,dialogs:[],channels:[],channelResults:[],channelDirectory:[],channelView:'discover',channelOffset:0,channelHasMore:true,channelLoading:false,channelError:'',friends:[],prefs:{},drafts:{},state:{...defaults},messages:[],reactions:[],peopleMap:{},replyLookup:{},pins:[],reply:null,edit:null,files:new Map(),pending:new Set(),epoch:0,messageEpoch:0,more:false,rt:[],globalRt:[],stateChain:Promise.resolve(),draftTimers:new Map(),refreshing:false};
-let calls,clips,admin,donateHub,authSubscription=null,booting=false;
+const app={togetherAccess:false,user:null,profile:null,route:'chats',folder:'all',active:null,info:null,dialogs:[],channels:[],channelResults:[],channelDirectory:[],channelView:'discover',channelOffset:0,channelHasMore:true,channelLoading:false,channelError:'',friends:[],prefs:{},drafts:{},state:{...defaults},messages:[],reactions:[],peopleMap:{},replyLookup:{},pins:[],reply:null,edit:null,files:new Map(),pending:new Set(),epoch:0,messageEpoch:0,more:false,rt:[],globalRt:[],stateChain:Promise.resolve(),draftTimers:new Map(),refreshing:false};
+let calls,clips,admin,donateHub,together=null,authSubscription=null,booting=false;
 let api,toastTimer,searchTimer,messageSearchTimer,typingTimer,refreshTimer,listTimer,messageSizeObserver,record=null,voiceBusy=false,authMode='login',stopped=false,recoverySeen=false;
 let channelSearchLoading=false,channelSearchError='',channelSearchVersion=0,channelDirectoryRequest=0,tapolkaReturnRoute='channels';
 let previousRoute='chats',previousChatId=null;
@@ -91,8 +92,8 @@ function clearDraft(active,original) {
   if(app.drafts[key]?.body===original || !app.drafts[key]?.body)storeDraft(active,'');
 }
 function cancelEdit(){if(!app.edit)return;const restore=app.edit.restore;app.edit=null;if($('#messageInput'))$('#messageInput').value=restore;renderCompose();}
-function stopSubscriptions(reset=true){if(reset){messageSizeObserver?.disconnect();clearTimeout(messageSearchTimer);resetConversationTools();}app.rt.forEach(ch=>api.unwatch(ch));app.rt=[];clearTimeout(refreshTimer);clearTimeout(typingTimer);}
-function stopAll(){for(const timer of app.draftTimers.values())clearTimeout(timer);app.draftTimers.clear();clearTimeout(sidebarPaintTimer);for(const file of app.files.values())if(file.url)URL.revokeObjectURL(file.url);readRequests.clear();lastRead.clear();badgeValue=-1;document.title="RNDM Chat";try{navigator.clearAppBadge?.()?.catch(()=>{});}catch{}donateHub?.stop();stopRandomSearch(true).catch(()=>{});admin?.stop();calls?.stop().catch(()=>{});clips?.stop();stopped=true;++app.epoch;++app.messageEpoch;stopSubscriptions();app.globalRt.forEach(ch=>api.unwatch(ch));app.globalRt=[];clearInterval(listTimer);cancelVoice();}
+function stopSubscriptions(reset=true){together?.stop();if(reset){messageSizeObserver?.disconnect();clearTimeout(messageSearchTimer);resetConversationTools();}app.rt.forEach(ch=>api.unwatch(ch));app.rt=[];clearTimeout(refreshTimer);clearTimeout(typingTimer);}
+function stopAll(){app.togetherAccess=false;for(const timer of app.draftTimers.values())clearTimeout(timer);app.draftTimers.clear();clearTimeout(sidebarPaintTimer);for(const file of app.files.values())if(file.url)URL.revokeObjectURL(file.url);readRequests.clear();lastRead.clear();badgeValue=-1;document.title="RNDM Chat";try{navigator.clearAppBadge?.()?.catch(()=>{});}catch{}donateHub?.stop();stopRandomSearch(true).catch(()=>{});admin?.stop();calls?.stop().catch(()=>{});clips?.stop();stopped=true;++app.epoch;++app.messageEpoch;stopSubscriptions();app.globalRt.forEach(ch=>api.unwatch(ch));app.globalRt=[];clearInterval(listTimer);cancelVoice();}
 
 
 const RU_PROFANITY=[/бл(?:я|е)(?:д|т)\w*/giu,/ху[йеяё]\w*/giu,/пизд\w*/giu,/еб(?:а|у|ё|е|и)\w*/giu,/ёб\w*/giu,/су(?:ка|чк)\w*/giu,/мудак\w*/giu];
@@ -154,7 +155,7 @@ async function repairFrontendCache(reload=true){
   }
   if(reload){
     const url=new URL(location.href);
-    url.searchParams.set('updated',window.RNDM_CONFIG?.version||'64.0.0');
+    url.searchParams.set('updated',window.RNDM_CONFIG?.version||'67.0.0');
     location.replace(url.href);
   }
 }
@@ -163,6 +164,7 @@ async function boot() {
   if(booting)return;booting=true;
   try {
     api ||= new MessengerAPI();
+    together ||= new Together(api,{toast,canAccess:()=>app.togetherAccess===true});
     authSubscription?.unsubscribe();
     const authWatcher=api.sb.auth.onAuthStateChange((event,session)=>{
       // The SDK holds the auth lock during callbacks; no API calls here.
@@ -178,7 +180,7 @@ async function boot() {
     const message=String(error?.message||'');
     const outdated=/\bis not a function\b|\b(?:undefined|null)\b.*\b(?:property|properties)\b/i.test(message);
     if(outdated){
-      const flag='rndm-repair-once-'+(window.RNDM_CONFIG?.version||'64.0.0');
+      const flag='rndm-repair-once-'+(window.RNDM_CONFIG?.version||'67.0.0');
       try{
         if(sessionStorage.getItem(flag)!=='1'){
           sessionStorage.setItem(flag,'1');
@@ -221,7 +223,7 @@ function auth(mode,email='') {
 async function start(user) {
   stopped=false;++app.epoch;++app.messageEpoch;app.user=user;api.uid=user.id;const profile=await api.profile();
   if(app.user?.id!==user.id||stopped)return;
-  app.profile=profile;app.peopleMap={[user.id]:profile};app.pending=new Set();app.prefs={};app.dialogs=[];app.channels=[];app.friends=[];app.channelDirectory=[];app.channelResults=[];notified.clear();readRequests.clear();lastRead.clear();badgeValue=-1;
+  app.profile=profile;app.togetherAccess=profile.app_role==='owner';app.peopleMap={[user.id]:profile};app.pending=new Set();app.prefs={};app.dialogs=[];app.channels=[];app.friends=[];app.channelDirectory=[];app.channelResults=[];notified.clear();readRequests.clear();lastRead.clear();badgeValue=-1;
   app.state={...defaults,...readLocal(localStateKey(),{}).value};app.drafts=readLocal(localDraftKey(),{});app.files=new Map();app.active=null;app.info=null;app.route='chats';app.folder='all';
   applyColors(app.state.colors);app.stories=[];app.storiesError='';
   root.innerHTML=V.shell(app);$('#pane').innerHTML=V.welcome(app);wireShell();
@@ -239,7 +241,7 @@ async function start(user) {
   clips=new Clips(api,{preferences:app.state.clipPreferences,onPreferences:async value=>changeState(s=>({...s,clipPreferences:value})),toast,modal:showModal,confirm:confirmAction,onProfile:showPerson,onGift:openGiftShop});
   donateHub=new DonateHub(api,{toast,onWallet:()=>navigate('stars'),profile:()=>app.profile});
   api.heartbeat().catch(()=>{});clearInterval(listTimer);let tick=0;
-  listTimer=setInterval(()=>{if(stopped || document.hidden || !navigator.onLine)return;tick++;if(tick%2===0)refreshStories().catch(()=>{});if(app.active)refreshMessages().catch(()=>{});if(tick%2===0)refreshLists().catch(()=>{});if(tick%20===0)api.heartbeat().catch(()=>{});if(tick%2===0)refreshNotificationBadge().catch(()=>{});if(['direct','group'].includes(app.active?.kind))updateTypers();},15000);
+  listTimer=setInterval(()=>{if(stopped || document.hidden || !navigator.onLine)return;tick++;if(tick%2===0)refreshStories().catch(()=>{});if(app.active)refreshMessages().catch(()=>{});if(tick%2===0)refreshLists().catch(()=>{});if(tick%20===0)api.heartbeat().catch(()=>{});if(tick%2===0)refreshNotificationBadge().catch(()=>{});if(['direct','group'].includes(app.active?.kind)){updateTypers();if(tick%2===0&&app.profile?.app_role!=='owner')refreshTogetherAccess().catch(()=>{});}},15000);
   app.globalRt.forEach(ch=>api.unwatch(ch));app.globalRt=[];
   app.globalRt.push(api.watch('messages',null,payload=>{receiveInboxEvent(payload);notifyMessage(payload);clearTimeout(listRefreshDebounce);listRefreshDebounce=setTimeout(()=>refreshLists().catch(()=>{}),350);},status=>{if(status==='SUBSCRIBED')connection();else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')connection('Обновляем каждые 15 секунд',true);}));
   app.globalRt.push(api.watch('conversation_members','user_id=eq.'+user.id,()=>refreshLists().catch(()=>{})));
@@ -464,6 +466,27 @@ async function navigate(route,push=true) {
     renderSidebar();applyLanguage();
   }catch(error){if(epoch===app.epoch)renderSidebarError(error);}
 }
+async function refreshTogetherAccess(){
+  if(!app.user)return false;
+  if(app.profile?.app_role==='owner'){app.togetherAccess=true;return true;}
+  const uid=app.user.id;
+  let allowed=false;
+  try{const result=await api.sb.rpc('rndm_together_can_access');if(result.error)throw result.error;allowed=result.data===true;}
+  catch(error){console.warn('Together access check:',error.message);}
+  if(app.user?.id!==uid)return false;
+  const before=app.togetherAccess;
+  app.togetherAccess=allowed;
+  if(!allowed&&before){together?.stop();document.querySelector('.tg-header-button')?.remove();}
+  if(allowed&&!before&&['direct','group'].includes(app.active?.kind)&&document.querySelector('#pane .header-tools')){
+    const box=document.querySelector('#pane .header-tools');
+    if(!box.querySelector('.tg-header-button')){
+      const button=document.createElement('button');button.type='button';button.className='icon-button tg-header-button';button.dataset.action='together-open';button.title='RNDM Together · закрытый тест';button.setAttribute('aria-label','Открыть RNDM Together');button.textContent='🎮';box.prepend(button);
+    }
+    together?.bind(app.active.id).catch(error=>console.warn('Together:',error.message));
+  }
+  return allowed;
+}
+
 async function openConversation(id,push=true) {
   stopPaneMedia();
   id=sid(id);if(!id)return;
@@ -474,8 +497,9 @@ async function openConversation(id,push=true) {
   if(push){const url=new URL(location.href);url.search='';url.searchParams.set('chat',id);history.pushState({},'',url);}
   try{
     const info=await api.info(id);if(!isCurrent(epoch,id))return;
+    await refreshTogetherAccess();if(!isCurrent(epoch,id))return;
     app.info=info;app.active={...app.dialogs.find(x=>x.id===id),id,kind:info.conv.kind || 'direct'};info.profiles.forEach(p=>app.peopleMap[p.id]=p);
-    $('#pane').innerHTML=V.conversation(app);wireConversation();
+    $('#pane').innerHTML=V.conversation(app);wireConversation();together?.bind(id).catch(error=>console.warn('Together:',error.message));
     await refreshMessages(true);if(!isCurrent(epoch,id))return;
     subscribeActive();await markRead().catch(()=>connection('Не удалось отметить прочтение',true));renderSidebar();applyLanguage();
   }catch(error){if(isCurrent(epoch,id))$('#pane').innerHTML=`<div class="empty-messages">${icon('chats')}<h3>Чат пока недоступен</h3><p class="muted">${esc(errorText(error))}</p><button class="secondary" data-retry-chat="${esc(id)}">Повторить</button><button class="text-button" data-action="back">К списку чатов</button></div>`;}
@@ -1172,6 +1196,7 @@ async function searchGiftRecipients(text){
 }
 
 async function handleAction(action,button) {
+  if(action==='together-open'){await refreshTogetherAccess();if(!app.togetherAccess){toast('RNDM Together доступен только Owner и приглашённым тестировщикам.');together?.stop();return;}await together?.open();return;}
   if(await handleMessengerAction(action,button))return;
   if(action==='notifications-filter'){notificationFilter=button.dataset.filter||'all';if(app.route==='notifications')$('#pane').innerHTML=V.notificationsPage(app,notificationList,notificationFilter);applyLanguage();return;}
   if(action==='notifications-refresh'){await guarded('notifications-refresh',openNotifications,button);return;}
