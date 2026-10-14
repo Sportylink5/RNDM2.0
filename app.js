@@ -155,11 +155,18 @@ async function repairFrontendCache(reload=true){
   }
   if(reload){
     const url=new URL(location.href);
-    url.searchParams.set('updated',window.RNDM_CONFIG?.version||'67.1.0');
+    url.searchParams.set('updated',window.RNDM_CONFIG?.version||'67.2.0');
     location.replace(url.href);
   }
 }
 
+function startupDeadline(request,label,ms=14000){
+  let timer;
+  return Promise.race([
+    Promise.resolve(request),
+    new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error(label+' не отвечает. Проверь соединение или повтори вход.')),ms);})
+  ]).finally(()=>clearTimeout(timer));
+}
 async function boot() {
   if(booting)return;booting=true;
   try {
@@ -172,7 +179,7 @@ async function boot() {
       if(event==='SIGNED_OUT'&&app.user)setTimeout(()=>{stopAll();app.user=null;applyColors(null);auth('login');},0);
     });
     authSubscription=authWatcher?.data?.subscription||null;
-    const session=await api.session();
+    const session=await startupDeadline(api.session(),'Авторизация Supabase',14000);
     const recovery=recoverySeen || new URL(location.href).searchParams.get('recovery')==='1' || sessionStorage.getItem('rndm30-recovery')==='1';
     if(session && recovery){app.user=session.user;auth('recovery');return;}
     if(session)await start(session.user);else auth('login');
@@ -180,7 +187,7 @@ async function boot() {
     const message=String(error?.message||'');
     const outdated=/\bis not a function\b|\b(?:undefined|null)\b.*\b(?:property|properties)\b/i.test(message);
     if(outdated){
-      const flag='rndm-repair-once-'+(window.RNDM_CONFIG?.version||'67.1.0');
+      const flag='rndm-repair-once-'+(window.RNDM_CONFIG?.version||'67.2.0');
       try{
         if(sessionStorage.getItem(flag)!=='1'){
           sessionStorage.setItem(flag,'1');
@@ -221,13 +228,13 @@ function auth(mode,email='') {
   };
 }
 async function start(user) {
-  stopped=false;++app.epoch;++app.messageEpoch;app.user=user;api.uid=user.id;const profile=await api.profile();
+  stopped=false;++app.epoch;++app.messageEpoch;app.user=user;api.uid=user.id;const profile=await startupDeadline(api.profile(),'Загрузка профиля',14000);
   if(app.user?.id!==user.id||stopped)return;
   app.profile=profile;app.togetherAccess=profile.app_role==='owner';app.peopleMap={[user.id]:profile};app.pending=new Set();app.prefs={};app.dialogs=[];app.channels=[];app.friends=[];app.channelDirectory=[];app.channelResults=[];notified.clear();readRequests.clear();lastRead.clear();badgeValue=-1;
   app.state={...defaults,...readLocal(localStateKey(),{}).value};app.drafts=readLocal(localDraftKey(),{});app.files=new Map();app.active=null;app.info=null;app.route='chats';app.folder='all';
   applyColors(app.state.colors);app.stories=[];app.storiesError='';
   root.innerHTML=V.shell(app);$('#pane').innerHTML=V.welcome(app);wireShell();
-  const results=await Promise.allSettled([api.preferences(),api.drafts(),api.state(),api.dialogs(),api.channels()]);
+  const results=await Promise.allSettled([api.preferences(),api.drafts(),api.state(),api.dialogs(),api.channels()].map((q,i)=>startupDeadline(q,['Настройки чатов','Черновики','Настройки','Список чатов','Каналы'][i],16000)));
   if(app.user?.id!==user.id||stopped)return;
   if(results[0].status==='fulfilled')app.prefs=Object.fromEntries(results[0].value.map(x=>[sid(x.conversation_id),x]));else connection('Настройки чатов недоступны',true);
   if(results[1].status==='fulfilled')for(const row of results[1].value){const k=chatKey(row.conversation_id);if(!app.drafts[k] || new Date(row.updated_at)>new Date(app.drafts[k].updated_at))app.drafts[k]=row;}
