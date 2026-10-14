@@ -1,15 +1,15 @@
-const VERSION='67.0.0';
+const VERSION='67.1.0';
 const CACHE_PREFIX='rndm-'+encodeURIComponent(new URL(self.registration.scope).pathname)+'-';
-const CACHE=CACHE_PREFIX+'v67-together-invites';
+const CACHE=CACHE_PREFIX+'v67-1-load-recovery';
 const SHELL=[
-  './index.html','./redirect.js?v=67.0.0','./bootstrap.js?v=67.0.0','./file-warning.js?v=67.0.0','./pwa-register.js?v=67.0.0','./style.css?v=67.0.0','./liquid-glass.css?v=67.0.0','./config.js?v=67.0.0',
-  './organizer.js?v=67.0.0','./qrcode-1.4.4.js?v=67.0.0',
-  './app.js?v=67.0.0','./core.js?v=67.0.0','./api.js?v=67.0.0','./together.js?v=67.0.0','./together-games.js?v=67.0.0','./together.css?v=67.0.0',
-  './views.js?v=67.0.0','./admin.js?v=67.0.0','./donate.js?v=67.0.0','./donate.css?v=67.0.0',
-  './messenger-tools.js?v=67.0.0','./messenger.css?v=67.0.0','./polish.css?v=67.0.0','./gift-art.js?v=67.0.0','./inter.woff2',
+  './index.html','./redirect.js?v=67.1.0','./bootstrap.js?v=67.1.0','./file-warning.js?v=67.1.0','./pwa-register.js?v=67.1.0','./style.css?v=67.1.0','./liquid-glass.css?v=67.1.0','./config.js?v=67.1.0',
+  './organizer.js?v=67.1.0','./qrcode-1.4.4.js?v=67.1.0',
+  './app.js?v=67.1.0','./core.js?v=67.1.0','./api.js?v=67.1.0','./together.js?v=67.1.0','./together-games.js?v=67.1.0','./together.css?v=67.1.0',
+  './views.js?v=67.1.0','./admin.js?v=67.1.0','./donate.js?v=67.1.0','./donate.css?v=67.1.0',
+  './messenger-tools.js?v=67.1.0','./messenger.css?v=67.1.0','./polish.css?v=67.1.0','./gift-art.js?v=67.1.0','./inter.woff2',
   './privacy.html','./reset-password.html',
-  './calls.js?v=67.0.0','./clips.js?v=67.0.0',
-  './theme.js?v=67.0.0','./supabase-2.117.2.js?v=67.0.0',
+  './calls.js?v=67.1.0','./clips.js?v=67.1.0',
+  './theme.js?v=67.1.0','./supabase-2.117.2.js?v=67.1.0',
   './manifest.webmanifest','./icon-192.png','./icon-512.png',
   './star-gold.webp','./gift-gold.webp',
   './gift-balloon.webp',
@@ -52,7 +52,14 @@ const SHELL=[
   './gift-violet_comet.webp'
 ];
 self.addEventListener('install',event=>{
-  event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)));
+  // Missing optional assets must never prevent a new service worker from activating.
+  const essential=['./index.html','./startup-watch.js?v=67.1.0','./app.js?v=67.1.0','./together-games.js?v=67.1.0','./together.css?v=67.1.0'];
+  event.waitUntil(caches.open(CACHE).then(async cache=>{
+    await Promise.allSettled(essential.map(async path=>{
+      const response=await fetch(path,{cache:'reload'});
+      if(response.ok)await cache.put(path,response);
+    }));
+  }));
 });
 self.addEventListener('activate',event=>{
   event.waitUntil(caches.keys().then(names=>Promise.all(names.filter(name=>name.startsWith(CACHE_PREFIX)&&name!==CACHE).map(name=>caches.delete(name)))).then(()=>self.clients.claim()));
@@ -80,10 +87,13 @@ self.addEventListener('fetch',event=>{
     return;
   }
   if(isCode){
-    // Versioned modules remain a coherent release when the network is intermittent.
+    // Prefer fresh deployed JS/CSS to avoid mixed-version imports after a partial update.
     event.respondWith(caches.open(CACHE).then(async cache=>{
-      const cached=await cache.match(req);if(cached)return cached;
-      const response=await fetch(req);if(response.ok)event.waitUntil(cache.put(req,response.clone()).catch(()=>{}));return response;
+      try{
+        const response=await fetch(new Request(req,{cache:'no-store'}));
+        if(response.ok)event.waitUntil(cache.put(req,response.clone()).catch(()=>{}));
+        return response;
+      }catch(error){return await cache.match(req)||Response.error();}
     }));return;
   }
   event.respondWith(caches.open(CACHE).then(cache=>cache.match(req)).then(cached=>cached||fetch(req).then(response=>{

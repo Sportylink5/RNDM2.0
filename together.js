@@ -1,4 +1,4 @@
-import {GAMES,getGame,initial,startGame,actionGame,tickGame,MELODIES,GAME_META,escapeHtml as h} from './together-games.js?v=67.0.0';
+import {GAMES,getGame,initial,startGame,actionGame,tickGame,MELODIES,GAME_META,escapeHtml as h} from './together-games.js?v=67.1.0';
 const num=(x,low=0,high=100)=>{const v=Number(x);return Number.isFinite(v)?Math.min(high,Math.max(low,v)):low;};
 const card=(text,cmd,value='',disabled=false)=>`<button type="button" class="tg-control" data-tg-cmd="${h(cmd)}" data-tg-value="${h(value)}" ${disabled?'disabled':''}>${h(text)}</button>`;
 const arrows=()=>`<div class="tg-arrows"><span></span>${card('▲','up')}<span></span>${card('◀','left')}${card('▼','down')}${card('▶','right')}</div>`;

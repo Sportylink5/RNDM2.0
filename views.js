@@ -1,9 +1,9 @@
-import {bodyLinks} from './organizer.js?v=67.0.0';
-import {giftArt} from './gift-art.js?v=67.0.0';
-import {esc,icon,ib,avatar,time,day,preview,richText,safeURL,sid} from './core.js?v=67.0.0';
-import {inboxStats, trustedMedia} from './messenger-tools.js?v=67.0.0';
-import {staffRole} from './admin.js?v=67.0.0';
-import {defaultColors,validColors} from './theme.js?v=67.0.0';
+import {bodyLinks} from './organizer.js?v=67.1.0';
+import {giftArt} from './gift-art.js?v=67.1.0';
+import {esc,icon,ib,avatar,time,day,preview,richText,safeURL,sid} from './core.js?v=67.1.0';
+import {inboxStats, trustedMedia} from './messenger-tools.js?v=67.1.0';
+import {staffRole} from './admin.js?v=67.1.0';
+import {defaultColors,validColors} from './theme.js?v=67.1.0';
 
 export function shell(app) {
   const nav=[['chats','Чаты'],['random','Рулетка'],['clips','Клипы'],['contacts','Люди']];

@@ -1,15 +1,15 @@
-import {$,$$,esc,icon,ib,avatar,sid,unique,preview,safeURL,richText,day,time,bytes,errorText,readLocal,writeLocal} from './core.js?v=67.0.0';
-import {MessengerAPI} from './api.js?v=67.0.0';
-import {Together} from './together.js?v=67.0.0';
-import * as V from './views.js?v=67.0.0';
-import {Admin,staffRole} from './admin.js?v=67.0.0';
-import {Calls} from './calls.js?v=67.0.0';
-import {Clips} from './clips.js?v=67.0.0';
-import {DonateHub} from './donate.js?v=67.0.0';
-import {applyColors,validColors,defaultColors} from './theme.js?v=67.0.0';
-import {RequestLane,inboxStats,sortMessages,trustedMedia,exportText,exportJSON,fileName,highlighted,emojiHTML} from './messenger-tools.js?v=67.0.0';
+import {$,$$,esc,icon,ib,avatar,sid,unique,preview,safeURL,richText,day,time,bytes,errorText,readLocal,writeLocal} from './core.js?v=67.1.0';
+import {MessengerAPI} from './api.js?v=67.1.0';
+import {Together} from './together.js?v=67.1.0';
+import * as V from './views.js?v=67.1.0';
+import {Admin,staffRole} from './admin.js?v=67.1.0';
+import {Calls} from './calls.js?v=67.1.0';
+import {Clips} from './clips.js?v=67.1.0';
+import {DonateHub} from './donate.js?v=67.1.0';
+import {applyColors,validColors,defaultColors} from './theme.js?v=67.1.0';
+import {RequestLane,inboxStats,sortMessages,trustedMedia,exportText,exportJSON,fileName,highlighted,emojiHTML} from './messenger-tools.js?v=67.1.0';
 
-import {normalizeFolders,itemKey,bodyLinks,profileQR} from './organizer.js?v=67.0.0';
+import {normalizeFolders,itemKey,bodyLinks,profileQR} from './organizer.js?v=67.1.0';
 const defaults={folders:[],clipPreferences:{},randomFilters:{language:'any',interest:'any'},notes:[],muted:[],wallpaper:'default',enterSend:true,notifications:false,notificationSound:false,notificationPreview:false,manualUnread:[],glassMode:'balanced',colors:null,fontSize:16,compact:false,reduceMotion:false};
 const app={togetherAccess:false,user:null,profile:null,route:'chats',folder:'all',active:null,info:null,dialogs:[],channels:[],channelResults:[],channelDirectory:[],channelView:'discover',channelOffset:0,channelHasMore:true,channelLoading:false,channelError:'',friends:[],prefs:{},drafts:{},state:{...defaults},messages:[],reactions:[],peopleMap:{},replyLookup:{},pins:[],reply:null,edit:null,files:new Map(),pending:new Set(),epoch:0,messageEpoch:0,more:false,rt:[],globalRt:[],stateChain:Promise.resolve(),draftTimers:new Map(),refreshing:false};
 let calls,clips,admin,donateHub,together=null,authSubscription=null,booting=false;
@@ -155,7 +155,7 @@ async function repairFrontendCache(reload=true){
   }
   if(reload){
     const url=new URL(location.href);
-    url.searchParams.set('updated',window.RNDM_CONFIG?.version||'67.0.0');
+    url.searchParams.set('updated',window.RNDM_CONFIG?.version||'67.1.0');
     location.replace(url.href);
   }
 }
@@ -180,7 +180,7 @@ async function boot() {
     const message=String(error?.message||'');
     const outdated=/\bis not a function\b|\b(?:undefined|null)\b.*\b(?:property|properties)\b/i.test(message);
     if(outdated){
-      const flag='rndm-repair-once-'+(window.RNDM_CONFIG?.version||'67.0.0');
+      const flag='rndm-repair-once-'+(window.RNDM_CONFIG?.version||'67.1.0');
       try{
         if(sessionStorage.getItem(flag)!=='1'){
           sessionStorage.setItem(flag,'1');
@@ -471,7 +471,7 @@ async function refreshTogetherAccess(){
   if(app.profile?.app_role==='owner'){app.togetherAccess=true;return true;}
   const uid=app.user.id;
   let allowed=false;
-  try{const result=await api.sb.rpc('rndm_together_can_access');if(result.error)throw result.error;allowed=result.data===true;}
+  try{const result=await Promise.race([api.sb.rpc('rndm_together_can_access'),new Promise((_,reject)=>setTimeout(()=>reject(new Error('Истекло время проверки доступа к играм')),12000))]);if(result.error)throw result.error;allowed=result.data===true;}
   catch(error){console.warn('Together access check:',error.message);}
   if(app.user?.id!==uid)return false;
   const before=app.togetherAccess;
@@ -497,9 +497,11 @@ async function openConversation(id,push=true) {
   if(push){const url=new URL(location.href);url.search='';url.searchParams.set('chat',id);history.pushState({},'',url);}
   try{
     const info=await api.info(id);if(!isCurrent(epoch,id))return;
-    await refreshTogetherAccess();if(!isCurrent(epoch,id))return;
+    // Chat opening is independent from the optional beta-games permission endpoint.
     app.info=info;app.active={...app.dialogs.find(x=>x.id===id),id,kind:info.conv.kind || 'direct'};info.profiles.forEach(p=>app.peopleMap[p.id]=p);
-    $('#pane').innerHTML=V.conversation(app);wireConversation();together?.bind(id).catch(error=>console.warn('Together:',error.message));
+    $('#pane').innerHTML=V.conversation(app);wireConversation();
+    if(app.togetherAccess)together?.bind(id).catch(error=>console.warn('Together:',error.message));
+    refreshTogetherAccess().catch(error=>console.warn('Together access:',error.message));
     await refreshMessages(true);if(!isCurrent(epoch,id))return;
     subscribeActive();await markRead().catch(()=>connection('Не удалось отметить прочтение',true));renderSidebar();applyLanguage();
   }catch(error){if(isCurrent(epoch,id))$('#pane').innerHTML=`<div class="empty-messages">${icon('chats')}<h3>Чат пока недоступен</h3><p class="muted">${esc(errorText(error))}</p><button class="secondary" data-retry-chat="${esc(id)}">Повторить</button><button class="text-button" data-action="back">К списку чатов</button></div>`;}
