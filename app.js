@@ -1,6 +1,6 @@
 import {$,$$,esc,icon,ib,avatar,sid,unique,preview,safeURL,richText,day,time,bytes,errorText,readLocal,writeLocal} from './core.js?v=67.1.0';
 import {MessengerAPI} from './api.js?v=67.1.0';
-import {Together} from './together.js?v=67.1.0';
+import {Together} from './together.js?v=67.3.0';
 import * as V from './views.js?v=67.1.0';
 import {Admin,staffRole} from './admin.js?v=67.1.0';
 import {Calls} from './calls.js?v=67.1.0';

@@ -63,3 +63,11 @@
 .tg-draw{width:min(100%,480px);aspect-ratio:1.3;box-shadow:0 2px 18px #0006}
 .tg-board,.tg-pong,.tg-draw{user-select:none;-webkit-user-select:none}
 @media(max-width:650px){.tg-gameplay{gap:9px}.tg-word{font-size:13px}.tg-hide{grid-template-columns:repeat(2,minmax(0,1fr))}.tg-gameplay .tg-board{padding:3px;gap:1px}.tg-gameplay .tg-board .tg-cell{font-size:clamp(9px,3vw,18px)}.tg-meme-cards{grid-template-columns:1fr}.tg-track-row{grid-template-columns:48px minmax(0,1fr) 42px;gap:6px}.tg-round{font-size:11px}.tg-prompt{font-size:17px;padding:14px 10px}.tg-prompt h3{font-size:16px}.tg-game-wrap .tg-game{min-height:112px}.tg-statline b{font-size:13px}.tg-choices{grid-template-columns:repeat(2,minmax(0,1fr))}.tg-footer{padding-bottom:max(10px,env(safe-area-inset-bottom))}}
+
+/* v67.3: instant-play CTA and clear multiplayer lobby */
+.tg-quick-hint{font-size:12px!important;color:#b0f1d6!important;font-weight:800;letter-spacing:.1px}
+.tg-game-wrap .tg-demo-btn{background:#7160d635;border:1px solid #ac9dff80;color:#f1eaff}
+.tg-game-wrap .tg-game:hover,.tg-game-wrap .tg-game:focus-visible{outline:2px solid #a795ff;outline-offset:2px}
+.tg-lobby-actions{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:15px 0}
+.tg-lobby-actions .tg-primary{min-height:45px}
+@media(max-width:650px){.tg-lobby-actions>button{min-height:48px;flex:1 1 180px}}

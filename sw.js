@@ -1,10 +1,10 @@
-const VERSION='67.2.0';
+const VERSION='67.3.0';
 const CACHE_PREFIX='rndm-'+encodeURIComponent(new URL(self.registration.scope).pathname)+'-';
-const CACHE=CACHE_PREFIX+'v67-2-stable-startup';
+const CACHE=CACHE_PREFIX+'v67-3-games-fixed';
 const SHELL=[
   './index.html','./redirect.js?v=67.1.0','./bootstrap.js?v=67.2.0','./file-warning.js?v=67.1.0','./pwa-register.js?v=67.1.0','./style.css?v=67.1.0','./liquid-glass.css?v=67.1.0','./config.js?v=67.1.0',
   './organizer.js?v=67.1.0','./qrcode-1.4.4.js?v=67.1.0',
-  './app.js?v=67.2.0','./core.js?v=67.1.0','./api.js?v=67.1.0','./together.js?v=67.1.0','./together-games.js?v=67.1.0','./together.css?v=67.1.0',
+  './app.js?v=67.3.0','./core.js?v=67.1.0','./api.js?v=67.1.0','./together.js?v=67.3.0','./together-games.js?v=67.1.0','./together.css?v=67.3.0',
   './views.js?v=67.1.0','./admin.js?v=67.1.0','./donate.js?v=67.1.0','./donate.css?v=67.1.0',
   './messenger-tools.js?v=67.1.0','./messenger.css?v=67.1.0','./polish.css?v=67.1.0','./gift-art.js?v=67.1.0','./inter.woff2',
   './privacy.html','./reset-password.html',
@@ -53,7 +53,7 @@ const SHELL=[
 ];
 self.addEventListener('install',event=>{
   // Missing optional assets must never prevent a new service worker from activating.
-  const essential=['./index.html','./app.js?v=67.2.0','./together-games.js?v=67.1.0','./together.css?v=67.1.0'];
+  const essential=['./index.html','./app.js?v=67.3.0','./together-games.js?v=67.1.0','./together.css?v=67.3.0'];
   event.waitUntil(caches.open(CACHE).then(async cache=>{
     await Promise.allSettled(essential.map(async path=>{
       const response=await fetch(path,{cache:'reload'});
