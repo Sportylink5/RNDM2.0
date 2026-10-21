@@ -1,12 +1,12 @@
 import {bodyLinks} from './organizer.js?v=67.1.0';
 import {giftArt} from './gift-art.js?v=67.1.0';
-import {esc,icon,ib,avatar,time,day,preview,richText,safeURL,sid} from './core.js?v=67.1.0';
+import {esc,icon,ib,avatar,time,day,preview,richText,safeURL,sid} from './core.js?v=68.0.0';
 import {inboxStats, trustedMedia} from './messenger-tools.js?v=67.1.0';
 import {staffRole} from './admin.js?v=67.1.0';
 import {defaultColors,validColors} from './theme.js?v=67.1.0';
 
 export function shell(app) {
-  const nav=[['chats','Чаты'],['random','Рулетка'],['clips','Клипы'],['contacts','Люди']];
+  const nav=[['chats','Чаты'],['random','Рулетка'],['clips','Клипы'],['contacts','Люди'],['games','Игры']];
   return `<div class="workspace" id="workspace">
     <aside class="rail" aria-label="Разделы"><span class="brand-mark" aria-label="RNDM Chat">R</span>
       <nav class="rail-nav">${nav.map(([name,label])=>`<button class="nav-item ${app.route===name?'active':''}" data-nav="${name}" type="button" aria-label="${label}" title="${label}">${icon(name)}<span>${label}</span>${name==='chats'?'<i class="rail-unread-badge" id="chatUnreadCount" hidden></i>':''}</button>`).join('')}<button class="nav-item nav-more" type="button" data-action="more-menu" aria-label="Ещё разделы" aria-haspopup="dialog">${icon('more')}<span>Ещё</span><i class="notif-rail-badge" id="notifRailCount" hidden></i></button></nav>

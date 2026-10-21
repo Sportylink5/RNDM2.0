@@ -22,6 +22,7 @@ export function avatar(person, size = '', kind = '') {
 // All controls use consistent scalable vector icons (no bitmap atlas dependency).
 const atlas = [];
 const paths = {
+  games:'M7 7h10a5 5 0 0 1 4.8 6.4l-1 3.4a2 2 0 0 1-3.3.9L15 15H9l-2.5 2.7a2 2 0 0 1-3.3-.9l-1-3.4A5 5 0 0 1 7 7zM7 10v4M5 12h4M16 11h.01M18 13h.01',
   chats:'M21 11.5a8.5 8.5 0 0 1-8.5 8.5 9 9 0 0 1-4-.9L3 21l1.9-5A8.5 8.5 0 1 1 21 11.5z',
   contacts:'M15.5 19.5v-1.8a4.3 4.3 0 0 0-4.3-4.3H5.8a4.3 4.3 0 0 0-4.3 4.3v1.8M8.5 3.5a3.7 3.7 0 1 1 0 7.4 3.7 3.7 0 0 1 0-7.4M19 8a3.2 3.2 0 0 1 0 6.4M18 15.5a3.6 3.6 0 0 1 4 3.8',
   channels:'M4 5h16v14H4zM8 9h8M8 13h8M8 16h5',
@@ -102,6 +103,6 @@ export function writeLocal(key, value) { try { localStorage.setItem(key,JSON.str
 export function timeoutFetch(input, init = {}) {
   const controller = new AbortController(); const stop = () => controller.abort();
   const outer = init.signal; if (outer?.aborted) stop(); else outer?.addEventListener('abort',stop,{once:true});
-  const timer = setTimeout(stop, String(input?.url || input).includes('/storage/v1/object') ? 180000 : 18000);
+  const timer = setTimeout(stop, String(input?.url || input).includes('/storage/v1/object') ? 180000 : 28000);
   return fetch(input,{...init,signal:controller.signal}).finally(()=>{clearTimeout(timer);outer?.removeEventListener('abort',stop);});
 }
