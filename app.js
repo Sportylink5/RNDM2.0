@@ -1,7 +1,7 @@
 import {$,$$,esc,icon,ib,avatar,sid,unique,preview,safeURL,richText,day,time,bytes,errorText,readLocal,writeLocal} from './core.js?v=68.0.0';
 import {MessengerAPI} from './api.js?v=67.4.0';
 import {Together} from './together.js?v=67.3.0';
-import * as V from './views.js?v=68.0.0';
+import * as V from './views.js?v=68.0.1';
 import {Admin,staffRole} from './admin.js?v=67.1.0';
 import {Calls} from './calls.js?v=67.1.0';
 import {Clips} from './clips.js?v=67.1.0';
@@ -401,7 +401,7 @@ function renderSidebar() {
   const route=app.route==='tapolka'?'channels':app.route, search=$('#listSearch').value.trim().toLowerCase();
   const randomShortcut=$('.quick-random');if(randomShortcut)randomShortcut.hidden=route!=='chats';
   const starBadge=$('#starBalanceNav');if(starBadge&&app.profile)starBadge.textContent=Number(app.profile.stars||0).toLocaleString('ru-RU');
-  $$('.nav-item').forEach(el=>el.classList.toggle('active',el.dataset.nav===route||(el.dataset.nav==='chats'&&route==='channels')||(el.classList.contains('nav-more')&&!['games','chats','contacts','random','channels','clips'].includes(route))));
+  $$('.nav-item').forEach(el=>el.classList.toggle('active',el.dataset.nav===route||(el.dataset.nav==='chats'&&route==='channels')||(el.classList.contains('nav-more')&&!['chats','contacts','random','channels','clips'].includes(route))));
   $('#sectionTitle').textContent={games:'Игры',random:'Рулетка',chats:'Чаты',contacts:'Контакты',channels:'Каналы',saved:'Избранное',settings:'Настройки',clips:'Клипы',calls:'Звонки',admin:'Админка',stars:'Звёзды',donate:'Донат',notifications:'Уведомления',profile:'Профиль'}[route]||'RNDM';
   const count=route==='chats'?app.dialogs.length+app.channels.length+1:route==='channels'?app.channels.length+1:route==='contacts'?app.friends.filter(x=>x.status==='accepted').length:0;
   $('#sectionCount').textContent=count;$('#sectionCount').hidden=!count;
