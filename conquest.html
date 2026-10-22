@@ -1,300 +1,275 @@
 <!doctype html>
-<html lang="ru">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=5"><meta name="theme-color" content="#0c1627"><meta name="description" content="RNDM Conquest — карта всей Москвы и стратегия захвата территорий"><title>RNDM Conquest — Москва | HTML-демо</title>
+<html lang="ru"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101b2d"><title>RNDM Conquest — Москва</title>
 <style>
-:root{color-scheme:dark}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;background:#080f1b;color:#edf5ff;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}button{font:inherit}#conquestRoot{height:100dvh;width:100%;overflow:hidden}#conquestRoot>.conquest{height:100dvh;min-height:0}.demo-exit{margin:auto;max-width:550px;text-align:center;padding:30px}.demo-exit button{background:#315ba4;color:white;border:1px solid #759fff;padding:12px 20px;border-radius:12px}
-/* RNDM Conquest v69. Scoped to the Games view; does not restyle chats. */
-.conquest{--cq-bg:#0d1621;--cq-bg2:#152338;--cq-accent:#72aaff;--cq-stroke:#324863;--cq-text:#f3f7ff;--cq-muted:#abbcd4;display:flex;flex-direction:column;background:#0d1723;color:var(--cq-text);height:min(100%,calc(100dvh - 8px));min-height:520px;max-width:100%;overflow:hidden;font-family:inherit;isolation:isolate}
-.conquest *{box-sizing:border-box}
-.conquest-topbar{flex:none;min-height:74px;padding:12px 20px;background:#111d2e;border-bottom:1px solid #31465e;display:flex;align-items:center;justify-content:space-between;gap:12px;position:relative;z-index:3}
-.conquest-brand{display:flex;align-items:center;gap:12px;min-width:0}.conquest-back{border:1px solid #344b67;border-radius:12px;background:#1b3048;color:white;width:40px;height:42px;font-size:21px;flex:none}.conquest-brand small{display:block;color:#99aaca;letter-spacing:1.3px;font-size:10px;font-weight:750}.conquest-brand h2{font-weight:900;margin:4px 0 0;font-size:clamp(17px,2vw,23px);letter-spacing:.5px;white-space:nowrap}.conquest-brand h2 span{color:#82afff}
-.conquest-economy{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}.conquest-economy>span{display:flex;align-items:center;gap:7px;background:#1b2c42;border:1px solid #334861;border-radius:11px;padding:9px 12px;font-size:15px;white-space:nowrap}.conquest-economy b{font-variant-numeric:tabular-nums}
-.conquest-game{flex:1;display:flex;min-height:0;position:relative}.conquest-map-viewport{flex:1;position:relative;min-width:0;background:#101a25;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab;outline:none}.conquest-map-viewport:active{cursor:grabbing}.conquest-map-viewport:focus-visible{outline:3px solid #82bbff;outline-offset:-3px}.conquest-map-viewport canvas{width:100%;height:100%;display:block;touch-action:none}
-.conquest-toolbar{position:absolute;top:16px;left:15px;display:flex;align-items:center;flex-wrap:wrap;gap:7px;right:66px;pointer-events:none}.conquest-toolbar button,.conquest-zoom button{pointer-events:auto;min-height:40px;min-width:40px;padding:8px 11px;border:1px solid #527195;background:#102239e8;color:#ecf5ff;border-radius:12px;font-size:12px;font-weight:700;box-shadow:0 5px 15px #0004;backdrop-filter:blur(12px);cursor:pointer}.conquest-toolbar button:hover,.conquest-zoom button:hover{background:#24496f}.conquest-zoom{position:absolute;right:13px;top:15px;display:flex;flex-direction:column;gap:7px}.conquest-zoom button{font-size:19px;width:43px;height:43px;padding:0}.conquest-legend{position:absolute;bottom:46px;left:15px;display:flex;gap:12px;align-items:center;background:#0b1b2fd9;padding:8px 10px;border:1px solid #3a4d68;border-radius:10px;backdrop-filter:blur(7px);pointer-events:none;flex-wrap:wrap;font-size:11px}.conquest-legend span{display:flex;gap:5px;align-items:center}.conquest-legend i{width:9px;height:9px;border-radius:50%;display:inline-block}.conquest-legend .you{background:#5da4ff}.conquest-legend .enemy{background:#ee6679}.conquest-legend .neutral{background:#93a3b9}.conquest-coords{position:absolute;bottom:17px;left:15px;font-size:11px;color:#d6e8ff;background:#111e2dc9;padding:5px 8px;border-radius:6px;pointer-events:none}.conquest-attrib{position:absolute;bottom:14px;right:10px;font-size:10px;color:#e2ecff!important;background:#111e2dd9;padding:4px 6px;border-radius:5px;z-index:2;text-decoration:none!important}
-.conquest-side{flex:0 0 clamp(290px,29vw,380px);display:flex;flex-direction:column;min-width:0;min-height:0;background:linear-gradient(160deg,#18283e,#101c2d);border-left:1px solid #304861;box-shadow:-5px 0 18px #080e1999;z-index:2}.conquest-side-head{padding:17px 19px 13px;display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid #324962}.conquest-side-head small,.conquest-feed small{font-size:10px;letter-spacing:1.3px;color:#9bb6d4;display:block;margin-bottom:5px}.conquest-side-head strong{font-size:17px}.conquest-minimize{display:none}.conquest-side-body{overflow-y:auto;overscroll-behavior:contain;padding:18px;display:flex;flex-direction:column;gap:18px;min-height:0}.conquest-connection{background:#3c2f2233;border:1px solid #8a685455;color:#ffcf9d;padding:10px 11px;border-radius:9px;font-size:12px;line-height:1.35;overflow-wrap:anywhere}.conquest-connection.online{background:#194f4938;border-color:#47958a66;color:#a1f1df}.conquest-target{background:#0d1a2a;border:1px solid #2b405b;border-radius:13px;padding:15px}.conquest-target small{color:#91b8f8;font-size:10px;letter-spacing:1.4px;font-weight:800}.conquest-target h3{color:#f4f8ff;font-size:20px;letter-spacing:-.3px;margin:8px 0}.conquest-target p{font-size:12px;line-height:1.6;color:#aec2d9;margin:0;overflow-wrap:anywhere}.conquest-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}.conquest-actions button{border:1px solid #405b7a;background:#1e344e;color:#e6f1ff;border-radius:11px;padding:12px 8px;min-height:48px;font-size:12px;font-weight:750;font-family:inherit;cursor:pointer;transition:background .16s}.conquest-actions button:first-child{background:#2756b5;border-color:#4b86ff}.conquest-actions button:nth-child(2){background:#773c4e;border-color:#9d5669}.conquest-actions button:disabled{opacity:.35;cursor:not-allowed}.conquest-actions button:not(:disabled):hover{filter:brightness(1.12)}.conquest-feed{border-top:1px solid #394e68;padding-top:12px}.conquest-event{font-size:12px;color:#b9dfd8;line-height:1.45;padding:6px 0;border-bottom:1px solid #ffffff12;overflow-wrap:anywhere}.conquest-event.error{color:#ffc0c4}.conquest-help{font-size:11px;color:#8c9eb5;line-height:1.6}.conquest button:focus-visible{outline:2px solid #86c7ff;outline-offset:2px}
-.arcade-conquest-banner{grid-column:1/-1;display:flex;position:relative;min-height:166px;width:100%;background:radial-gradient(ellipse at 70% 35%,#244b7c,#10243c 62%,#0e1a2d);border:1px solid #5380bb;color:#eaf3ff;border-radius:17px;overflow:hidden;text-align:left;padding:22px 25px;cursor:pointer;align-items:center;justify-content:space-between;gap:16px}.arcade-conquest-banner:hover{border-color:#98d0ff;filter:brightness(1.13)}.arcade-conquest-banner>span:first-child{display:flex;flex-direction:column;gap:8px;z-index:1;max-width:65%}.arcade-conquest-banner small{font-size:10px;letter-spacing:2px;color:#82bdff}.arcade-conquest-banner strong{font-size:clamp(22px,3vw,34px);letter-spacing:-1px;font-weight:900}.arcade-conquest-banner em{font-style:normal;font-size:12px;color:#bdcce0;line-height:1.5}.arcade-conquest-art{width:185px;height:120px;flex:none;position:relative;background:repeating-linear-gradient(35deg,#345e8d20 0 14px,#759ec533 14px 16px),repeating-linear-gradient(115deg,#22426620 0 19px,#759ec544 20px 22px);transform:rotate(-12deg);border-radius:9px;box-shadow:0 0 28px #589fff26;overflow:hidden}.arcade-conquest-art::before{content:'';position:absolute;inset:13px 75px 14px 22px;background:#4c8cf3ab;border:1px solid #96c4ff;border-radius:6px;box-shadow:72px 10px 0 -4px #e45f70a9,100px 68px 0 -15px #e6b665a3,3px 85px 0 -12px #6ab6e8aa}.arcade-conquest-art::after{content:'⚑';position:absolute;left:63px;top:28px;font-size:35px;color:#e4f2ff;text-shadow:0 0 12px #8fd5ff}
-@media(max-width:950px){.conquest-side{flex-basis:300px}.conquest-toolbar button span{display:none}.conquest-toolbar button{font-size:16px}.conquest-economy>span{padding:8px 9px;font-size:12px}}
-@media(max-width:760px){.conquest{height:calc(100dvh - 58px);min-height:380px}.conquest-topbar{padding:10px 11px;min-height:58px;gap:6px}.conquest-brand{gap:6px}.conquest-back{height:35px;width:35px;font-size:18px}.conquest-brand small{font-size:8px;letter-spacing:.6px}.conquest-brand h2{font-size:15px}.conquest-economy{gap:4px}.conquest-economy>span{font-size:11px;padding:7px 6px;border-radius:8px;gap:3px}.conquest-map-viewport{min-height:0}.conquest-game{display:block}.conquest-map-viewport{width:100%;height:100%}.conquest-toolbar{top:10px;left:10px;right:57px;gap:5px}.conquest-toolbar button{font-size:13px;width:38px;min-width:38px;min-height:38px;padding:7px}.conquest-zoom{top:10px;right:10px}.conquest-zoom button{height:38px;width:38px}.conquest-legend{bottom:43%;left:10px;font-size:10px;gap:9px;padding:7px}.conquest-coords{bottom:calc(43% - 26px);left:10px;font-size:9px}.conquest-attrib{bottom:calc(43% - 26px);right:9px;font-size:9px}.conquest-side{position:absolute;bottom:0;left:0;right:0;height:43%;min-height:225px;max-height:64%;border-radius:19px 19px 0 0;border:1px solid #49607e;box-shadow:0 -10px 32px #080f20e8;z-index:3}.conquest-side-head{padding:10px 14px;flex:none}.conquest-side-head strong{font-size:14px}.conquest-side-head small{font-size:9px}.conquest-minimize{display:block;width:37px;height:34px;padding:3px;background:#2a3b56;color:white;border:1px solid #496583;border-radius:9px;font-size:19px}.conquest-side-body{gap:9px;padding:10px 14px 20px;scrollbar-width:thin}.conquest-target{padding:10px}.conquest-target h3{font-size:16px;margin:4px 0}.conquest-target p{font-size:11px}.conquest-actions{gap:7px}.conquest-actions button{min-height:44px;font-size:11px;padding:9px}.conquest-feed{padding-top:9px}.conquest-feed small{margin-bottom:3px}.conquest-help{font-size:10px}.conquest-side.collapsed{height:52px;min-height:52px;max-height:52px}.conquest-side.collapsed .conquest-side-body{display:none}.conquest-side.collapsed .conquest-minimize{transform:rotate(180deg)}.conquest-game:has(.conquest-side.collapsed) .conquest-legend{bottom:92px}.conquest-game:has(.conquest-side.collapsed) .conquest-coords,.conquest-game:has(.conquest-side.collapsed) .conquest-attrib{bottom:64px}.arcade-conquest-banner{padding:15px;min-height:160px}.arcade-conquest-banner strong{font-size:21px}.arcade-conquest-banner em{font-size:11px}.arcade-conquest-banner>span:first-child{max-width:66%}.arcade-conquest-art{width:115px;height:100px;position:absolute;right:-5px;bottom:-8px;opacity:.75}}
-@media(max-width:480px){.conquest-brand h2{font-size:13px}.conquest-brand small{display:none}.conquest-economy>span{font-size:10px;padding:6px 4px}.conquest-economy>span:nth-child(3){display:none}.conquest{height:calc(100dvh - 56px)}.conquest-side{height:48%;max-height:66%}.conquest-legend{bottom:48%}.conquest-coords,.conquest-attrib{bottom:calc(48% - 26px)}}
-@media(max-height:500px) and (pointer:coarse) and (orientation:landscape){.conquest{height:calc(100dvh - 48px);min-height:220px}.conquest-topbar{min-height:43px;padding:3px 10px}.conquest-brand small{display:none}.conquest-brand h2{margin:0}.conquest-game{display:flex}.conquest-map-viewport{width:auto;height:100%}.conquest-side,.conquest-side.collapsed{position:relative;flex-basis:245px;min-height:0;max-height:none;height:100%;border-radius:0}.conquest-side-body{display:flex!important;padding:8px}.conquest-side-head{padding:6px 10px}.conquest-minimize{display:none}.conquest-target{padding:8px}.conquest-target h3{font-size:13px}.conquest-help{display:none}.conquest-legend{bottom:37px}.conquest-coords,.conquest-attrib{bottom:9px}}
-@media(prefers-reduced-motion:reduce){.conquest *{scroll-behavior:auto!important;transition:none!important}}
+html,body{margin:0;height:100%;width:100%;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;background:#111e2f;color:#fff}
+#conquestRoot{height:100dvh;width:100%;overflow:hidden}
+/* RNDM Conquest 71 — isolated styles: does not affect Chat, FPS or Racing. */
+.cq71{--cq-bg:#0e1624;--cq-accent:#76b7ff;--cq-text:#f3f7ff;--cq-stroke:#35465c;display:flex;flex-direction:column;background:#101926;color:var(--cq-text);font:inherit;width:100%;height:100%;min-height:420px;position:relative;overflow:hidden;isolation:isolate}
+.cq71 *{box-sizing:border-box}
+.cq71 button,.cq71 input,.cq71 select{font:inherit}
+.cq71 button{cursor:pointer;touch-action:manipulation}
+.cq71 button:disabled{opacity:.45;cursor:not-allowed}
+.cq71 [hidden]{display:none!important}
+.cq71-top{height:68px;min-height:68px;display:flex;align-items:center;gap:13px;background:linear-gradient(120deg,#18263e,#101b2c);padding:9px 16px;border-bottom:1px solid #304256;position:relative;z-index:3}
+.cq71-exit{height:42px;width:42px;min-width:42px;background:#243952;border:1px solid #4b617b;border-radius:12px;color:#fff;font-size:22px}
+.cq71-brand{display:flex;flex-direction:column;gap:1px;margin-right:auto;min-width:100px}
+.cq71-brand small{font-size:9px;letter-spacing:1.3px;color:#9aaeca;font-weight:750}
+.cq71-brand strong{font-size:18px;letter-spacing:1px;white-space:nowrap;font-weight:900}
+.cq71-brand em{font-style:normal;color:#76b7ff}
+.cq71-team-chip{display:flex;gap:8px;align-items:center;max-width:230px;border:1px solid var(--team,#36516f);background:#182b43;border-radius:12px;padding:8px 12px;font-weight:750;font-size:12px;overflow:hidden}
+.cq71-team-chip span:nth-child(2){overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cq71-team-chip span:first-child{font-size:20px}
+.cq71-money,.cq71-count{font-size:14px;border:1px solid #354962;background:#1b2a3d;padding:9px 11px;border-radius:12px;color:#b5cced;white-space:nowrap}
+.cq71-money b,.cq71-count b{color:white}
+.cq71-collapse-mobile{display:none;background:#1e334c;border:1px solid #466080;border-radius:9px;color:#fff;font-size:19px;min-height:40px;min-width:40px}
+.cq71-layout{display:flex;flex:1;min-height:0;position:relative}
+.cq71-map{position:relative;flex:1;min-width:0;overflow:hidden;background:#d9e1e8;touch-action:none;cursor:grab}
+.cq71-map:active{cursor:grabbing}
+.cq71-map canvas{width:100%;height:100%;display:block;image-rendering:auto}
+.cq71-places,.cq71-zoom,.cq71-live,.cq71-hint,.cq71-attribution{position:absolute;z-index:2}
+.cq71-places{top:14px;left:14px;right:12px;display:flex;gap:6px;pointer-events:none;overflow-x:auto;scrollbar-width:none;max-width:calc(100% - 76px)}
+.cq71-places::-webkit-scrollbar{display:none}
+.cq71-places button{pointer-events:auto;flex:none;min-height:39px;padding:0 13px;background:#14253deb;border:1px solid #456080;border-radius:11px;color:#f5f9ff;font-size:12px;font-weight:800;box-shadow:0 5px 14px #0b14252d;backdrop-filter:blur(8px)}
+.cq71-places button:hover{background:#284b79}
+.cq71-zoom{right:16px;top:14px;display:flex;flex-direction:column;background:#fff;border-radius:11px;overflow:hidden;box-shadow:0 4px 15px #0b142522}
+.cq71-zoom button{width:40px;height:40px;border:0;background:#f4f7fc;color:#172a44;font-size:22px;font-weight:800}
+.cq71-zoom button+button{border-top:1px solid #cbd7e4}
+.cq71-live{left:14px;bottom:45px;padding:8px 12px;background:#142238ea;color:#e1eafa;border:1px solid #46617f;border-radius:10px;font-size:11px;font-weight:700;pointer-events:none;backdrop-filter:blur(7px)}
+.cq71-live.ok{color:#8cf0cb;border-color:#447c74}
+.cq71-hint{left:14px;top:62px;background:#142238dd;padding:8px 11px;border-radius:10px;color:white;font-size:11px;pointer-events:none;max-width:70%}
+.cq71-attribution{bottom:5px;left:10px;background:#ffffffb9;color:#34516d;font-size:10px;padding:3px 6px;border-radius:4px}
+.cq71-attribution a{color:#34516d;text-decoration:underline}
+.cq71-sidebar{flex:0 0 362px;width:362px;background:#111c2b;border-left:1px solid #364a62;display:flex;flex-direction:column;min-height:0;box-shadow:-3px 0 14px #0a101822;position:relative;z-index:4}
+.cq71-sidehead{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 11px;border-bottom:1px solid #293d55}
+.cq71-sidehead small{font-weight:800;letter-spacing:1.5px;font-size:10px;color:#8fa8c8}
+.cq71-sidehead h2{font-size:21px;margin:3px 0 0;line-height:1.2}
+.cq71-sidehead button{display:none}
+.cq71-sidebody{padding:13px 15px 20px;overflow-y:auto;overscroll-behavior:contain;min-height:0;display:flex;flex-direction:column;gap:12px}
+.cq71-tabs{display:flex;gap:5px;background:#0b1625;padding:4px;border:1px solid #2b405b;border-radius:10px}
+.cq71-tabs button{flex:1;border:0;background:transparent;color:#91a9c9;border-radius:8px;padding:10px 4px;min-height:40px;font-size:12px;font-weight:800}
+.cq71-tabs button.active{background:#245a9a;color:white}
+.cq71-selection{background:#162439;border:1px solid #324a65;border-radius:13px;padding:15px 14px}
+.cq71-selection small{font-size:10px;letter-spacing:1.3px;font-weight:850;color:#86bfff}
+.cq71-selection h3{font-size:18px;line-height:1.2;margin:7px 0 9px;overflow-wrap:anywhere}
+.cq71-selection p,.cq71-march p,.cq71-tab-content>p{font-size:12px;color:#b6c9e0;line-height:1.5;margin:0 0 7px}
+.cq71-owner{font-size:12px;font-weight:750;display:flex;align-items:center;gap:8px;color:#dceafe;margin-top:9px}
+.cq71-owner i{height:12px;width:12px;border-radius:50%;display:inline-block;border:1px solid #fff9}
+.cq71-actiongrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.cq71-actiongrid button,.cq71-march button,.cq71-blocker button{background:#233c5d;color:#f2f7ff;border:1px solid #4a6381;border-radius:11px;padding:11px 9px;min-height:46px;font-size:12px;font-weight:800}
+.cq71-actiongrid button:first-child{grid-column:1/-1}
+.cq71-actiongrid .cq71-primary,.cq71-primary{background:#256bc3;color:#fff;border-color:#5697e7}
+.cq71-march{background:#152239;border:1px solid #2f455e;border-radius:13px;padding:13px;display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.cq71-march strong{font-size:14px}
+.cq71-march label,.cq71-setup label{font-size:12px;color:#bcd0e6;font-weight:750;display:flex;flex-direction:column;gap:6px}
+.cq71-march input,.cq71-march select,.cq71-setup input{width:100%;border:1px solid #4b6280;background:#0c1729;color:#f4faff;min-height:43px;border-radius:9px;padding:9px 11px;outline-offset:2px;font-size:13px}
+.cq71-march select{width:100%}
+.cq71-march button{background:#1b765f;border-color:#469b88}
+.cq71-feed{border-top:1px solid #2e425a;padding-top:12px;margin-top:4px}
+.cq71-feed>small{font-size:10px;letter-spacing:1.4px;color:#8faed5;font-weight:850}
+.cq71-feed p{padding:8px 0;margin:0;border-bottom:1px solid #ffffff12;font-size:12px;line-height:1.45;color:#bacee7}
+.cq71-feed p.error{color:#ffb2b2}
+.cq71-team-big{display:flex;align-items:center;gap:10px;font-size:21px;padding:16px;background:#1b2a40;border:1px solid #324d6c;border-radius:12px}
+.cq71-team-big span{font-size:29px}
+.cq71-team-stat{padding:10px;color:#a8c5e6;font-size:12px}
+.cq71-order{background:#172943;border:1px solid #355476;padding:12px;border-radius:10px;margin-top:8px;font-size:12px}
+.cq71-modal,.cq71-blocker{position:absolute;inset:0;z-index:20;background:#06101add;backdrop-filter:blur(7px);display:grid;place-items:center;padding:16px;overflow-y:auto}
+.cq71-setup,.cq71-blockerbox{width:min(100%,450px);max-height:100%;overflow-y:auto;background:linear-gradient(160deg,#182b46,#111a2b);border:1px solid #446186;box-shadow:0 30px 80px #0008;border-radius:20px;padding:24px;display:flex;flex-direction:column;gap:14px}
+.cq71-setup-icon{width:54px;height:54px;display:grid;place-items:center;border-radius:16px;background:#25589d;font-size:30px}
+.cq71-setup small{font-size:10px;font-weight:850;letter-spacing:1.2px;color:#96bce5}
+.cq71-setup h2{font-size:27px;margin:0;line-height:1.12;color:#fff}
+.cq71-setup p,.cq71-blockerbox p{font-size:13px;line-height:1.5;color:#bbcee4;margin:0}
+.cq71-flags{display:flex;gap:7px;flex-wrap:wrap}
+.cq71-flags button{background:#1a2c44;border:1px solid #426080;border-radius:8px;width:37px;height:37px;font-size:20px}
+.cq71-colorbox{display:flex;gap:12px;align-items:center}
+.cq71-colorbox input{width:70px;padding:3px;height:46px;cursor:pointer}
+.cq71-colorbox span{font-family:monospace;font-size:14px;color:#fff}
+.cq71-start{min-height:48px;border:1px solid #609dea;border-radius:11px;font-weight:850;font-size:14px;cursor:pointer}
+.cq71-error{min-height:16px;color:#ffb1b1!important}
+.cq71-blockerbox h3{font-size:21px;margin:0}
+.cq71-blockerbox button{width:100%}
+@media(max-width:1000px){.cq71-sidebar{width:320px;flex-basis:320px}.cq71-team-chip{max-width:170px}.cq71-brand strong{font-size:15px}}
+@media(max-width:760px){.cq71-top{height:56px;min-height:56px;padding:6px 9px;gap:7px}.cq71-brand strong{font-size:14px}.cq71-brand small{font-size:8px;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.cq71-team-chip{padding:4px 6px;gap:4px;max-width:100px;font-size:10px;border-radius:8px}.cq71-team-chip span:first-child{font-size:17px}.cq71-money,.cq71-count{font-size:11px;padding:8px 5px}.cq71-exit{min-width:36px;width:36px;height:40px}.cq71-collapse-mobile{display:inline-block}.cq71-layout{display:block}.cq71-map{width:100%;height:100%}.cq71-sidebar{position:absolute;bottom:0;left:0;right:0;top:auto;width:100%;height:45%;min-height:170px;max-height:68%;border-left:0;border-top:1px solid #425a76;border-radius:17px 17px 0 0;box-shadow:0 -9px 35px #0a142a55;transition:transform .2s ease}.cq71-sidebar.minimized{transform:translateY(calc(100% - 48px))}.cq71-sidehead{height:49px;min-height:49px;padding:8px 15px}.cq71-sidehead small{font-size:8px}.cq71-sidehead h2{font-size:14px}.cq71-sidehead button{display:block;background:#253d5c;color:#fff;border:1px solid #48637e;border-radius:9px;min-width:34px;min-height:32px}.cq71-sidebody{padding:9px 12px max(20px,env(safe-area-inset-bottom));gap:10px}.cq71-places{top:8px;left:8px;max-width:calc(100% - 55px)}.cq71-places button{font-size:11px;padding:0 10px;min-height:36px}.cq71-zoom{top:8px;right:8px}.cq71-zoom button{width:35px;height:35px}.cq71-hint{top:51px;left:8px;font-size:10px}.cq71-live{left:8px;bottom:calc(45% + 7px);font-size:10px}.cq71-sidebar.minimized~.cq71-live{bottom:55px}.cq71-attribution{bottom:4px}.cq71-actiongrid{margin-top:8px}.cq71-modal{align-items:start;padding:10px}.cq71-setup{padding:18px;max-height:calc(100dvh - 20px)}}
+@media(max-width:390px){.cq71-team-chip{max-width:80px}.cq71-brand strong{font-size:12px}.cq71-top{gap:4px}.cq71-money{font-size:10px}.cq71-count{display:none}.cq71-setup h2{font-size:23px}}
+@media(orientation:landscape) and (max-height:520px){.cq71-top{height:48px;min-height:48px}.cq71-sidebar{height:100%;max-height:100%;width:min(38%,330px);left:auto;right:0;border-radius:0;border-top:0;border-left:1px solid #425a76}.cq71-sidebar.minimized{transform:translateX(calc(100% - 43px))}.cq71-places{right:8px;max-width:calc(100% - 60px)}.cq71-live{bottom:27px;left:6px}.cq71-modal{align-items:center}.cq71-setup{max-width:380px}}
+@media(prefers-reduced-motion:reduce){.cq71-sidebar{transition:none}}
 
-/* Comfortable touch targets and safe-area behavior on small screens. */
-@media(pointer:coarse){.conquest-toolbar button{min-height:44px;min-width:44px}.conquest-zoom button{min-width:44px;min-height:44px}.conquest-back{min-height:44px;min-width:44px}.conquest-minimize{min-width:44px;min-height:44px}.conquest-side-body{padding-bottom:max(20px,env(safe-area-inset-bottom))}}
-
-/* v70: responsive information architecture and stronger touch navigation */
-.conquest-subtitle{font-size:9px!important;margin-top:1px;letter-spacing:1.05px!important;color:#90a5c0!important}
-.conquest-maplabel{position:absolute;top:77px;left:15px;border-radius:10px;padding:8px 11px;background:#0c1b2edb;border:1px solid #314d70;pointer-events:none;display:flex;flex-direction:column;gap:2px}
-.conquest-maplabel strong{font-size:10px;letter-spacing:1.2px;color:#cfe9ff}.conquest-maplabel small{font-size:10px;color:#94a6bf}
-.conquest-tabs{display:flex;gap:5px;padding:4px;background:#0b1929;border:1px solid #293f5a;border-radius:11px}
-.conquest-tabs button{flex:1;min-height:38px;border:0;border-radius:8px;background:transparent;color:#a9bcd3;font-size:12px;font-weight:750;padding:8px 4px;cursor:pointer}
-.conquest-tabs button.active{color:#fff;background:#255188;box-shadow:0 2px 10px #06132655}
-.conquest-side [hidden]{display:none!important}
-.conquest-panel-label{font-size:10px;letter-spacing:1.2px;font-weight:800;color:#9cc8f6;margin:5px 0 10px}
-.conquest-army-panel,.conquest-missions{background:#0e1d2f;border:1px solid #2c4863;border-radius:12px;padding:12px}
-.conquest-army-panel p{font-size:12px;line-height:1.5;color:#b6c7de}.conquest-unit-card{display:block;width:100%;text-align:left;margin-top:7px;padding:11px;border-radius:10px;border:1px solid #334b6b;background:#1a2e47;color:#e5f4ff;font-size:12px}.conquest-unit-card.active{border-color:#77e2cf;background:#19465a}
-.conquest-mission{display:flex;align-items:center;gap:12px;padding:11px 6px;border-bottom:1px solid #ffffff12}.conquest-mission:last-child{border-bottom:0}.conquest-mission>span{font-size:20px;color:#a2b3c9}.conquest-mission.complete>span{color:#7de4ba}.conquest-mission strong{font-size:12px;display:block}.conquest-mission small{font-size:11px;display:block;color:#9db1cc;margin-top:3px}
-.conquest-connection{font-weight:650}.conquest-topbar{background:linear-gradient(120deg,#152b48,#111d31 68%,#101927)}
-.conquest-map-viewport canvas{image-rendering:auto}.conquest-target{box-shadow:inset 0 1px 0 #ffffff09}
-@media(max-width:980px){.conquest-income{display:none!important}.conquest-maplabel{display:none}}
-@media(max-width:760px){.conquest-tabs button{min-height:42px}.conquest-topbar{padding-left:max(10px,env(safe-area-inset-left));padding-right:max(10px,env(safe-area-inset-right))}.conquest-map-viewport{touch-action:none}.conquest-side{padding-bottom:env(safe-area-inset-bottom)}}
-@media(max-width:380px){.conquest-brand h2{font-size:12px}.conquest-economy>span{padding:5px 3px;font-size:10px}.conquest-topbar{gap:3px}.conquest-side{height:54%}.conquest-toolbar{left:7px;gap:4px}}
-@media(max-height:500px) and (orientation:landscape){.conquest-subtitle,.conquest-maplabel{display:none}.conquest-side-body{gap:7px}.conquest-tabs button{min-height:34px}.conquest-game .conquest-side{max-height:100%}}
-
-/* Compact but legible location chips instead of unexplained symbols on phones. */
-@media(max-width:760px){.conquest-toolbar{flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;touch-action:pan-x}.conquest-toolbar::-webkit-scrollbar{display:none}.conquest-toolbar button{flex:0 0 auto;width:auto;min-width:42px;padding:8px 10px}.conquest-toolbar button span{display:inline;font-size:11px}}
-@media(max-width:480px){.conquest-economy>span:nth-child(3){display:flex}}
-
-</style></head>
-<body><main id="conquestRoot"></main><script>// RNDM Conquest / v70: integrated persistent Moscow strategy for RNDM Chat.
-// The browser is not authoritative: all economy, ownership, and combat writes use SQL RPCs.
-const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
-const rad=n=>n*Math.PI/180;
-const MAX_LAT=85.05112878;
-const TILE=256;
-const VIEW={lat:55.73,lng:37.38,zoom:9};
-const MOSCOW_POINTS={center:{lat:55.7558,lng:37.6173},butovo:{lat:55.566,lng:37.572},city:{lat:55.749,lng:37.539},zelenograd:{lat:55.992,lng:37.211},new:{lat:55.407,lng:37.146}};
-const tileHost='https://a.basemaps.cartocdn.com/dark_all/';
-function world(lat,lng,z){const size=TILE*2**z;const sin=clamp(Math.sin(rad(lat)),-.9999,.9999);return{x:(lng+180)/360*size,y:(.5-Math.log((1+sin)/(1-sin))/(4*Math.PI))*size};}
-function inverse(x,y,z){const size=TILE*2**z;const n=Math.PI-2*Math.PI*y/size;return{lat:180/Math.PI*Math.atan(Math.sinh(n)),lng:x/size*360-180};}
-function cellId(lat,lng){return`${Math.floor(lng*250)}:${Math.floor(lat*250)}`;}
-function km(a,b){const p1=rad(a.lat),p2=rad(b.lat),dl=rad(b.lng-a.lng),dp=p2-p1;return 12742*Math.asin(Math.min(1,Math.sqrt(Math.sin(dp/2)**2+Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)**2)));}
-function validArea(lat,lng){return lat>=54.72&&lat<=56.09&&lng>=36.70&&lng<=38.18;}
-function formatDate(date){return new Date(date).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});}
-const info={claim:'⚑ Захват',attack:'⚔ Атака',fort:'▤ Блокпост',recruit:'＋ Набор',deploy:'♟ Отряд',move:'➜ Движение'};
-class Conquest{
-  constructor(sb,{getProfile=()=>({}),getUser=()=>null,onExit=()=>{},toast=()=>{}}={}){
-    this.sb=sb;this.getProfile=getProfile;this.getUser=getUser;this.onExit=onExit;this.toast=toast;
-    this.canvas=null;this.ctx=null;this.pane=null;this.view={...VIEW};this.tiles=new Map();this.cells=[];this.units=[];this.player=null;
-    this.selected=null;this.selectedUnit=null;this.moveMode=false;this.online=false;this.connected=false;this.busy=false;this.status='Подключение к миру…';this.raf=0;this.closed=true;this.pointer=new Map();this.events=null;this.demo=false;this.demoState=null;this.demoUserId='conquest-local-demo';this.tab='territory';this.lastTap=0;
-  }
-  open(pane){this.close();this.closed=false;this.pane=pane;this.events=new AbortController();this.pane.innerHTML=`
-    <section class="conquest" aria-label="RNDM Conquest: Москва">
-      <header class="conquest-topbar"><div class="conquest-brand"><button class="conquest-back" data-conquest="exit" aria-label="К списку игр">←</button><div><small>RNDM / ИГРЫ / ГЛОБАЛЬНАЯ СТРАТЕГИЯ</small><h2>CONQUEST <span>МОСКВА</span></h2><small class="conquest-subtitle">БОРЬБА ЗА ГОРОД · ЕДИНЫЙ МИР</small></div></div><div class="conquest-economy"><span title="Кредиты">◈ <b id="cqCredits">—</b></span><span title="Свободные бойцы">♟ <b id="cqTroops">—</b></span><span title="Территории">▣ <b id="cqOwned">—</b></span><span class="conquest-income" title="Доход за минуту">↗ <b id="cqIncome">—</b>/мин</span></div></header>
-      <div class="conquest-game">
-        <div class="conquest-map-viewport" id="cqViewport" tabindex="0" aria-label="Карта Москвы. Масштабирование колёсиком мыши или двумя пальцами, перемещение перетаскиванием.">
-          <canvas id="cqCanvas"></canvas>
-          <div class="conquest-toolbar"><button data-conquest="moscow" title="Обзор всей Москвы">◈ <span>Вся Москва</span></button><button data-conquest="butovo" title="Северное Бутово">⌖ <span>Бутово</span></button><button data-conquest="city" title="Москва-Сити">▥ <span>Сити</span></button><button data-conquest="zelenograd" title="Зеленоград">▧ <span>Зеленоград</span></button><button data-conquest="new" title="Новая Москва">◇ <span>Новая Москва</span></button></div>
-          <div class="conquest-zoom"><button data-conquest="zoomIn" aria-label="Приблизить">＋</button><button data-conquest="zoomOut" aria-label="Отдалить">−</button></div>
-          <div class="conquest-legend"><span><i class="you"></i> Ваши</span><span><i class="enemy"></i> Другие игроки</span><span><i class="neutral"></i> Нейтральные</span></div>
-          <div class="conquest-maplabel"><strong>ГЛОБАЛЬНАЯ КАРТА</strong><small id="cqTileStatus">Загрузка картографической подложки…</small></div><div class="conquest-coords" id="cqPosition">МОСКВА · ЗАГРУЗКА</div>
-          <a class="conquest-attrib" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap · © CARTO</a>
-        </div>
-        <aside class="conquest-side" id="cqSide">
-          <div class="conquest-side-head"><div><small>СТРАТЕГИЧЕСКИЙ ШТАБ</small><strong>Командование</strong></div><button class="conquest-minimize" id="cqMinimize" data-conquest="minimize" aria-label="Свернуть игровую панель">⌄</button></div>
-          <div class="conquest-side-body"><div class="conquest-connection" id="cqStatus" role="status">Подключение к миру…</div><nav class="conquest-tabs" aria-label="Панель управления"><button type="button" data-conquest="tab-territory" class="active">Участок</button><button type="button" data-conquest="tab-army">Армия</button><button type="button" data-conquest="tab-intel">Задачи</button></nav>
-          <div class="conquest-target" id="cqTerritory"><small id="cqTargetType">ВЫБЕРИ УЧАСТОК</small><h3 id="cqTargetName">Москва ждёт командиров</h3><p id="cqTargetInfo">Приблизь карту и нажми на квартал. На телефоне двигай карту пальцем и масштабируй двумя пальцами.</p></div>
-          <div class="conquest-actions" id="cqActions"><button data-conquest="claim" id="cqClaim" disabled>⚑ Захват · 100</button><button data-conquest="attack" id="cqAttack" disabled>⚔ Атаковать</button><button data-conquest="fort" id="cqFort" disabled>▤ Блокпост · 200</button><button data-conquest="recruit" id="cqRecruit" disabled>＋ Бойцы · 150</button><button data-conquest="deploy" id="cqDeploy" disabled>♟ Создать отряд</button><button data-conquest="move" id="cqMove" disabled>➜ Отправить отряд</button></div>
-          <div class="conquest-army-panel" id="cqArmy" hidden><div class="conquest-panel-label">УПРАВЛЕНИЕ ВОЙСКАМИ</div><p>Выдели зелёный маркер отряда на карте, затем нажми «Маршрут» и укажи точку назначения.</p><div id="cqArmyList"></div></div><div class="conquest-missions" id="cqMissions" hidden><div class="conquest-panel-label">ОПЕРАЦИИ</div><div id="cqMissionList"></div></div><div class="conquest-feed"><small>ОПЕРАТИВНАЯ СВОДКА</small><div id="cqFeed" aria-live="polite">Выбери точку на карте, чтобы начать.</div></div>
-          <div class="conquest-help">ПК: колесо, ЛКМ для карты, выбор отряда кликом. Телефон: перетаскивание, двойное касание, жест двумя пальцами. В онлайн-режиме сервер подтверждает все действия.</div>
-          </div>
-        </aside>
-      </div>
-    </section>`;
-    this.canvas=pane.querySelector('#cqCanvas');this.ctx=this.canvas.getContext('2d',{alpha:false});this.viewport=pane.querySelector('#cqViewport');
-    const sig=this.events.signal;
-    pane.querySelector('.conquest').addEventListener('click',event=>{const el=event.target.closest('[data-conquest]');if(el)void this.click(el.dataset.conquest);},{signal:sig});
-    this.viewport.addEventListener('pointerdown',e=>this.down(e),{signal:sig});
-    this.viewport.addEventListener('pointermove',e=>this.pointerMove(e),{signal:sig});
-    this.viewport.addEventListener('pointerup',e=>this.up(e),{signal:sig});
-    this.viewport.addEventListener('pointercancel',e=>this.up(e,true),{signal:sig});
-    this.viewport.addEventListener('wheel',e=>{e.preventDefault();this.zoom(e.deltaY<0?1:-1,e.clientX,e.clientY);},{signal:sig,passive:false});
-    this.viewport.addEventListener('dblclick',e=>{e.preventDefault();this.zoom(1,e.clientX,e.clientY);},{signal:sig});
-    this.viewport.addEventListener('keydown',e=>{if(e.key==='+'||e.key==='='){e.preventDefault();this.zoom(1);}if(e.key==='-'){e.preventDefault();this.zoom(-1);}if(e.key==='Escape'){this.moveMode=false;this.renderPanel();}},{signal:sig});
-    window.addEventListener('resize',()=>this.resize(),{signal:sig});document.addEventListener('visibilitychange',()=>{if(!document.hidden)this.refreshSoon(100);},{signal:sig});
-    this.resize();this.loop();void this.connect();
-  }
-  $ (id){return this.pane?.querySelector('#'+id);}
-  feed(message,error=false){const el=this.$('cqFeed');if(el){const item=document.createElement('div');item.className='conquest-event'+(error?' error':'');item.textContent=message;el.prepend(item);while(el.children.length>5)el.lastChild.remove();}if(error)this.toast(message);}
-  setStatus(s,ok=false){this.status=s;const el=this.$('cqStatus');if(el){el.textContent=(ok?'● ':'◌ ')+s;el.classList.toggle('online',ok);}}
-  resize(){if(!this.canvas||this.closed)return;const dpr=Math.min(devicePixelRatio||1,2),r=this.viewport.getBoundingClientRect();const w=Math.max(320,Math.round(r.width*dpr)),h=Math.max(250,Math.round(r.height*dpr));if(this.canvas.width!==w||this.canvas.height!==h){this.canvas.width=w;this.canvas.height=h;}this.dpr=dpr;this.w=w/dpr;this.h=h/dpr;}
-  setView(lat,lng,zoom){this.view={lat,lng,zoom:clamp(zoom,7,19)};const position=this.$('cqPosition');if(position)position.textContent=`${lat.toFixed(3)}° · ${lng.toFixed(3)}° | z${this.view.zoom}`;this.refreshSoon(400);}
-  zoom(dir,clientX,clientY){const next=clamp(this.view.zoom+dir,7,19);if(next===this.view.zoom)return;const r=this.viewport.getBoundingClientRect(),px=clientX==null?this.w/2:clientX-r.left,py=clientY==null?this.h/2:clientY-r.top;const under=this.screenToGeo(px,py);this.view.zoom=next;const p=world(under.lat,under.lng,next),middle={x:p.x-(px-this.w/2),y:p.y-(py-this.h/2)},geo=inverse(middle.x,middle.y,next);this.view.lat=clamp(geo.lat,54.35,56.4);this.view.lng=clamp(geo.lng,36.1,38.8);this.refreshSoon(350);}
-  screenToGeo(x,y){const o=world(this.view.lat,this.view.lng,this.view.zoom);return inverse(o.x+x-this.w/2,o.y+y-this.h/2,this.view.zoom);}
-  geoToScreen(lat,lng){const o=world(this.view.lat,this.view.lng,this.view.zoom),p=world(lat,lng,this.view.zoom);return{x:p.x-o.x+this.w/2,y:p.y-o.y+this.h/2};}
-  down(e){if(e.target.closest('button,a'))return;if(e.pointerType==='mouse'&&e.button!==0)return;this.viewport.setPointerCapture?.(e.pointerId);this.pointer.set(e.pointerId,{x:e.clientX,y:e.clientY,startX:e.clientX,startY:e.clientY,time:performance.now(),moved:false});if(this.pointer.size===2){const v=[...this.pointer.values()];this.pinchStart={dist:Math.hypot(v[0].x-v[1].x,v[0].y-v[1].y),zoom:this.view.zoom};}}
-  pointerMove(e){const p=this.pointer.get(e.pointerId);if(!p)return;const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;if(Math.hypot(e.clientX-p.startX,e.clientY-p.startY)>8)p.moved=true;
-    if(this.pointer.size===2){const ps=[...this.pointer.values()];const dist=Math.hypot(ps[0].x-ps[1].x,ps[0].y-ps[1].y);if(this.pinchStart){const target=clamp(Math.round(this.pinchStart.zoom+Math.log2(dist/Math.max(1,this.pinchStart.dist))),7,19);if(target!==this.view.zoom)this.zoom(target-this.view.zoom,(ps[0].x+ps[1].x)/2,(ps[0].y+ps[1].y)/2);}return;}
-    const center=world(this.view.lat,this.view.lng,this.view.zoom);const next=inverse(center.x-dx,center.y-dy,this.view.zoom);this.view.lat=clamp(next.lat,54.3,56.5);this.view.lng=clamp(next.lng,35.9,38.9);
-  }
-  up(e,cancel=false){const p=this.pointer.get(e.pointerId);if(!p)return;this.pointer.delete(e.pointerId);if(this.pointer.size<2)this.pinchStart=null;this.refreshSoon(800);if(cancel||p.moved||this.pointer.size) return;
-    const r=this.viewport.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;if(x<0||y<0||x>r.width||y>r.height)return;
-    const latlng=this.screenToGeo(x,y);const unit=this.units.find(u=>{const coord=this.unitPosition(u),pt=this.geoToScreen(coord.lat,coord.lng);return Math.hypot(pt.x-x,pt.y-y)<22;});
-    if(!this.moveMode&&unit&&unit.owner_id===this.getUser()?.id){this.selectedUnit=unit.id;this.feed('Отряд выбран. Нажми «Отправить отряд», затем укажи место.');this.renderPanel();return;}
-    if(this.moveMode){void this.action('move',latlng,this.selectedUnit);this.moveMode=false;this.renderPanel();return;}
-    if(validArea(latlng.lat,latlng.lng)){this.selected=latlng;this.renderPanel();}else this.feed('За пределами игрового региона Москвы. Выбери участок в городе.',true);
-  }
-  unitPosition(u){const a=Date.parse(u.updated_at||u.created_at),b=Date.parse(u.arrive_at||u.updated_at);const t=b>a?clamp((Date.now()-a)/(b-a),0,1):1;return{lat:u.from_lat+(u.to_lat-u.from_lat)*t,lng:u.from_lng+(u.to_lng-u.from_lng)*t};}
-  loop(time=0){if(this.closed)return;if(!document.hidden&&(!this.lastDraw||time-this.lastDraw>=33)){this.draw();this.lastDraw=time;}this.raf=requestAnimationFrame(t=>this.loop(t));}
-  draw(){if(!this.ctx||!this.w)return;const ctx=this.ctx;ctx.setTransform(this.dpr,0,0,this.dpr,0,0);ctx.fillStyle='#101a25';ctx.fillRect(0,0,this.w,this.h);this.drawTiles(ctx);
-    const z=this.view.zoom;
-    for(const c of this.cells){
-      const mine=c.owner_id===this.getUser()?.id,p=this.geoToScreen(c.lat,c.lng);
-      if(p.x< -130||p.y< -130||p.x>this.w+130||p.y>this.h+130)continue;
-      if(z>=11){
-        const x0=c.cell_x/250,x1=(c.cell_x+1)/250,y0=c.cell_y/250,y1=(c.cell_y+1)/250;
-        const a=this.geoToScreen(y0,x0),b=this.geoToScreen(y1,x1);
-        ctx.fillStyle=mine?'#1f82e63d':'#ec54613b';ctx.fillRect(a.x,b.y,b.x-a.x,a.y-b.y);
-        ctx.lineWidth=mine?1.6:1.3;ctx.strokeStyle=mine?'#5db6ff':'#f77a88';ctx.strokeRect(a.x,b.y,b.x-a.x,a.y-b.y);
-      }else{
-        ctx.beginPath();ctx.arc(p.x,p.y,Math.max(6,2.5+(z-7)*2.1),0,Math.PI*2);
-        ctx.fillStyle=mine?'#287fe1ad':'#dc5266ac';ctx.fill();ctx.lineWidth=1.5;ctx.strokeStyle=mine?'#8bc5ff':'#ff9aab';ctx.stroke();
-      }
-      if(c.fort_level&&z>=11){const r=Math.min(10,Math.max(5,2**(z-12)*3));ctx.fillStyle='#ffd783';ctx.fillRect(p.x-r/2,p.y-r/2,r,r);ctx.strokeStyle='#16233b';ctx.strokeRect(p.x-r/2,p.y-r/2,r,r);}
-    }
-    for(const u of this.units){const pos=this.unitPosition(u),p=this.geoToScreen(pos.lat,pos.lng);if(p.x< -50||p.y< -50||p.x>this.w+50||p.y>this.h+50)continue;const mine=u.owner_id===this.getUser()?.id;if(this.selectedUnit===u.id&&Date.parse(u.arrive_at)>Date.now()){const dest=this.geoToScreen(u.to_lat,u.to_lng);ctx.strokeStyle='#9eede2';ctx.lineWidth=2;ctx.setLineDash([5,7]);ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(dest.x,dest.y);ctx.stroke();ctx.setLineDash([]);}ctx.beginPath();ctx.arc(p.x,p.y,8,0,Math.PI*2);ctx.fillStyle=mine?'#59e3c6':'#f98d95';ctx.fill();ctx.strokeStyle=this.selectedUnit===u.id?'#fff8c7':'#081923';ctx.lineWidth=2.5;ctx.stroke();ctx.fillStyle='#09111b';ctx.font='bold 11px system-ui';ctx.textAlign='center';ctx.fillText('♟',p.x,p.y+4);}
-    if(this.selected){const p=this.geoToScreen(this.selected.lat,this.selected.lng);ctx.strokeStyle='#f5d16d';ctx.lineWidth=2;ctx.setLineDash([4,4]);ctx.beginPath();ctx.arc(p.x,p.y,19,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);}
-    if(this.$('cqPosition')&&Date.now()-(this.lastPos||0)>1000){this.lastPos=Date.now();this.$('cqPosition').textContent=`${this.view.lat.toFixed(3)}° · ${this.view.lng.toFixed(3)}° | z${this.view.zoom}`;}
-  }
-  drawFallbackTile(ctx,x,y,z,tx,ty){
-    // A schematic backdrop only; NOT real-world road or building geometry.
-    ctx.fillStyle='#172433';ctx.fillRect(x,y,256,256);
-    const rand=(i,j)=>(((tx*73856093)^(ty*19349663)^(i*83492791)^(j*2971215073)^(z*1640531513))>>>0)%101;
-    for(let j=0;j<4;j++)for(let i=0;i<4;i++){
-      const bx=x+i*64+10,by=y+j*64+10;
-      ctx.fillStyle=rand(i,j)<19?'#233c46':'#20313f';ctx.fillRect(bx,by,47,47);
-      ctx.fillStyle='#304453';const gap=3,ww=17,hh=12;
-      if(rand(i+4,j)<86)ctx.fillRect(bx+gap,by+gap,ww,hh);
-      if(rand(i,j+7)<70)ctx.fillRect(bx+25,by+gap,17,19);
-      if(rand(i+9,j+3)<80)ctx.fillRect(bx+gap,by+26,34,13);
-    }
-    ctx.strokeStyle='#496073';ctx.lineWidth=5;
-    for(let i=0;i<=4;i++){ctx.beginPath();ctx.moveTo(x+i*64,y);ctx.lineTo(x+i*64,y+256);ctx.stroke();ctx.beginPath();ctx.moveTo(x,y+i*64);ctx.lineTo(x+256,y+i*64);ctx.stroke();}
-    ctx.strokeStyle='#718899';ctx.lineWidth=.6;
-    for(let i=0;i<=4;i++){ctx.beginPath();ctx.moveTo(x+i*64,y);ctx.lineTo(x+i*64,y+256);ctx.stroke();ctx.beginPath();ctx.moveTo(x,y+i*64);ctx.lineTo(x+256,y+i*64);ctx.stroke();}
-  }
-  drawTiles(ctx){const z=this.view.zoom,center=world(this.view.lat,this.view.lng,z),sx=center.x-this.w/2,sy=center.y-this.h/2;const x0=Math.floor(sx/TILE),y0=Math.floor(sy/TILE),x1=Math.ceil((sx+this.w)/TILE),y1=Math.ceil((sy+this.h)/TILE),n=2**z;
-    const active=new Set();for(let x=x0;x<=x1;x++)for(let y=y0;y<=y1;y++){if(y<0||y>=n)continue;const wrapped=((x%n)+n)%n,key=`${z}/${wrapped}/${y}`;active.add(key);let t=this.tiles.get(key);if(!t){t={state:0};this.tiles.set(key,t);const image=new Image();image.decoding='async';image.referrerPolicy='strict-origin-when-cross-origin';image.onload=()=>{t.image=image;t.state=1;this.tileOk=true;};image.onerror=()=>{t.state=-1;};image.src=`${tileHost}${z}/${wrapped}/${y}.png`;}
-      const px=x*TILE-sx,py=y*TILE-sy;if(t.state===1)ctx.drawImage(t.image,px,py,TILE+1,TILE+1);else this.drawFallbackTile(ctx,px,py,z,wrapped,y);}
-    if(Date.now()-(this.lastTileStatus||0)>1500){this.lastTileStatus=Date.now();const status=this.$('cqTileStatus');if(status)status.textContent=this.tileOk?'Реальные улицы · OpenStreetMap / CARTO':'СХЕМА · реальная карта требует интернет';}
-    if(this.tiles.size>220){for(const [k] of this.tiles){if(!active.has(k)){this.tiles.delete(k);if(this.tiles.size<125)break;}}}
-  }
-  // LOCAL DEMO: explicitly disconnected from the real server; persistent only in this browser.
-  initDemo(){
-    const saved=(()=>{try{return JSON.parse(localStorage.getItem('rndm_cq_v70_demo'))}catch{return null}})();
-    if(saved&&Array.isArray(saved.cells)&&Array.isArray(saved.units)&&Number.isFinite(saved.credits))return saved;
-    const make=(lat,lng,owner_id,fort_level=0,garrison=4)=>{
-      const cell_x=Math.floor(lng*250),cell_y=Math.floor(lat*250);
-      return {cell_x,cell_y,lat:(cell_y+.5)/250,lng:(cell_x+.5)/250,owner_id,fort_level,garrison,shield_until:new Date(Date.now()-1000).toISOString()};
-    };
-    const cells=[make(55.568,37.578,this.demoUserId,1,6),make(55.566,37.586,'rival-red',1,6),make(55.565,37.591,'rival-red',0,4),make(55.571,37.585,'rival-red',0,4),make(55.563,37.568,'rival-orange',0,4),make(55.749,37.539,'rival-red',2,10),make(55.7558,37.6173,'rival-orange',2,8),make(55.992,37.211,'rival-red',1,8),make(55.407,37.146,'rival-orange',1,8)];
-    return {credits:1350,troops:16,cells,units:[],last_income_at:Date.now(),last_action_at:0};
-  }
-  demoSave(){try{localStorage.setItem('rndm_cq_v70_demo',JSON.stringify(this.demoState));}catch{this.feed('Не удалось сохранить локальный прогресс.',true);}}
-  demoSync(){
-    const s=this.demoState,elapsed=Math.max(0,Math.floor((Date.now()-s.last_income_at)/60000)),owned=s.cells.filter(c=>c.owner_id===this.demoUserId).length,rate=Math.min(120,2+owned*2);
-    if(elapsed){s.credits=Math.min(20000,s.credits+Math.min(elapsed,720)*rate);s.last_income_at+=elapsed*60000;this.demoSave();}
-    return{credits:s.credits,troops:s.troops,owned,callsign:'Командир',income_per_minute:rate};
-  }
-  startDemo(message){
-    if(this.closed)return;this.demo=true;this.online=true;this.demoState=this.initDemo();this.getUser=()=>({id:this.demoUserId});this.player=this.demoSync();
-    this.setStatus('ДЕМО · локально, другие игроки не подключены',false);
-    this.feed('Демонстрационный режим. Захваты и отряды сохраняются на этом устройстве.');
-    if(message)this.feed(message,false);
-    this.updateStats();this.refresh();
-    this.setView(55.568,37.58,13);
-    const hq=this.demoState.cells.find(c=>c.owner_id===this.demoUserId);
-    if(hq){this.selected={lat:hq.lat,lng:hq.lng};this.renderPanel();}
-    this.interval=setInterval(()=>{if(!this.closed){this.player=this.demoSync();this.updateStats();}},30000);
-  }
-  demoAction(action,point,unitId){
-    const s=this.demoState,id=this.demoUserId;
-    if(Date.now()-s.last_action_at<550)throw Error('Подожди немного перед следующей командой.');
-    const x=point?Math.floor(point.lng*250):null,y=point?Math.floor(point.lat*250):null;
-    const c=s.cells.find(c=>c.cell_x===x&&c.cell_y===y);
-    const owned=s.cells.filter(q=>q.owner_id===id);
-    const adjacent=owned.some(q=>Math.abs(q.cell_x-x)<=2&&Math.abs(q.cell_y-y)<=2);
-    let message='Команда выполнена';
-    if(action!=='recruit'&&(!point||!validArea(point.lat,point.lng)))throw Error('Выбери участок в игровой зоне Москвы.');
-    if(action==='claim'){
-      if(c)throw Error('Квартал уже занят.');
-      if(owned.length&&!adjacent)throw Error('Захватывай кварталы возле своей территории.');
-      if(s.credits<100)throw Error('Нужно 100 кредитов.');
-      s.credits-=100;s.cells.push({cell_x:x,cell_y:y,lat:(y+.5)/250,lng:(x+.5)/250,owner_id:id,fort_level:0,garrison:4,shield_until:new Date(Date.now()+120000).toISOString()});message='Участок перешёл под твой контроль!';
-    }else if(action==='fort'){
-      if(!c||c.owner_id!==id)throw Error('Строй блокпост на своём участке.');
-      if(c.fort_level>=3)throw Error('Максимальное укрепление.');
-      if(s.credits<200)throw Error('Нужно 200 кредитов.');
-      s.credits-=200;c.fort_level++;c.garrison=Math.min(80,c.garrison+3);message='Блокпост улучшен до уровня '+c.fort_level;
-    }else if(action==='recruit'){
-      if(s.credits<150)throw Error('Нужно 150 кредитов.');
-      if(s.troops>55)throw Error('Достигнут лимит свободных бойцов.');
-      s.credits-=150;s.troops+=5;message='В резерве +5 бойцов';
-    }else if(action==='deploy'){
-      if(!c||c.owner_id!==id)throw Error('Набирай отряды на своей территории.');
-      if(s.troops<4)throw Error('Требуется четыре бойца.');
-      if(s.units.length>=20)throw Error('Лимит 20 отрядов.');
-      s.troops-=4;const at={lat:(y+.5)/250,lng:(x+.5)/250};s.units.push({id:'demo-'+Date.now(),owner_id:id,from_lat:at.lat,from_lng:at.lng,to_lat:at.lat,to_lng:at.lng,size:4,updated_at:new Date().toISOString(),arrive_at:new Date().toISOString()});message='Отряд создан. Выдели его на карте.';
-    }else if(action==='move'){
-      const u=s.units.find(q=>q.id===unitId&&q.owner_id===id);if(!u)throw Error('Сначала выбери свой отряд.');
-      if(Date.parse(u.arrive_at)>Date.now())throw Error('Отряд пока в пути.');
-      const d=km({lat:u.to_lat,lng:u.to_lng},point);if(d>3.5)throw Error('Не более 3,5 км за один приказ.');
-      u.from_lat=u.to_lat;u.from_lng=u.to_lng;u.to_lat=point.lat;u.to_lng=point.lng;u.updated_at=new Date().toISOString();u.arrive_at=new Date(Date.now()+Math.max(3000,d*1000/12*1000)).toISOString();message='Отряд отправлен: '+Math.ceil(d*1000/12)+' с в пути';
-    }else if(action==='attack'){
-      if(!c||c.owner_id===id)throw Error('Нужен чужой участок.');
-      if(!adjacent)throw Error('Нужна соседняя контролируемая территория.');
-      if(Date.parse(c.shield_until)>Date.now())throw Error('Участок пока под защитой.');
-      const u=s.units.find(q=>q.owner_id===id&&q.size>=3&&Date.parse(q.arrive_at)<=Date.now()&&km({lat:q.to_lat,lng:q.to_lng},point)<1.8);
-      if(!u)throw Error('Подведи отряд из 3+ бойцов к атакуемому кварталу.');
-      const won=Math.random()*14+u.size*2>c.garrison+c.fort_level*4;u.size=Math.max(1,u.size-(won?2:1));
-      if(won){c.owner_id=id;c.fort_level=0;c.garrison=3;c.shield_until=new Date(Date.now()+240000).toISOString();message='Победа! Квартал захвачен.';}
-      else{c.garrison=Math.max(1,c.garrison-2);message='Штурм не удался. Защитники понесли потери.';}
-    }else throw Error('Неизвестная команда.');
-    s.last_action_at=Date.now();this.demoSave();return{ok:true,message};
-  }
-  async connect(){if(!this.sb){this.startDemo('Для общего онлайна открой игру в RNDM Chat после установки SQL.');return;}try{
-      const {data:{user},error:ue}=await this.sb.auth.getUser();if(ue||!user)throw Error('Войди в аккаунт RNDM Chat.');
-      const {data,error}=await this.sb.rpc('conquest_sync',{p_callsign:String(this.getProfile()?.display_name||this.getProfile()?.username||'Игрок').slice(0,28)});
-      if(error)throw error;if(this.closed)return;this.player=data;this.online=true;this.setStatus('Сервер отвечает · общий мир',true);this.updateStats();await this.refresh();
-      this.channel=this.sb.channel('rndm-conquest-v1-'+Math.random().toString(36).slice(2)).on('postgres_changes',{event:'*',schema:'public',table:'conquest_cells'},()=>this.refreshSoon(450)).on('postgres_changes',{event:'*',schema:'public',table:'conquest_units'},()=>this.refreshSoon(450)).subscribe(status=>{if(this.closed)return;this.connected=status==='SUBSCRIBED';this.setStatus(this.connected?'Онлайн · изменения в реальном времени':'Онлайн · периодическое обновление',true);});
-      this.interval=setInterval(()=>this.refresh(),15000);this.feed('Подключено к общему миру. Сражения и захваты синхронизируются между игроками.');
-    }catch(error){this.online=false;this.startDemo('Онлайн недоступен: проверь SQL и вход в RNDM. '+(error.message||''));}}
-  async refresh(force=false){if(this.closed||!this.online||(this.busy&&!force))return;
-    if(this.demo){const sw=this.screenToGeo(0,this.h),ne=this.screenToGeo(this.w,0);this.cells=this.demoState.cells.filter(c=>c.lat>=sw.lat-.06&&c.lat<=ne.lat+.06&&c.lng>=sw.lng-.06&&c.lng<=ne.lng+.06);this.units=this.demoState.units.filter(u=>u.to_lat>=sw.lat-.12&&u.to_lat<=ne.lat+.12&&u.to_lng>=sw.lng-.12&&u.to_lng<=ne.lng+.12);this.player=this.demoSync();this.updateStats();this.renderPanel();return;} 
-    const sw=this.screenToGeo(0,this.h),ne=this.screenToGeo(this.w,0);
-    try{const [cells,units,stats]=await Promise.all([
-      this.sb.from('conquest_cells').select('cell_x,cell_y,lat,lng,owner_id,fort_level,garrison,shield_until').gte('lat',sw.lat-.06).lte('lat',ne.lat+.06).gte('lng',sw.lng-.06).lte('lng',ne.lng+.06).limit(700),
-      this.sb.from('conquest_units').select('id,owner_id,from_lat,from_lng,to_lat,to_lng,size,updated_at,arrive_at').gte('to_lat',sw.lat-.12).lte('to_lat',ne.lat+.12).gte('to_lng',sw.lng-.12).lte('to_lng',ne.lng+.12).limit(400),
-      this.sb.rpc('conquest_sync',{p_callsign:String(this.getProfile()?.display_name||this.getProfile()?.username||'Игрок').slice(0,28)})
-    ]);for(const q of [cells,units,stats])if(q.error)throw q.error;
-      if(this.closed)return;this.cells=cells.data||[];this.units=units.data||[];this.player=stats.data;this.updateStats();this.renderPanel();
-    }catch(error){this.setStatus('Проблема связи · переподключение');this.feed('Не удалось получить состояние карты: '+error.message,true);}}
-  refreshSoon(delay=300){if(!this.online)return;clearTimeout(this.refreshTimer);this.refreshTimer=setTimeout(()=>this.refresh(),delay);}
-  updateStats(){const p=this.player||{};for(const [id,v] of [['cqCredits',p.credits],['cqTroops',p.troops],['cqOwned',p.owned],['cqIncome',p.income_per_minute]]){const el=this.$(id);if(el)el.textContent=Number.isFinite(Number(v))?Number(v).toLocaleString('ru-RU'):'—';}}
-  renderPanel(){if(this.closed)return;const c=this.selected&&this.cells.find(c=>cellId(c.lat,c.lng)===cellId(this.selected.lat,this.selected.lng));const own=c?.owner_id===this.getUser()?.id,enemy=!!c&&!own,neutral=!c;
-    for(const t of ['territory','army','intel']){const tab=this.pane?.querySelector('[data-conquest="tab-'+t+'"]');if(tab)tab.classList.toggle('active',this.tab===t);}
-    for(const [id,show] of [['cqTerritory',this.tab==='territory'],['cqActions',this.tab==='territory'],['cqArmy',this.tab==='army'],['cqMissions',this.tab==='intel']]){const el=this.$(id);if(el)el.hidden=!show;}
-    this.renderArmy();this.renderMissions();
-    this.$('cqTargetType').textContent=!this.selected?'СТРАТЕГИЧЕСКИЙ ОБЗОР':own?'ВАША ТЕРРИТОРИЯ':enemy?'ТЕРРИТОРИЯ ПРОТИВНИКА':'НЕЙТРАЛЬНЫЙ УЧАСТОК';
-    this.$('cqTargetName').textContent=!this.selected?'Карта всей Москвы':own?'Контролируемый квартал':enemy?'Чужая территория':'Свободный квартал';
-    this.$('cqTargetInfo').textContent=!this.selected?'Выбери любой квартал Москвы. Для отображения зданий и улиц приблизь карту.':`${this.selected.lat.toFixed(5)}°, ${this.selected.lng.toFixed(5)}° · ${own?`Защита: ${c.garrison} · Блокпост: ${c.fort_level}/3`:enemy?`Гарнизон: ${c.garrison} · Укрепление: ${c.fort_level}`:'Свободно для захвата'}.`;
-    const enabled=this.online&&!this.busy&&!!this.selected;const set=(id,allowed)=>{const el=this.$(id);if(el)el.disabled=!allowed;};
-    set('cqClaim',enabled&&neutral&&Number(this.player?.credits)>=100);
-    set('cqAttack',enabled&&enemy&&Number(this.player?.troops)>=2);
-    set('cqFort',enabled&&own&&Number(this.player?.credits)>=200&&(c.fort_level||0)<3);
-    set('cqRecruit',this.online&&!this.busy&&Number(this.player?.credits)>=150);
-    set('cqDeploy',enabled&&own&&Number(this.player?.troops)>=4);
-    set('cqMove',this.online&&!this.busy&&!!this.selectedUnit);
-    const b=this.$('cqMove');if(b)b.textContent=this.moveMode?'✕ Отменить выбор':'➜ Отправить отряд';
-  }
-  renderArmy(){
-    const el=this.$('cqArmyList');if(!el)return;
-    const mine=this.units.filter(u=>u.owner_id===this.getUser()?.id);
-    el.replaceChildren();
-    if(!mine.length){const p=document.createElement('p');p.textContent='Пока нет отрядов. Выбери свой квартал на карте → «Создать отряд».';el.append(p);return;}
-    mine.forEach((u,i)=>{const b=document.createElement('button');b.type='button';b.className='conquest-unit-card';b.textContent=`Отряд ${i+1} · ${u.size} бойца · ${Date.parse(u.arrive_at)>Date.now()?'в пути':'на позиции'}`;if(this.selectedUnit===u.id)b.classList.add('active');b.addEventListener('click',()=>{this.selectedUnit=u.id;this.tab='territory';const p=this.unitPosition(u);this.setView(p.lat,p.lng,Math.max(this.view.zoom,14));this.renderPanel();this.feed('Отряд выбран. Выбери «Отправить отряд» для маршрута.');});el.append(b);});
-  }
-  renderMissions(){const el=this.$('cqMissionList');if(!el)return;const owned=this.player?.owned||0,forts=this.cells.filter(c=>c.owner_id===this.getUser()?.id&&c.fort_level>0).length,units=this.units.filter(u=>u.owner_id===this.getUser()?.id).length;const missions=[['Первый штаб','Захвати первый квартал',owned>=1],['Расширение','Контролируй 3 квартала',owned>=3],['Линия обороны','Построй блокпост',forts>=1],['Первый приказ','Создай отряд',units>=1],['Влияние','Контролируй 10 кварталов',owned>=10]];el.replaceChildren();for(const [name,detail,done] of missions){const item=document.createElement('div');item.className='conquest-mission'+(done?' complete':'');const mark=document.createElement('span');mark.textContent=done?'✓':'○';const copy=document.createElement('div');const bold=document.createElement('strong');bold.textContent=name;const small=document.createElement('small');small.textContent=detail;copy.append(bold,small);item.append(mark,copy);el.append(item);}}
-  async action(action,point=this.selected,unitId=null){if(!this.online||this.busy)return;if(!point&&action!=='recruit')return;this.busy=true;this.renderPanel();try{const args={p_action:action,p_lat:point?.lat??null,p_lng:point?.lng??null,p_unit_id:unitId??null};const {data,error}=this.demo?{data:this.demoAction(action,point,unitId),error:null}:await this.sb.rpc('conquest_action',args);if(error)throw error;this.feed(data?.message||'Команда выполнена');await this.refresh(true);}catch(error){this.feed(error.message||'Действие не удалось',true);}finally{this.busy=false;this.renderPanel();}}
-  async click(action){if(action==='exit'){this.close();this.onExit();return;}if(action.startsWith('tab-')){this.tab=action.slice(4);this.renderPanel();return;}if(action==='minimize'){this.$('cqSide').classList.toggle('collapsed');this.resize();return;}if(action==='zoomIn'){this.zoom(1);return;}if(action==='zoomOut'){this.zoom(-1);return;}if(action==='moscow'){this.setView(VIEW.lat,VIEW.lng,9);return;}if(MOSCOW_POINTS[action]){const p=MOSCOW_POINTS[action];this.setView(p.lat,p.lng,13);return;}if(action==='move'){if(!this.selectedUnit){this.feed('Нажми на зелёный значок отряда на карте.',true);return;}this.moveMode=!this.moveMode;this.renderPanel();if(this.moveMode)this.feed('Выбери точку назначения на карте.');return;}if(Object.keys(info).includes(action)){await this.action(action);}}
-  close(){this.closed=true;this.events?.abort();this.events=null;this.channel?.unsubscribe().catch?.(()=>{});if(this.channel&&this.sb)this.sb.removeChannel(this.channel).catch?.(()=>{});this.channel=null;clearInterval(this.interval);clearTimeout(this.refreshTimer);cancelAnimationFrame(this.raf);this.pointer.clear();this.tiles.clear();this.online=false;this.canvas=null;this.ctx=null;this.pane=null;this.demo=false;}
+</style>
+<script src="supabase-2.117.2.js?v=67.1.0"></script><script src="config.js?v=67.4.0"></script>
+</head><body><div id="conquestRoot"></div><script>
+// RNDM CONQUEST v71.1 — Moscow's actual OSM building footprints, one online world.
+// Security: frontend never writes ownership or balances. Every action is an authenticated RPC.
+// Offline/error states are explicit; NO fake local multiplayer or client-side territory writes.
+const PI=Math.PI, deg=n=>n*PI/180, clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const TILE=256, MAP_TILE=(window.RNDM_CONQUEST_TILE_URL || 'https://tile.openstreetmap.org/{z}/{x}/{y}.png');
+const POINTS={moscow:[55.7558,37.6173,10],butovo:[55.570,37.578,16],city:[55.749,37.539,16],zelenograd:[55.988,37.203,15],new:[55.410,37.150,14]};
+const html=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const showNumber=n=>Math.round(Number(n)||0).toLocaleString('ru-RU');
+function projected(lat,lng,z){const sin=clamp(Math.sin(deg(lat)),-.999999,.999999),s=TILE*2**z;return{x:(lng+180)/360*s,y:(.5-Math.log((1+sin)/(1-sin))/(4*PI))*s};}
+function geographic(x,y,z){const s=TILE*2**z;return{lat:Math.atan(Math.sinh(PI-2*PI*y/s))*180/PI,lng:x/s*360-180};}
+function pointInRing(pt,ring){let inside=false;for(let i=0,j=ring.length-1;i<ring.length;j=i++){const a=ring[i],b=ring[j];if(((a[1]>pt.lat)!==(b[1]>pt.lat))&&pt.lng<(b[0]-a[0])*(pt.lat-a[1])/(b[1]-a[1])+a[0])inside=!inside;}return inside;}
+function pointInGeo(pt,geom){if(!geom)return false;const polys=geom.type==='Polygon'?[geom.coordinates]:geom.type==='MultiPolygon'?geom.coordinates:[];return polys.some(poly=>poly[0]?.length>2&&pointInRing(pt,poly[0])&&!poly.slice(1).some(r=>pointInRing(pt,r)));}
+function hexColor(s){return /^#[0-9a-f]{6}$/i.test(s||'')?s:'#6d7d93';}
+class Conquest {
+ constructor(sb,{getUser=()=>null,getProfile=()=>({}),toast=()=>{},onExit=()=>{}}={}){
+  this.sb=sb;this.getUser=getUser;this.getProfile=getProfile;this.toast=toast;this.onExit=onExit;
+  this.root=null;this.canvas=null;this.ctx=null;this.abort=null;this.channel=null;this.timer=null;this.requestTimer=null;
+  this.view={lat:55.7558,lng:37.6173,zoom:10};this.buildings=[];this.overview=[];this.orders=[];this.tiles=new Map();
+  this.me=null;this.team=null;this.selectedId=null;this.selectedSource=null;this.sourceCandidates=[];this.sourceTarget=null;this.busy=false;this.loaded=false;this.closed=true;
+  this.pointers=new Map();this.downPoint=null;this.firstLoad=true;this.lastLoadedKey='';this.requests=0;this.stale=false;
+ }
+ open(pane){this.close();this.closed=false;this.root=pane;this.abort=new AbortController();this.root.innerHTML=`
+ <section class="cq71" aria-label="RNDM Conquest — Москва">
+ <header class="cq71-top"><button class="cq71-exit" data-cq="exit" title="Назад в Игры" aria-label="Вернуться к играм">←</button>
+ <div class="cq71-brand"><small>RNDM / ИГРЫ / ЕДИНЫЙ МИР</small><strong>CONQUEST <em>МОСКВА</em></strong></div>
+ <div class="cq71-team-chip" id="cqTeamChip"><span id="cqTeamFlag">◇</span><span id="cqTeamName">Команда не создана</span></div>
+ <div class="cq71-money" title="Ресурсы">◆ <b id="cqCredits">—</b></div>
+ <div class="cq71-count" title="Захваченные здания">▥ <b id="cqCaptured">—</b></div>
+ <button class="cq71-collapse-mobile" data-cq="panel" aria-label="Открыть панель">☷</button>
+ </header>
+ <div class="cq71-layout"><div class="cq71-map" id="cqMap" tabindex="0" aria-label="Реальная карта Москвы. Перемещайте и масштабируйте карту">
+ <canvas id="cqCanvas"></canvas>
+ <div class="cq71-places" role="group" aria-label="Переход по карте"><button data-cq="moscow">Вся Москва</button><button data-cq="butovo">Бутово</button><button data-cq="city">Москва-Сити</button><button data-cq="zelenograd">Зеленоград</button><button data-cq="new">Новая Москва</button></div>
+ <div class="cq71-zoom"><button data-cq="plus" aria-label="Приблизить карту">+</button><button data-cq="minus" aria-label="Отдалить карту">−</button></div>
+ <div class="cq71-live" id="cqLive" role="status">◌ Соединение с миром…</div>
+ <div class="cq71-hint" id="cqMapHint">Приблизь карту до домов, чтобы выбрать здание</div>
+ <div class="cq71-attribution"><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap</a> · <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OSM</a></div>
+ </div>
+ <aside class="cq71-sidebar" id="cqSide">
+ <div class="cq71-sidehead"><div><small>ТАКТИЧЕСКИЙ ШТАБ</small><h2>Управление</h2></div><button data-cq="panel" aria-label="Свернуть панель">⌄</button></div>
+ <div class="cq71-sidebody"><div class="cq71-tabs"><button class="active" data-cq="tab-target">Здание</button><button data-cq="tab-army">Армия</button><button data-cq="tab-team">Команда</button></div>
+ <div class="cq71-tab-content" id="cqTargetTab"><div class="cq71-selection"><small id="cqBuildingKind">ВЫБЕРИ ЗДАНИЕ</small><h3 id="cqBuildingTitle">Москва — общий мир</h3><p id="cqBuildingDescription">На карте отображаются реальные дома. Приблизь карту до 15-го масштаба, нажми на дом и отправь разведчика.</p><div id="cqOwnerRow" class="cq71-owner"></div></div>
+ <div class="cq71-actiongrid"><button id="cqScout" class="cq71-primary" data-cq="scout" disabled>⌁ Отправить разведчика · 40</button><button id="cqRecruit" data-cq="recruit" disabled>＋ Нанять 5 бойцов · 120</button><button id="cqFort" data-cq="fort" disabled>▤ Блокпост · 220</button></div>
+ <div class="cq71-march"><strong>Переброска армии</strong><p>Из своего здания — к выбранному дому. Если цель защищена, сначала нужна разведка.</p>
+ <label>Откуда отправить<input id="cqSourceSearch" type="search" placeholder="Поиск по своим домам…" autocomplete="off"></label>
+ <select id="cqSource" aria-label="Выбрать исходное здание"></select>
+ <label>Количество бойцов <input id="cqTroopCount" type="number" min="1" max="1000" inputmode="numeric" value="5"></label>
+ <button id="cqMarch" data-cq="dispatch" disabled>➜ Отправить армию</button>
+ </div></div>
+ <div class="cq71-tab-content" id="cqArmyTab" hidden><h3>Отряды в пути</h3><p>Отряды движутся между зданиями. Бои разрешаются сервером по прибытии.</p><div id="cqOrders"></div></div>
+ <div class="cq71-tab-content" id="cqTeamTab" hidden><div id="cqTeamDetails"></div><p>Каждый участник управляет собственной командой. Цвет команды одинаков на карте у всех игроков.</p></div>
+ <div class="cq71-feed"><small>СОБЫТИЯ</small><div id="cqFeed" aria-live="polite"></div></div>
+ </div></aside></div>
+ <div class="cq71-modal" id="cqTeamModal" hidden><form id="cqTeamForm" class="cq71-setup"><div class="cq71-setup-icon">⚑</div><small>НАЧАЛО ИГРЫ · ОДИН ОБЩИЙ СЕРВЕР</small><h2>Создай свою команду</h2><p>Все игроки находятся на одной карте Москвы. Придумай название и флаг, выбери цвет, который будет обозначать твои дома.</p>
+ <label>Название команды<input id="cqCreateName" name="name" minlength="3" maxlength="32" autocomplete="off" placeholder="Например, Северный Союз" required></label>
+ <label>Флаг команды<input id="cqCreateFlag" name="flag" maxlength="16" value="🚩" required></label>
+ <div class="cq71-flags" role="group" aria-label="Примеры флагов"><button type="button" data-flag="🚩">🚩</button><button type="button" data-flag="🏴">🏴</button><button type="button" data-flag="🏳️">🏳️</button><button type="button" data-flag="🦅">🦅</button><button type="button" data-flag="⚔️">⚔️</button><button type="button" data-flag="🛡️">🛡️</button><button type="button" data-flag="👑">👑</button></div>
+ <label>Цвет команды<div class="cq71-colorbox"><input id="cqCreateColor" name="color" type="color" value="#3894ff"><span id="cqHex">#3894ff</span></div></label>
+ <button class="cq71-primary cq71-start" type="submit">Создать команду и войти в Москву</button><p class="cq71-error" id="cqCreateError" role="alert"></p></form></div>
+ <div class="cq71-blocker" id="cqErrorScreen" hidden><div class="cq71-blockerbox"><h3>Нет подключения к общему миру</h3><p id="cqErrorReason"></p><button data-cq="retry">Повторить подключение</button><button data-cq="exit">Вернуться в Игры</button></div></div>
+ </section>`;
+ this.canvas=this.$('cqCanvas');this.ctx=this.canvas.getContext('2d',{alpha:false});this.map=this.$('cqMap');
+ const s=this.abort.signal;
+ pane.addEventListener('click',e=>{let t=e.target.closest('[data-flag]');if(t){this.$('cqCreateFlag').value=t.dataset.flag;return;}t=e.target.closest('[data-cq]');if(t){void this.command(t.dataset.cq);}}, {signal:s});
+ this.$('cqTeamForm').addEventListener('submit',e=>{e.preventDefault();void this.makeTeam();},{signal:s});
+ this.$('cqCreateColor').addEventListener('input',e=>{this.$('cqHex').textContent=e.target.value;},{signal:s});
+ this.$('cqSourceSearch').addEventListener('input',()=>this.sources(),{signal:s});
+ this.$('cqSource').addEventListener('change',e=>{this.selectedSource=e.target.value||null;this.panel();},{signal:s});
+ this.$('cqTroopCount').addEventListener('input',()=>this.panel(),{signal:s});
+ this.map.addEventListener('pointerdown',e=>this.pointerDown(e),{signal:s});
+ this.map.addEventListener('pointermove',e=>this.pointerMove(e),{signal:s});
+ this.map.addEventListener('pointerup',e=>this.pointerUp(e),{signal:s});
+ this.map.addEventListener('pointercancel',e=>this.pointerUp(e,true),{signal:s});
+ this.map.addEventListener('wheel',e=>{e.preventDefault();this.zoom(e.deltaY<0?1:-1,e.clientX,e.clientY);},{signal:s,passive:false});
+ this.map.addEventListener('dblclick',e=>{e.preventDefault();this.zoom(1,e.clientX,e.clientY);},{signal:s});
+ window.addEventListener('resize',()=>this.resize(),{signal:s});
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)this.refreshSoon(150);},{signal:s});
+ this.resize();this.loop();void this.connect();
+ }
+ $(id){return this.root?.querySelector('#'+id);}
+ log(msg,error=false){const box=this.$('cqFeed');if(!box)return;const item=document.createElement('p');item.textContent=msg;item.className=error?'error':'';box.prepend(item);while(box.children.length>5)box.lastChild.remove();if(error)this.toast(msg);}
+ status(msg,ok=false){const l=this.$('cqLive');if(!l)return;l.textContent=(ok?'● ':'◌ ')+msg;l.classList.toggle('ok',ok);}
+ errorScreen(reason){const m=this.$('cqErrorScreen');if(m)m.hidden=false;const p=this.$('cqErrorReason');if(p)p.textContent=reason;this.status('Общий сервер недоступен',false);}
+ resize(){if(this.closed||!this.canvas)return;const box=this.map.getBoundingClientRect(),dpr=Math.min(devicePixelRatio||1,2);this.dpr=dpr;this.w=Math.max(box.width,120);this.h=Math.max(box.height,120);const w=Math.round(this.w*dpr),h=Math.round(this.h*dpr);if(this.canvas.width!==w||this.canvas.height!==h){this.canvas.width=w;this.canvas.height=h;} }
+ position(lat,lng){const center=projected(this.view.lat,this.view.lng,this.view.zoom),p=projected(lat,lng,this.view.zoom);return{x:p.x-center.x+this.w/2,y:p.y-center.y+this.h/2};}
+ geo(x,y){const c=projected(this.view.lat,this.view.lng,this.view.zoom);return geographic(c.x+x-this.w/2,c.y+y-this.h/2,this.view.zoom);}
+ viewAt(lat,lng,zoom){this.view={lat:clamp(lat,54.6,56.2),lng:clamp(lng,36.3,38.5),zoom:clamp(zoom,8,19)};this.selectedId=null;this.refreshSoon(200);this.panel();}
+ zoom(delta,clientX,clientY){const nz=clamp(this.view.zoom+delta,8,19);if(nz===this.view.zoom)return;const rect=this.map.getBoundingClientRect();const x=clientX==null?this.w/2:clientX-rect.left,y=clientY==null?this.h/2:clientY-rect.top;const a=this.geo(x,y);const anchor=projected(a.lat,a.lng,nz),newCenter=geographic(anchor.x-(x-this.w/2),anchor.y-(y-this.h/2),nz);this.view.zoom=nz;this.view.lat=clamp(newCenter.lat,54.6,56.2);this.view.lng=clamp(newCenter.lng,36.3,38.5);this.selectedId=null;this.refreshSoon(220);this.panel();}
+ pointerDown(e){if(e.target.closest('button,a'))return;if(e.pointerType==='mouse'&&e.button!==0)return;this.map.setPointerCapture?.(e.pointerId);this.pointers.set(e.pointerId,{x:e.clientX,y:e.clientY,startX:e.clientX,startY:e.clientY,moved:false});if(this.pointers.size===2){const a=[...this.pointers.values()];this.pinch={distance:Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y),zoom:this.view.zoom};}}
+ pointerMove(e){const p=this.pointers.get(e.pointerId);if(!p)return;const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;if(Math.hypot(p.x-p.startX,p.y-p.startY)>7)p.moved=true;
+  if(this.pointers.size>=2){const a=[...this.pointers.values()];const d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);if(this.pinch){const target=clamp(Math.round(this.pinch.zoom+Math.log2(d/Math.max(this.pinch.distance,1))),8,19);if(target!==this.view.zoom)this.zoom(target-this.view.zoom,(a[0].x+a[1].x)/2,(a[0].y+a[1].y)/2);}return;}
+  const c=projected(this.view.lat,this.view.lng,this.view.zoom),next=geographic(c.x-dx,c.y-dy,this.view.zoom);this.view.lat=clamp(next.lat,54.6,56.2);this.view.lng=clamp(next.lng,36.3,38.5);
+ }
+ pointerUp(e,cancel=false){const p=this.pointers.get(e.pointerId);if(!p)return;this.pointers.delete(e.pointerId);if(this.pointers.size<2)this.pinch=null;this.refreshSoon(350);if(cancel||p.moved||this.pointers.size||this.view.zoom<15)return;
+  const r=this.map.getBoundingClientRect(),geo=this.geo(e.clientX-r.left,e.clientY-r.top);let hit=this.buildings.find(b=>pointInGeo(geo,b.geometry));
+  if(!hit){let min=15;for(const b of this.buildings){const s=this.position(b.lat,b.lng),d=Math.hypot(s.x-(e.clientX-r.left),s.y-(e.clientY-r.top));if(d<min){min=d;hit=b;}}}
+  if(hit){this.selectedId=hit.id;this.panel();this.log('Выбрано здание '+(hit.address||hit.name||'#'+hit.id));}else this.log('Здесь нет загруженного здания. Приблизь карту или выбери другой дом.');
+ }
+ loop(t=0){if(this.closed)return;if(!document.hidden&&(!this.lastFrame||t-this.lastFrame>37)){this.paint();this.lastFrame=t;}this.animation=requestAnimationFrame(t=>this.loop(t));}
+ paint(){if(!this.ctx||!this.w)return;const c=this.ctx;c.setTransform(this.dpr,0,0,this.dpr,0,0);c.fillStyle='#d6dde6';c.fillRect(0,0,this.w,this.h);this.tilesPaint(c);
+  if(this.view.zoom>=15){for(const b of this.buildings){const poly=b.geometry?.type==='Polygon'?[b.geometry.coordinates]:b.geometry?.type==='MultiPolygon'?b.geometry.coordinates:[];const mine=b.owner_id===this.team?.id;const selected=b.id===this.selectedId;let filled=false;c.beginPath();for(const rings of poly)for(const ring of rings){if(ring.length<3)continue;ring.forEach(([lng,lat],i)=>{const p=this.position(lat,lng);if(i===0)c.moveTo(p.x,p.y);else c.lineTo(p.x,p.y);});c.closePath();filled=true;}
+    if(!filled)continue;c.fillStyle=b.owner_id?hexColor(b.team_color)+(selected?'bf':'70'):'#8ba5b747';c.fill('evenodd');c.lineWidth=selected?3:mine?1.9:1.1;c.strokeStyle=selected?'#ffffff':b.owner_id?hexColor(b.team_color):'#71849a';c.stroke();
+    const center=this.position(b.lat,b.lng);if(b.owner_id&&this.view.zoom>=17){c.font='bold 14px system-ui';c.textAlign='center';c.fillStyle='#061b24';c.fillText(b.team_flag||'⚑',center.x,center.y+5);}
+   }}else{for(const b of this.overview){const pt=this.position(b.lat,b.lng);if(pt.x<-40||pt.x>this.w+40||pt.y<-40||pt.y>this.h+40)continue;const r=clamp(5+Math.sqrt(Number(b.count))*2,7,23);c.beginPath();c.arc(pt.x,pt.y,r,0,PI*2);c.fillStyle=hexColor(b.team_color)+'b8';c.fill();c.strokeStyle='#ffffffb8';c.lineWidth=1.5;c.stroke();c.textAlign='center';c.fillStyle='#fff';c.font='bold 11px system-ui';c.fillText(String(b.count),pt.x,pt.y+4);}}
+  for(const o of this.orders){const now=Date.now(),a=Date.parse(o.departed_at),z=Date.parse(o.arrives_at),f=clamp((now-a)/Math.max(1,z-a),0,1);const from=this.position(o.source_lat,o.source_lng),to=this.position(o.target_lat,o.target_lng);c.setLineDash([6,6]);c.strokeStyle=hexColor(o.team_color);c.lineWidth=2;c.beginPath();c.moveTo(from.x,from.y);c.lineTo(to.x,to.y);c.stroke();c.setLineDash([]);const x=from.x+(to.x-from.x)*f,y=from.y+(to.y-from.y)*f;c.fillStyle=hexColor(o.team_color);c.beginPath();c.arc(x,y,7,0,PI*2);c.fill();c.strokeStyle='#fff';c.stroke();c.font='bold 10px system-ui';c.fillStyle='#1a2437';c.textAlign='center';c.fillText('⚔',x,y+3);}
+  const label=this.$('cqMapHint');if(label&&Date.now()-(this.hintAt||0)>1200){this.hintAt=Date.now();label.textContent=this.view.zoom<15?'Приблизь до домов: z'+this.view.zoom+' / 15':this.buildings.length?'Реальные здания · OSM · на экране: '+this.buildings.length:'Загрузка зданий…';}
+ }
+ tilesPaint(c){const {zoom:z}=this.view,center=projected(this.view.lat,this.view.lng,z),sx=center.x-this.w/2,sy=center.y-this.h/2,x0=Math.floor(sx/TILE),x1=Math.ceil((sx+this.w)/TILE),y0=Math.floor(sy/TILE),y1=Math.ceil((sy+this.h)/TILE),n=2**z,needed=new Set();for(let x=x0;x<=x1;x++)for(let y=y0;y<=y1;y++){if(y<0||y>=n)continue;const xx=((x%n)+n)%n,key=`${z}/${xx}/${y}`;needed.add(key);let item=this.tiles.get(key);if(!item){item={ready:false};this.tiles.set(key,item);const img=new Image();img.referrerPolicy='strict-origin-when-cross-origin';img.decoding='async';img.onload=()=>{item.ready=true;item.img=img;};img.onerror=()=>item.failed=true;img.src=MAP_TILE.replace('{z}',String(z)).replace('{x}',String(xx)).replace('{y}',String(y));}
+   if(item.ready)c.drawImage(item.img,x*TILE-sx,y*TILE-sy,TILE+1,TILE+1);
+  }if(this.tiles.size>160)for(const k of this.tiles.keys()){if(!needed.has(k)){this.tiles.delete(k);if(this.tiles.size<=90)break;}}}
+ async rpc(name,args){if(!this.sb)throw Error('Supabase не подключён к мессенджеру.');const {data,error}=await this.sb.rpc(name,args);if(error)throw Error(error.message||'Ошибка сервера');return data;}
+ async connect(){this.status('Проверяем аккаунт RNDM…');try{
+   if(!this.sb)throw Error('Не найден клиент Supabase. Запусти игру через RNDM Chat.');
+   const {data,error}=await this.sb.auth.getUser();if(error||!data?.user)throw Error('Войди в свой аккаунт RNDM Chat.');
+   this.me=await this.rpc('cq71_me');if(this.closed)return;this.$('cqErrorScreen').hidden=true;
+   if(this.me.needs_team){this.$('cqTeamModal').hidden=false;this.status('Создание команды');return;}
+   this.activate();
+  }catch(e){if(!this.closed)this.errorScreen(e.message||'Проблема подключения');}}
+ activate(){this.team=this.me.team;this.$('cqTeamModal').hidden=true;this.$('cqTeamFlag').textContent=this.team.flag;this.$('cqTeamName').textContent=this.team.name;this.$('cqTeamChip').style.setProperty('--team',hexColor(this.team.color));this.$('cqCredits').textContent=showNumber(this.team.credits);this.$('cqCaptured').textContent=showNumber(this.team.buildings);
+  this.status('Общий онлайн · соединение',true);this.loaded=true;this.feedStarted=true;
+  if(this.channel){this.sb.removeChannel(this.channel).catch(()=>{});this.channel=null;}
+  this.channel=this.sb.channel('cq71-changes-'+Math.random().toString(36).slice(2)).on('postgres_changes',{event:'INSERT',schema:'public',table:'cq71_events'},p=>{const ev=p.new||{};if(this.closed)return;this.refreshSoon(650);if(ev.team_id===this.team?.id&&ev.note)this.log(ev.note);}).subscribe(status=>{if(this.closed)return;this.status(status==='SUBSCRIBED'?'В сети · общий мир':status==='CHANNEL_ERROR'?'Связь восстановится по таймеру':'В сети · проверка связи',status==='SUBSCRIBED');});
+  clearInterval(this.timer);this.timer=setInterval(()=>{if(!this.closed&&!document.hidden)void this.refresh();},12000);
+  void this.refresh();this.log('Команда '+this.team.name+' в общем мире. Все захваты сохраняются на сервере.');
+ }
+ async makeTeam(){if(this.busy)return;const name=this.$('cqCreateName').value.trim(),flag=this.$('cqCreateFlag').value.trim(),color=this.$('cqCreateColor').value;const err=this.$('cqCreateError');err.textContent='';if(name.length<3||name.length>32||!flag){err.textContent='Заполни название и флаг.';return;}this.busy=true;const submit=this.$('cqTeamForm').querySelector('[type="submit"]');submit.disabled=true;try{await this.rpc('cq71_create_team',{p_name:name,p_flag:flag,p_color:color});this.me=await this.rpc('cq71_me');if(this.closed)return;this.activate();}catch(e){err.textContent=e.message;}finally{this.busy=false;submit.disabled=false;this.refreshSoon(50);}}
+ rect(){const sw=this.geo(0,this.h),ne=this.geo(this.w,0);return{p_south:clamp(sw.lat-.005,54.65,56.2),p_north:clamp(ne.lat+.005,54.65,56.2),p_west:clamp(sw.lng-.005,36.35,38.5),p_east:clamp(ne.lng+.005,36.35,38.5),p_zoom:this.view.zoom};}
+ async refresh(){if(!this.loaded||this.closed||this.busy)return;const r=this.rect();if(r.p_north<=r.p_south||r.p_east<=r.p_west)return;const token=++this.requests;
+  try{const info=await this.rpc('cq71_world',r);if(this.closed||token!==this.requests)return;this.buildings=info.buildings||[];this.overview=info.overview||[];this.orders=info.orders||[];this.stale=false;this.panel();if(Date.now()-(this.lastMe||0)>18000){this.lastMe=Date.now();void this.refreshMe();}}
+  catch(e){if(this.closed||token!==this.requests)return;this.status('Нет ответа сервера · переподключение',false);if(!this.stale){this.stale=true;this.log('Обновление карты: '+e.message,true);}}}
+ async refreshMe(){try{const me=await this.rpc('cq71_me');if(this.closed)return;this.me=me;this.team=me.team;this.$('cqCredits').textContent=showNumber(me.team.credits);this.$('cqCaptured').textContent=showNumber(me.team.buildings);this.status('Общий онлайн · данные сервера',true);}catch(e){this.log('Статус команды: '+e.message,true);}}
+ refreshSoon(ms=300){if(!this.loaded||this.closed)return;clearTimeout(this.requestTimer);this.requestTimer=setTimeout(()=>this.refresh(),ms);}
+ selected(){return this.buildings.find(b=>b.id===this.selectedId)||null;}
+ sources(){const sel=this.$('cqSource'),query=this.$('cqSourceSearch').value.trim().toLowerCase(),mine=this.sourceCandidates.filter(b=>Number(b.garrison)>1&&b.id!==this.selectedId&&((b.address||'')+(b.name||'')+b.id).toLowerCase().includes(query));
+   sel.replaceChildren();const empty=document.createElement('option');empty.value='';empty.textContent=mine.length?'Выбери свой дом':'Нет своих домов рядом';sel.append(empty);
+   for(const b of mine){const op=document.createElement('option');op.value=b.id;op.textContent=(b.address||b.name||'Дом #'+b.id)+' · '+b.garrison+' бойцов';sel.append(op);}
+   if(mine.some(b=>b.id===this.selectedSource))sel.value=this.selectedSource;else this.selectedSource=null;
+ }
+ panel(){if(this.closed||!this.root)return;const b=this.selected(),team=this.team;const own=b&&b.owner_id===team?.id,enemy=b&&b.owner_id&&b.owner_id!==team?.id,free=b&&!b.owner_id;
+  const kind=this.$('cqBuildingKind'),title=this.$('cqBuildingTitle'),details=this.$('cqBuildingDescription'),owner=this.$('cqOwnerRow');
+  kind.textContent=b?(own?'НАША ТЕРРИТОРИЯ':enemy?'ЧУЖОЕ ЗДАНИЕ':'СВОБОДНОЕ ЗДАНИЕ'):'РЕАЛЬНАЯ МОСКВА';
+  title.textContent=b?(b.address||b.name||'Здание OSM #'+b.id):'Карта всей Москвы';
+  details.textContent=!b?'Приблизь карту минимум до 15-го масштаба и выбери реальный дом. Захватить можно только существующий объект OSM.':own?'Наш гарнизон: '+b.garrison+' · Блокпост: '+b.fort_level+'/5. Можно нанять бойцов или укрепить дом.':enemy?'Команда: '+(b.team_name||'Противник')+' · '+(b.scouted?'Разведка: '+b.garrison+' защитников, блокпост '+b.fort_level:'Силы неизвестны: сначала отправь разведчика.'):'Здесь нет команды. Разведчик проверит дом и, если он по-прежнему пуст, сразу займёт.';
+  owner.replaceChildren();if(b?.owner_id){const color=document.createElement('i');color.style.background=hexColor(b.team_color);const name=document.createElement('span');name.textContent=(b.team_flag||'⚑')+' '+(b.team_name||'Команда');owner.append(color,name);}else if(b){owner.textContent='◇ Никому не принадлежит';}
+  if(b&&this.loaded&&this.sourceTarget!==b.id){this.sourceTarget=b.id;this.sourceCandidates=[];this.selectedSource=null;void this.loadSources(b.id);}else if(!b){this.sourceTarget=null;this.sourceCandidates=[];this.selectedSource=null;}
+  const can=!!b&&this.loaded&&!this.busy;this.$('cqScout').disabled=!can||own||this.team?.credits<40;this.$('cqRecruit').disabled=!can||!own||this.team?.credits<120||b.garrison>495;this.$('cqFort').disabled=!can||!own||this.team?.credits<220||b.fort_level>=5;
+  this.sources();const target=b&&b.id,source=this.sourceCandidates.find(x=>x.id===this.selectedSource),troops=Number(this.$('cqTroopCount').value);
+  this.$('cqMarch').disabled=!can||!source||!Number.isInteger(troops)||troops<1||troops>=Number(source.garrison)||(enemy&&!b.scouted);
+  const list=this.$('cqOrders');if(list&&!this.$('cqArmyTab').hidden){list.replaceChildren();const mine=this.orders.filter(x=>x.team_id===team?.id);if(!mine.length)list.textContent='Никто не в пути.';for(const o of mine){const el=document.createElement('div');el.className='cq71-order';el.textContent='⚔ '+o.troops+' бойцов · до '+new Date(o.arrives_at).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit',second:'2-digit'});list.append(el);}}
+  const detail=this.$('cqTeamDetails');if(detail&&team)detail.innerHTML='<div class="cq71-team-big"><span style="color:'+hexColor(team.color)+'">'+html(team.flag)+'</span><strong>'+html(team.name)+'</strong></div><div class="cq71-team-stat">Цвет: '+html(team.color)+' · Зданий: '+showNumber(team.buildings)+' · Доход: +'+showNumber(team.income)+'/мин.</div>';
+ }
+ async loadSources(id){try{const candidates=await this.rpc('cq71_sources',{p_target:id});if(this.closed||this.sourceTarget!==id)return;this.sourceCandidates=candidates||[];this.sources();}catch(e){if(!this.closed&&this.sourceTarget===id)this.log('Источники армии: '+e.message,true);}}
+ async act(type){const b=this.selected();if(!b||this.busy)return;this.busy=true;this.panel();try{let res;if(type==='scout')res=await this.rpc('cq71_scout',{p_osm_id:b.id});else if(type==='recruit')res=await this.rpc('cq71_recruit',{p_osm_id:b.id});else if(type==='fort')res=await this.rpc('cq71_fort',{p_osm_id:b.id});else if(type==='dispatch'){
+    const amount=Number(this.$('cqTroopCount').value),source=this.selectedSource;if(!source||!Number.isInteger(amount)||amount<1)throw Error('Выбери свой дом и число бойцов.');res=await this.rpc('cq71_dispatch',{p_source:source,p_target:b.id,p_troops:amount});}
+   if(res?.message)this.log(res.message);if(res?.outcome==='occupied')this.log('Разведка: '+res.team_flag+' '+res.team_name+', '+res.garrison+' защитников.');
+   this.lastMe=0;this.busy=false;await this.refresh();await this.refreshMe();
+  }catch(e){this.log(e.message||'Ошибка команды',true);}finally{this.busy=false;this.panel();}}
+ async command(which){if(which==='exit'){this.close();this.onExit();return;}if(which==='retry'){this.$('cqErrorScreen').hidden=true;void this.connect();return;}
+  if(which==='panel'){this.$('cqSide').classList.toggle('minimized');this.resize();return;}
+  if(which==='plus'||which==='minus'){this.zoom(which==='plus'?1:-1);return;}
+  if(POINTS[which]){const p=POINTS[which];this.viewAt(...p);return;}
+  if(which.startsWith('tab-')){for(const a of ['target','army','team']){const cur=which==='tab-'+a;this.$({target:'cqTargetTab',army:'cqArmyTab',team:'cqTeamTab'}[a]).hidden=!cur;this.root.querySelector('[data-cq="tab-'+a+'"]').classList.toggle('active',cur);}this.panel();return;}
+  if(['scout','recruit','fort','dispatch'].includes(which))await this.act(which);
+ }
+ close(){this.closed=true;this.abort?.abort();this.abort=null;clearInterval(this.timer);clearTimeout(this.requestTimer);cancelAnimationFrame(this.animation);this.requests++;this.loaded=false;this.tiles.clear();this.pointers.clear();if(this.channel&&this.sb)this.sb.removeChannel(this.channel).catch(()=>{});this.channel=null;this.root=null;this.canvas=null;this.ctx=null;this.map=null;}
 }
 
-window.addEventListener('DOMContentLoaded',()=>{
-  const root=document.getElementById('conquestRoot');
-  function mount(){const game=new Conquest(null,{getProfile:()=>({display_name:'Командир'}),onExit:()=>{
-    root.innerHTML='<section class="demo-exit"><h1>CONQUEST · МОСКВА</h1><p>Демонстрация завершена. Прогресс сохранён в браузере.</p><button id="restartDemo">Вернуться на карту</button></section>';
-    document.getElementById('restartDemo').onclick=mount;
-  }});game.open(root);window.__conquestDemo=game;}
-  mount();
-});</script></body></html>
+(function(){
+ const cfg=window.RNDM_CONFIG||{};
+ const sb=(window.supabase?.createClient&&cfg.url&&cfg.key)?window.supabase.createClient(cfg.url,cfg.key):null;
+ const game=new Conquest(sb,{onExit:()=>{location.href='./index.html?view=games';},toast:msg=>console.warn('[Conquest]',msg)});
+ game.open(document.getElementById('conquestRoot'));
+ window.addEventListener('pagehide',()=>game.close(),{once:true});
+})();
+</script></body></html>
