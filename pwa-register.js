@@ -8,7 +8,7 @@ if('serviceWorker' in navigator&&location.protocol==='https:'){
     banner.querySelector('.primary').onclick=()=>{if(!window.dispatchEvent(new Event('RNDM_BEFORE_UPDATE',{cancelable:true}))){banner.querySelector('small').textContent='Заверши отправку, запись или звонок';return;}requested=true;reg.waiting?.postMessage('SKIP_WAITING');};
     banner.querySelector('.icon-button').onclick=()=>banner.remove();document.body.append(banner);
   };
-  window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=68.0.1',{scope:'./',updateViaCache:'none'}).then(reg=>{
+  window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=70.0.0',{scope:'./',updateViaCache:'none'}).then(reg=>{
     offer(reg);reg.addEventListener('updatefound',()=>{const worker=reg.installing;worker?.addEventListener('statechange',()=>{if(worker.state==='installed'&&navigator.serviceWorker.controller)offer(reg);});});
     reg.update().catch(()=>{});
   }).catch(()=>{}));

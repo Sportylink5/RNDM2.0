@@ -411,7 +411,7 @@ function renderSidebar() {
   if(route==='chats')tabs.push(...normalizeFolders(app.state.folders).map(f=>[f.id,f.title]));
   paintHTML($('#folderTabs'),tabs.map(([name,label])=>`<button type="button" data-folder="${name}" aria-pressed="${(route==='channels'?app.channelView:app.folder)===name}" class="${(route==='channels'?app.channelView:app.folder)===name?'active':''}">${esc(label)}${name==='unread'&&inboxStats(inboxDialogs(),app.prefs).newChats?'<span class="tab-badge">'+inboxStats(inboxDialogs(),app.prefs).newChats+'</span>':''}</button>`).join('')+(route==='chats'?'<button type="button" data-action="folders-manage" aria-label="Управление папками">＋ Папки</button>':''));$('#folderTabs').hidden=!tabs.length;
   const host=$('#dialogList');
-  if(route==='games'){paintHTML(host,'<div class="sidebar-empty"><h3>RNDM Arcade</h3><p>Онлайн-гонки и FPS. Создай комнату и пригласи друзей по ссылке.</p></div>');return;}
+  if(route==='games'){paintHTML(host,'<div class="sidebar-empty"><h3>RNDM Arcade</h3><p>CONQUEST: вся Москва в реальном времени. А ещё гонки и FPS с друзьями.</p></div>');return;}
   if(route==='chats'){
     const ownChannels=app.channels.map(ch=>({...ch,kind:'channel',title:ch.title||ch.name,preview:ch.description||'Новые публикации канала'}));
     const combined=unique([...inboxDialogs(),...ownChannels]).filter(x=>{
@@ -498,7 +498,7 @@ async function navigate(route,push=true) {
   $('#pane').innerHTML=route==='settings'?V.settings(app):V.welcome(app);renderSidebar();applyLanguage();
   const epoch=app.epoch;
   try{
-    if(route==='games'){const {Arcade}=await import('./arcade.js?v=68.0.0');if(epoch!==app.epoch)return;arcade ||= new Arcade(api,{getProfile:()=>app.profile,toast});arcade.open($('#pane'));return;}
+    if(route==='games'){const {Arcade}=await import('./arcade.js?v=70.0.0');if(epoch!==app.epoch)return;arcade ||= new Arcade(api,{getProfile:()=>app.profile,toast});arcade.open($('#pane'));return;}
     if(route==='admin'){await admin.open($('#pane'));return;}
     if(route==='random'){await openRandomPage();return;}
     if(route==='tapolka'){await openTapolka();return;}
