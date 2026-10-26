@@ -1,11 +1,12 @@
-const VERSION='71.0.0';
+const VERSION='72.0.0';
 const CACHE_PREFIX='rndm-'+encodeURIComponent(new URL(self.registration.scope).pathname)+'-';
-const CACHE=CACHE_PREFIX+'v71-0-0-real-buildings';
+const CACHE=CACHE_PREFIX+'v72-0-0-racing-conquest';
 const SHELL=[
-  './conquest.html?v=71.0.0','./arcade.js?v=71.0.0','./conquest.js?v=71.0.0','./conquest.css?v=71.0.0','./arcade-net.js?v=68.0.0','./arcade-engine.js?v=68.0.0','./arcade.css?v=68.0.0',
-  './index.html','./redirect.js?v=67.1.0','./bootstrap.js?v=67.4.0','./file-warning.js?v=67.1.0','./pwa-register.js?v=71.0.0','./style.css?v=67.1.0','./liquid-glass.css?v=67.1.0','./config.js?v=67.4.0',
+ './conquest.html?v=72.0.0',
+  './arcade.js?v=72.0.0','./arcade-race-render.js?v=70.0.0','./conquest.js?v=72.0.0','./conquest.css?v=72.0.0','./arcade-net.js?v=70.0.0','./arcade-engine.js?v=70.0.0','./arcade.css?v=72.0.0',
+  './index.html','./redirect.js?v=67.1.0','./bootstrap.js?v=67.4.0','./file-warning.js?v=67.1.0','./pwa-register.js?v=72.0.0','./style.css?v=67.1.0','./liquid-glass.css?v=67.1.0','./config.js?v=67.4.0',
   './organizer.js?v=67.1.0','./qrcode-1.4.4.js?v=67.1.0',
-  './app.js?v=71.0.0','./core.js?v=68.0.0','./api.js?v=67.4.0','./together.js?v=67.3.0','./together-games.js?v=67.1.0','./together.css?v=67.3.0',
+  './app.js?v=72.0.0','./core.js?v=68.0.0','./api.js?v=67.4.0','./together.js?v=67.3.0','./together-games.js?v=67.1.0','./together.css?v=67.3.0',
   './views.js?v=68.0.1','./admin.js?v=67.1.0','./donate.js?v=67.1.0','./donate.css?v=67.1.0',
   './messenger-tools.js?v=67.1.0','./messenger.css?v=67.1.0','./polish.css?v=67.1.0','./gift-art.js?v=67.1.0','./inter.woff2',
   './privacy.html','./reset-password.html',
@@ -54,7 +55,7 @@ const SHELL=[
 ];
 self.addEventListener('install',event=>{
   // Missing optional assets must never prevent a new service worker from activating.
-  const essential=['./index.html','./app.js?v=71.0.0','./together-games.js?v=67.1.0','./together.css?v=67.3.0'];
+  const essential=['./index.html','./app.js?v=72.0.0','./together-games.js?v=67.1.0','./together.css?v=67.3.0'];
   event.waitUntil(caches.open(CACHE).then(async cache=>{
     await Promise.allSettled(essential.map(async path=>{
       const response=await fetch(path,{cache:'reload'});
