@@ -1,11 +1,12 @@
-import {W,H,MAP,isPath,canStand,randomSpawn,paintTerrain} from './chase-map.js?v=73.0.0';
+import {W,H,MAP,isPath,canStand,randomSpawn,paintTerrain} from './chase-map.js?v=74.0.0';
 
 const $=id=>document.getElementById(id);
 const canvas=$('gameCanvas'),ctx=canvas.getContext('2d'),mini=$('miniCanvas'),mc=mini.getContext('2d');
-const client=window.supabase?.createClient?.('https://rijqlmrcnshswtoweoai.supabase.co','sb_publishable_Ay6EBRfZx1-Shj1FdMg7ZQ_P61Rii2A',{
+const cfg=window.RNDM_CONFIG||{url:'https://rijqlmrcnshswtoweoai.supabase.co',key:'sb_publishable_Ay6EBRfZx1-Shj1FdMg7ZQ_P61Rii2A'};
+const client=window.supabase?.createClient?.(cfg.url,cfg.key,{
   auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}
 });
-const state={user:null,room:null,roster:[],friends:[],invites:[],players:new Map(),it:null,inputs:new Map(),channel:null,online:false,mode:'idle',isHost:false,remaining:240,elapsed:0,grace:2,sendTimer:0,snapTimer:0,roomCheck:0,inviteCheck:0,lastHost:0,demoBotClock:0,finished:false};
+const state={selectedFriends:new Set(),boost:1.65,duration:240,first:'random',user:null,room:null,roster:[],friends:[],invites:[],players:new Map(),it:null,inputs:new Map(),channel:null,online:false,mode:'idle',isHost:false,remaining:240,elapsed:0,grace:2,sendTimer:0,snapTimer:0,roomCheck:0,inviteCheck:0,lastHost:0,demoBotClock:0,finished:false};
 const keyDown=new Set();
 if(new URLSearchParams(location.search).has('embed'))document.documentElement.classList.add('embedded');
 const touch={dx:0,dy:0,sprint:false,pointer:null,boostPointer:null};
@@ -27,6 +28,9 @@ const ids=()=>[...state.players.keys()];
 function notice(msg,error=false){$('notice').textContent=msg;$('notice').classList.toggle('error',error);}
 function show(id,on){$(id).classList.toggle('hidden',!on);}
 function setConnection(s){$('connection').textContent=s;}
+function settingsFromForm(){return {duration:Number($('durationSetting').value)||240,boost:Number($('boostSetting').value)||1.65,first:$('firstSetting').value||'random'};}
+function labelSettings(s){const m=Math.round((Number(s?.duration)||240)/60),b=Number(s?.boost)||1.65;return `${m} мин · Бег ×${b.toFixed(2)} · ${s?.first==='host'?'водит создатель':'водящий случайный'}`;}
+function showSetup(enabled){show('setupSection',enabled);}
 function cleanName(name){return String(name||'Игрок').slice(0,36);}
 function profileName(id){return cleanName(state.roster.find(p=>p.id===id)?.name||state.friends.find(p=>p.id===id)?.name||id?.slice(0,6));}
 function avatarNode(person){const a=document.createElement('span');a.className='avatar';if(person?.avatar&&/^https?:\/\//.test(person.avatar)){const im=document.createElement('img');im.src=person.avatar;im.alt='';im.referrerPolicy='no-referrer';a.append(im)}else a.textContent=(person?.name||'И').charAt(0).toUpperCase();return a;}
@@ -44,8 +48,8 @@ async function init(){
  try{
   const {data:{session},error}=await client.auth.getSession();if(error)throw error;
   state.user=session?.user||null;
-  if(!state.user){setConnection('● Войти в RNDM');notice('Для игры с друзьями войди в свой аккаунт RNDM. Тренировка доступна без входа.');return;}
-  setConnection('● Аккаунт подключён');notice('Создай комнату и пригласи друзей из списка.');
+  if(!state.user){setConnection('● Войти в RNDM');notice('Войди в тот же аккаунт RNDM, в котором у тебя есть друзья. После входа обнови страницу игры.');return;}
+  setConnection('● Аккаунт подключён');notice('Выбери длительность и ускорение, затем создай лобби.');
   try{const rows=await fetchRows('profiles','id,display_name,username,avatar_url',q=>q.eq('id',state.user.id).limit(1));state.meProfile=rows[0]||null;}catch(e){console.warn('Profile avatar not available',e)}
   await loadInvites();
   const invite=new URLSearchParams(location.search).get('invite');
@@ -55,11 +59,13 @@ async function init(){
 function bindUI(){
  $('createBtn').addEventListener('click',async()=>{
    if(!state.user){notice('Сначала войди в RNDM Chat, затем открой догонялки.',true);return}
-   try{await stopRoom();const id=await rpc('chase_create_room');await openRoom(id);notice('Комната создана! Выбирай друзей и приглашай их.')}catch(e){notice(getError(e),true)}
+   const b=$('createBtn');b.disabled=true;b.textContent='Создаём лобби…';
+   try{await stopRoom();const p=settingsFromForm();const id=await rpc('chase_create_room_config',{p_duration:p.duration,p_boost:p.boost,p_first:p.first});await openRoom(id);notice('Лобби создано! Выбери друзей ниже, отправь приглашения и нажми «Запустить матч».')}catch(e){notice('Не удалось создать лобби: '+getError(e),true)}finally{b.disabled=false;b.textContent='＋ Создать лобби'}
  });
  $('demoBtn').addEventListener('click',async()=>{await stopRoom();startDemo();document.querySelector('.app').classList.remove('show-menu')});
  $('refreshInvites').addEventListener('click',loadInvites);
  $('refreshFriends').addEventListener('click',loadFriends);
+ $('inviteSelected').addEventListener('click',sendSelectedInvites);
  $('friendSearch').addEventListener('input',renderFriends);
  $('startBtn').addEventListener('click',async()=>{
   if(!state.room||!state.isHost)return;
@@ -104,17 +110,28 @@ async function loadFriends(){
  }catch(e){notice('Не удалось загрузить друзей: '+getError(e),true)}
 }
 function renderFriends(){
- const list=$('friendList');list.replaceChildren();if(!state.friends.length){const p=document.createElement('p');p.className='empty';p.textContent='Пока нет подтверждённых друзей в RNDM.';list.append(p);return}
+ const list=$('friendList');list.replaceChildren();if(!state.friends.length){const p=document.createElement('p');p.className='empty';p.textContent='Пока нет подтверждённых друзей в RNDM. Добавь друзей в мессенджере.';list.append(p);updateSelection();return}
  const query=$('friendSearch').value.toLocaleLowerCase('ru');let shown=0;
  for(const p of state.friends){if(!p.name.toLocaleLowerCase('ru').includes(query))continue;shown++;
- const inRoom=state.roster.some(x=>x.id===p.id);const invited=state.invites.some(x=>x.recipient_id===p.id&&x.room_id===state.room?.id&&x.status==='pending');
- list.append(personRow(p,inRoom?'Уже в комнате':invited?'Приглашение отправлено':'Друг RNDM',inRoom?'✓':invited?'⏳':'+ Позвать',async b=>{
-  if(inRoom||invited)return;b.disabled=true;
-  try{await rpc('chase_invite',{p_room:state.room.id,p_friend:p.id});b.textContent='⏳';notice(`Приглашение отправлено: ${p.name}`);await loadInvites()}catch(e){b.disabled=false;notice(getError(e),true)}
- }));
- const btn=list.lastElementChild?.querySelector('button');if(btn&&(inRoom||invited))btn.disabled=true;
+  const inRoom=state.roster.some(x=>x.id===p.id);const invited=state.invites.some(x=>x.recipient_id===p.id&&x.room_id===state.room?.id&&x.status==='pending');
+  const row=personRow(p,inRoom?'Уже в лобби':invited?'Приглашение отправлено':'Друг RNDM',null,null,'friend');
+  const check=document.createElement('input');check.type='checkbox';check.className='friend-select';check.setAttribute('aria-label','Пригласить '+p.name);check.checked=state.selectedFriends.has(p.id)||inRoom||invited;check.disabled=inRoom||invited;
+  check.addEventListener('change',()=>{if(check.checked){if(state.selectedFriends.size<7)state.selectedFriends.add(p.id);else{check.checked=false;notice('Можно пригласить максимум 7 друзей',true)}}else state.selectedFriends.delete(p.id);updateSelection()});
+  row.append(check);list.append(row);
  }
  if(!shown){const p=document.createElement('p');p.className='empty';p.textContent='Никого не найдено.';list.append(p)}
+ updateSelection();
+}
+function updateSelection(){
+ const b=$('inviteSelected');if(!b)return;
+ const n=state.selectedFriends.size;b.disabled=!n||!state.room||!state.isHost;b.textContent=n?`💌 Пригласить выбранных (${n})`:'💌 Выбери друзей';
+}
+async function sendSelectedInvites(){
+ if(!state.isHost||!state.room||!state.selectedFriends.size)return;
+ const btn=$('inviteSelected');btn.disabled=true;let ok=0,errors=[];
+ const people=[...state.selectedFriends];
+ for(const id of people){try{await rpc('chase_invite',{p_room:state.room.id,p_friend:id});ok++;state.selectedFriends.delete(id)}catch(e){errors.push(profileName(id)+': '+getError(e))}}
+ await loadInvites();renderFriends();notice(errors.length?`Отправлено: ${ok}. Ошибки: ${errors.join('; ')}`:`Отправлено ${ok} приглашений. Ожидаем друзей!`,!!errors.length);
 }
 async function loadInvites(){
  if(!state.user)return;
@@ -135,7 +152,7 @@ async function loadInvites(){
 async function openRoom(roomId){
  if(!state.user)throw new Error('Для сетевой игры нужен аккаунт');
  state.mode='lobby';state.finished=false;state.room={id:roomId};state.isHost=false;state.players.clear();state.it=null;state.online=false;state.elapsed=0;state.remaining=240;
- show('roomSection',true);show('friendsSection',false);
+ showSetup(false);show('roomSection',true);show('friendsSection',false);state.selectedFriends.clear();
  await refreshRoom();
  if(!state.room||state.mode==='idle')return;
  await joinChannel(roomId);
@@ -144,11 +161,11 @@ async function openRoom(roomId){
 async function refreshRoom(){
  if(!state.room||!state.user)return;
  const id=state.room.id;
- const room=(await fetchRows('rndm_chase_rooms','id,host_id,status,started_at,ends_at,expires_at',q=>q.eq('id',id).limit(1)))[0];
+ const room=(await fetchRows('rndm_chase_rooms','id,host_id,status,started_at,ends_at,expires_at,settings',q=>q.eq('id',id).limit(1)))[0];
  if(!room||room.status==='finished'){
   const hadGame=state.mode==='playing';await stopRoom(true);notice(hadGame?'Матч завершён ведущим.':'Комната закрыта.',true);return;
  }
- state.room=room;state.isHost=room.host_id===state.user.id;
+ state.room=room;state.isHost=room.host_id===state.user.id;state.boost=Number(room.settings?.boost)||1.65;state.duration=Number(room.settings?.duration)||240;state.first=room.settings?.first||'random';$('roomSettings').textContent=labelSettings(room.settings);$('timer').textContent=String(Math.floor(state.duration/60)).padStart(2,'0')+':00';
  const members=await fetchRows('rndm_chase_members','user_id,joined_at',q=>q.eq('room_id',id).order('joined_at'));
  const profileIds=members.map(m=>m.user_id);
  const profiles=profileIds.length?await fetchRows('profiles','id,display_name,username,avatar_url',q=>q.in('id',profileIds)):[];
@@ -158,11 +175,11 @@ async function refreshRoom(){
   const member=personRow(p,p.id===room.host_id?'Ведущий': 'Участник',null,null,'member');if(p.id===state.it){member.classList.add('it');const tag=document.createElement('span');tag.className='role-tag';tag.textContent='ВОДИТ';member.append(tag)}roster.append(member);
  });
  $('count').textContent=`${state.roster.length}/8`;
- $('roomStatus').textContent=room.status==='waiting'?'Собираем игроков':'Матч идёт';
+ $('roomStatus').textContent=room.status==='waiting'?'Ждём друзей · минимум 2 участника для старта':'Матч идёт';
  show('friendsSection',state.isHost&&room.status==='waiting');
- $('startBtn').hidden=!state.isHost||room.status!=='waiting';$('startBtn').disabled=state.roster.length<2;
+ $('startBtn').hidden=!state.isHost||room.status!=='waiting';$('startBtn').disabled=state.roster.length<2;$('startBtn').textContent=state.roster.length<2?'🔒 Ждём ещё одного игрока':'▶ Запустить матч';
  $('gameTitle').textContent=room.status==='waiting'?'Сбор игроков • Лесные догонялки':'Лесные догонялки • Онлайн';
- if(state.isHost&&room.status==='waiting'&&state.friends.length===0&&state.friendLoadedAt!==id){state.friendLoadedAt=id;await loadFriends()}
+ if(state.isHost&&room.status==='waiting'&&state.friendLoadedAt!==id){state.friendLoadedAt=id;await loadFriends()}
  if(room.status==='running'&&state.mode!=='playing'){startOnlineMatch()}
  if(room.status==='running'&&state.mode==='playing'){$('roleLabel').textContent=state.it===state.user.id?'Ты водишь!':'Убегай!'}
 }
@@ -195,19 +212,19 @@ async function joinChannel(id){
  });
 }
 function startOnlineMatch(){state.mode='playing';state.finished=false;state.remaining=Math.max(0,(new Date(state.room.ends_at)-Date.now())/1000);state.elapsed=0;state.grace=2;state.lastHost=performance.now();$('mapNotice').classList.add('hidden');document.querySelector('.app').classList.remove('show-menu');
- if(state.isHost){state.players.clear();state.roster.forEach((p,i)=>{const xy=randomSpawn(i);state.players.set(p.id,{id:p.id,...xy,tx:xy.x,ty:xy.y,energy:100,tags:0,itTime:0})});state.it=state.roster[0].id;state.inputs.clear();broadcastSnapshot()}
+ if(state.isHost){state.players.clear();state.roster.forEach((p,i)=>{const xy=randomSpawn(i);state.players.set(p.id,{id:p.id,...xy,tx:xy.x,ty:xy.y,energy:100,tags:0,itTime:0})});state.it=state.first==='host'?state.room.host_id:state.roster[Math.floor(Math.random()*state.roster.length)].id;state.inputs.clear();broadcastSnapshot()}
  else{state.players.clear();state.roster.forEach((p,i)=>{const xy=randomSpawn(i);state.players.set(p.id,{id:p.id,...xy,tx:xy.x,ty:xy.y,energy:100,tags:0,itTime:0})});state.it=state.room.host_id;state.channel?.send({type:'broadcast',event:'request_state',payload:{}})}
  $('roleLabel').textContent=state.it===state.user.id?'Ты водишь!':'Убегай!';
 }
-function startDemo(){state.mode='demo';state.room=null;state.isHost=true;state.online=false;state.players.clear();state.roster=[{id:'local',name:state.meProfile?.display_name||state.meProfile?.username||'Ты',avatar:state.meProfile?.avatar_url||null},{id:'bot1',name:'Лиса'},{id:'bot2',name:'Волк'},{id:'bot3',name:'Заяц'}];state.it='bot1';state.remaining=240;state.elapsed=0;state.grace=2;state.finished=false;state.inputs.clear();state.roster.forEach((p,i)=>{const xy=randomSpawn(i);state.players.set(p.id,{id:p.id,...xy,tx:xy.x,ty:xy.y,energy:100,tags:0,itTime:0,ai:{dx:0,dy:0,timer:0}})});
- show('roomSection',false);show('friendsSection',false);$('gameTitle').textContent='Тренировка • 3 бота';$('mapNotice').classList.add('hidden');$('roleLabel').textContent='Тренировка';notice('Тренировка запущена: боты двигаются по лабиринту.');setConnection('● Локальная тренировка');
+function startDemo(){const setup=settingsFromForm();state.boost=setup.boost;state.duration=setup.duration;state.first=setup.first;state.mode='demo';state.room=null;state.isHost=true;state.online=false;state.players.clear();state.roster=[{id:'local',name:state.meProfile?.display_name||state.meProfile?.username||'Ты',avatar:state.meProfile?.avatar_url||null},{id:'bot1',name:'Лиса'},{id:'bot2',name:'Волк'},{id:'bot3',name:'Заяц'}];state.it=state.first==='host'?'local':'bot1';state.remaining=state.duration;state.elapsed=0;state.grace=2;state.finished=false;state.inputs.clear();state.roster.forEach((p,i)=>{const xy=randomSpawn(i);state.players.set(p.id,{id:p.id,...xy,tx:xy.x,ty:xy.y,energy:100,tags:0,itTime:0,ai:{dx:0,dy:0,timer:0}})});
+ showSetup(true);show('roomSection',false);show('friendsSection',false);$('gameTitle').textContent='Тренировка • 3 бота';$('mapNotice').classList.add('hidden');$('roleLabel').textContent='Тренировка';notice('Тренировка запущена: боты двигаются по лабиринту.');setConnection('● Локальная тренировка');
 }
 async function stopRoom(silent=false){
  const prior=state.room;
  if(state.channel){const ch=state.channel;state.channel=null;try{await client?.removeChannel(ch)}catch(e){console.warn(e)}}
  if(prior&&!silent&&state.user){try{await rpc('chase_leave_room',{p_room:prior.id})}catch(e){console.warn('leave room',e)}}
- state.room=null;state.isHost=false;state.online=false;state.players.clear();state.inputs.clear();state.roster=[];state.it=null;state.mode='idle';state.finished=false;
- show('roomSection',false);show('friendsSection',false);$('gameTitle').textContent='Большой лесной лабиринт';$('roleLabel').textContent='Ожидание игры';$('mapNotice').classList.remove('hidden');$('mapNotice').textContent='Создай комнату или начни тренировку';setConnection(state.user?'● Аккаунт подключён':'● Гость');
+ state.room=null;state.isHost=false;state.online=false;state.selectedFriends.clear();showSetup(true);state.players.clear();state.inputs.clear();state.roster=[];state.it=null;state.mode='idle';state.finished=false;
+ show('roomSection',false);show('friendsSection',false);$('gameTitle').textContent='Большой лесной лабиринт';$('roleLabel').textContent='Ожидание игры';$('mapNotice').classList.remove('hidden');$('mapNotice').textContent='Выбери условия, собери друзей и запусти матч';setConnection(state.user?'● Аккаунт подключён':'● Гость');
 }
 function currentInput(){let dx=Number(keyDown.has('d')||keyDown.has('arrowright'))-Number(keyDown.has('a')||keyDown.has('arrowleft'));
  let dy=Number(keyDown.has('s')||keyDown.has('arrowdown'))-Number(keyDown.has('w')||keyDown.has('arrowup'));
@@ -218,7 +235,7 @@ function move(player,input,delta,tagger=false){if(!player||!input)return;
  let dx=Number(input.dx)||0,dy=Number(input.dy)||0;const length=Math.hypot(dx,dy);if(length>1){dx/=length;dy/=length}
  const moving=length>.07;const boosting=!!input.sprint&&player.energy>1&&moving;
  player.energy=Math.max(0,Math.min(100,player.energy+(boosting?-30:17)*delta));
- let speed=(tagger?4.75:4.25)*(boosting?1.65:1);if(!moving)return;
+ let speed=(tagger?4.75:4.25)*(boosting?state.boost:1);if(!moving)return;
  const nx=player.x+dx*speed*delta,ny=player.y+dy*speed*delta;
  if(canStand(nx,player.y))player.x=nx;
  if(canStand(player.x,ny))player.y=ny;

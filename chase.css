@@ -18,3 +18,13 @@ html,body{overscroll-behavior:none;overflow:hidden}button{-webkit-tap-highlight-
 }
 @media(max-width:395px){.gamebar .eyebrow{display:none}.gamebar h2{font-size:12px}.joy{width:113px;height:113px}.sprint{width:94px;height:94px}}
 @media(max-height:460px) and (pointer:coarse){.mobile-controls{bottom:7px}.joy{height:96px;width:96px}.sprint{height:90px;width:90px}.stamina{top:6px}.gamebar .eyebrow{display:none}}
+
+/* Match settings → lobby → friends → start (RNDM Arcade v74). */
+.setup-section{padding:17px 14px;margin-bottom:13px;border:1px solid #436a50;border-radius:16px;background:linear-gradient(145deg,#1c3627,#10241a)}
+.step-title{display:flex;gap:11px;align-items:center;margin:9px 0 14px}.step-title>div{display:grid;gap:3px}.step-title b{font-size:16px;color:#f4fff4}.step-title small{color:#a7c9b2;font-size:11px}.step-number{display:grid;place-items:center;width:34px;height:34px;background:#377851;border:1px solid #6bbd83;border-radius:12px;color:#d7ffdd;font-weight:900;flex-shrink:0}
+.setting-grid{display:grid;gap:11px;margin-bottom:14px}.setting-grid label{display:grid;gap:5px;font-weight:850;font-size:10px;letter-spacing:.07em;color:#c6e8d3}
+.setting-grid select{width:100%;min-height:44px;background:#102018;color:#eaffef;border:1px solid #557b60;border-radius:10px;padding:10px;font-size:14px;outline:none;cursor:pointer}.setting-grid select:focus-visible{outline:2px solid #9debad}
+.room-settings{font-size:12px;color:#c6f3d2;background:#203d2a;padding:10px 11px;border-radius:9px;margin:10px 0}.lobby-buttons{margin-top:13px}.lobby-buttons #startBtn:disabled{opacity:.56;cursor:not-allowed}
+.friend-select{width:24px;height:24px;margin:0 4px 0 auto;flex-shrink:0;accent-color:#67e89a;cursor:pointer}.friend-select:disabled{cursor:default;opacity:.65}.invite-selected{margin-top:10px;width:100%;min-height:45px;border-radius:10px;font-weight:800}.invite-selected:disabled{opacity:.45}
+.sidebar .section{margin-top:15px;padding-top:15px}.sidebar .rules{margin-top:17px}.friend,.invite,.member{min-height:56px}.friend .avatar,.member .avatar,.invite .avatar{border-radius:50%}
+@media(max-width:740px),(pointer:coarse){.setup-section{padding:14px 11px}.sidebar{padding-top:14px}.setting-grid select{font-size:16px;min-height:47px}.lobby-buttons button,.setup-section .buttonset button,.invite-selected{min-height:48px}.step-title{margin-bottom:12px}}
