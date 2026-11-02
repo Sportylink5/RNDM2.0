@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="theme-color" content="#102019">
+  <title>Догонялки — RNDM Chat</title>
+  <link rel="stylesheet" href="chase.css?v=73.0.0">
+  <script src="supabase-2.117.2.js?v=67.1.0" defer></script>
+  <script type="module" src="chase.js?v=73.0.0"></script>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand"><span class="logo">R</span><div><strong>RNDM <span>GAMES</span></strong><small>Лесные догонялки</small></div></div>
+      <div class="topright"><span class="chip" id="connection">● Подключение…</span><a href="index.html" class="back">← В RNDM</a></div>
+    </header>
+    <div class="content">
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-head"><div><span class="eyebrow">MULTIPLAYER • 2–8 ИГРОКОВ</span><h1>Догонялки</h1><p>Приглашай друзей прямо из RNDM, убегай по лесным коридорам и ускоряйся.</p></div></div>
+        <div class="notice" id="notice" role="status">Загрузка...</div>
+        <div class="buttonset"><button class="primary" id="createBtn">+ Создать комнату</button><button class="secondary" id="demoBtn">Тренировка с ботами</button></div>
+        <div class="section" id="inviteSection"><div class="section-head"><h2>Приглашения</h2><button class="tiny" id="refreshInvites">↻</button></div><div id="inviteList" class="stack"><p class="empty">Пока нет приглашений.</p></div></div>
+        <div class="section hidden" id="roomSection"><div class="section-head"><h2>Комната</h2><span class="count" id="count">1/8</span></div><p id="roomStatus" class="muted">Ожидание друзей</p><div id="roster" class="stack"></div><div class="buttonset"><button class="primary" id="startBtn">▶ Начать догонялки</button><button class="danger" id="leaveBtn">Выйти из комнаты</button></div></div>
+        <div class="section hidden" id="friendsSection"><div class="section-head"><h2>Позвать друзей</h2><button class="tiny" id="refreshFriends">↻</button></div><input id="friendSearch" placeholder="Поиск среди друзей" autocomplete="off" aria-label="Поиск друзей"><div id="friendList" class="stack"></div></div>
+        <div class="rules"><b>Правила</b><p>Красный игрок — водящий. Догони другого, чтобы передать ему роль. Уклоняйся от погони и следи за мини-картой. Чем меньше времени ты водишь, тем лучше!</p></div>
+      </aside>
+      <button type="button" id="menuBackdrop" class="menu-backdrop" aria-label="Закрыть меню"></button>
+      <main class="main">
+        <div class="gamebar"><div><span class="eyebrow">FOREST MAZE / 116 × 80</span><h2 id="gameTitle">Большой лесной лабиринт</h2></div><div class="gameinfo"><span id="roleLabel">Ожидание игры</span><strong id="timer">04:00</strong><button class="toggle" id="toggleSidebar" aria-label="Показать или скрыть панель">☰</button></div></div>
+        <div class="world" id="world" aria-label="Карта и управление">
+          <canvas id="gameCanvas" aria-label="Большая карта с лесными коридорами и персонажами"></canvas>
+          <div class="minimap"><div class="minimap-title">МИНИ-КАРТА</div><canvas id="miniCanvas" width="232" height="160"></canvas></div>
+          <div class="mapNotice" id="mapNotice">Создай комнату или начни тренировку</div>
+          <div class="stamina"><div class="stamina-caption"><span>⚡ Ускорение</span><span id="staminaPercent">100%</span></div><div class="stamina-track"><span id="staminaFill"></span></div></div>
+          <div class="mobile-controls" aria-label="Сенсорное управление"><div class="joy" id="joystick" aria-label="Джойстик для движения" role="application"><div class="joy-head" id="joyHead"></div></div><button class="sprint" id="touchSprint" aria-label="Ускорение" type="button">⚡<small>БЕГ</small></button></div>
+        </div>
+        <div class="footer"><span>Управление: WASD / стрелки • Shift — ускорение • на телефоне — джойстик</span><span id="stats">Большая карта • развилки • обходные пути</span></div>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

@@ -498,7 +498,7 @@ async function navigate(route,push=true) {
   $('#pane').innerHTML=route==='settings'?V.settings(app):V.welcome(app);renderSidebar();applyLanguage();
   const epoch=app.epoch;
   try{
-    if(route==='games'){const {Arcade}=await import('./arcade.js?v=72.0.0');if(epoch!==app.epoch)return;arcade ||= new Arcade(api,{getProfile:()=>app.profile,toast});arcade.open($('#pane'));return;}
+    if(route==='games'){const {Arcade}=await import('./arcade.js?v=73.0.0');if(epoch!==app.epoch)return;arcade ||= new Arcade(api,{getProfile:()=>app.profile,toast});arcade.open($('#pane'));return;}
     if(route==='admin'){await admin.open($('#pane'));return;}
     if(route==='random'){await openRandomPage();return;}
     if(route==='tapolka'){await openTapolka();return;}
