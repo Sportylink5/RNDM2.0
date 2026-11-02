@@ -1,4 +1,4 @@
-import {W,H,MAP,isPath,canStand,randomSpawn,paintTerrain} from './chase-map.js?v=74.0.0';
+import {W,H,MAP,isPath,canStand,randomSpawn,paintTerrain} from './chase-map.js?v=75.0.0';
 
 const $=id=>document.getElementById(id);
 const canvas=$('gameCanvas'),ctx=canvas.getContext('2d'),mini=$('miniCanvas'),mc=mini.getContext('2d');
@@ -12,7 +12,7 @@ if(new URLSearchParams(location.search).has('embed'))document.documentElement.cl
 const touch={dx:0,dy:0,sprint:false,pointer:null,boostPointer:null};
 const avatarCache=new Map();
 function getAvatar(userId){
- const person=state.roster.find(p=>p.id===userId);
+ const person=state.roster.find(p=>p.id===userId)|| (userId===state.user?.id?{avatar:state.meProfile?.avatar_url}:null);
  const url=person?.avatar;
  if(!url || !/^(?:https?:\/\/|data:image\/(?:png|jpeg|webp|gif);base64,)/i.test(url))return null;
  const cached=avatarCache.get(userId);
@@ -31,6 +31,21 @@ function setConnection(s){$('connection').textContent=s;}
 function settingsFromForm(){return {duration:Number($('durationSetting').value)||240,boost:Number($('boostSetting').value)||1.65,first:$('firstSetting').value||'random'};}
 function labelSettings(s){const m=Math.round((Number(s?.duration)||240)/60),b=Number(s?.boost)||1.65;return `${m} мин · Бег ×${b.toFixed(2)} · ${s?.first==='host'?'водит создатель':'водящий случайный'}`;}
 function showSetup(enabled){show('setupSection',enabled);}
+function setGameDisplay(playing){
+ const app=document.querySelector('.app');
+ app.classList.toggle('in-game',!!playing);
+ app.classList.toggle('phase-setup',!playing);
+ if(!playing){app.classList.remove('show-menu');$('sidebar').scrollTop=0;}
+ else {app.classList.remove('show-menu');clearInputs();requestAnimationFrame(resize);}
+}
+function revealLobby(){
+ // A lobby is a normal, vertically scrollable screen on mobile, not a hidden drawer.
+ setGameDisplay(false);
+ if(matchMedia('(max-width:740px), (pointer:coarse)').matches){
+  requestAnimationFrame(()=>{$('sidebar').scrollTop=0;});
+ }
+}
+
 function cleanName(name){return String(name||'Игрок').slice(0,36);}
 function profileName(id){return cleanName(state.roster.find(p=>p.id===id)?.name||state.friends.find(p=>p.id===id)?.name||id?.slice(0,6));}
 function avatarNode(person){const a=document.createElement('span');a.className='avatar';if(person?.avatar&&/^https?:\/\//.test(person.avatar)){const im=document.createElement('img');im.src=person.avatar;im.alt='';im.referrerPolicy='no-referrer';a.append(im)}else a.textContent=(person?.name||'И').charAt(0).toUpperCase();return a;}
@@ -95,7 +110,7 @@ function bindUI(){
  sprint.addEventListener('pointerdown',e=>{if(touch.boostPointer!==null)return;touch.boostPointer=e.pointerId;sprint.setPointerCapture(e.pointerId);touch.sprint=true;sprint.classList.add('pressed');e.preventDefault()});
  for(const t of ['pointerup','pointercancel','lostpointercapture'])sprint.addEventListener(t,releaseSprint);
  $('menuBackdrop').addEventListener('click',()=>document.querySelector('.app').classList.remove('show-menu'));
- if(matchMedia('(max-width:740px)').matches)document.querySelector('.app').classList.add('show-menu');
+ // On phones the settings screen is already visible. Only the running game uses a drawer.
 }
 function clearInputs(){keyDown.clear();touch.dx=0;touch.dy=0;touch.sprint=false;touch.pointer=null;touch.boostPointer=null;$('joyHead').style.transform='translate3d(0,0,0)';$('joystick').classList.remove('active');$('touchSprint').classList.remove('pressed')}
 async function loadFriends(){
@@ -138,7 +153,7 @@ async function loadInvites(){
  try{
  const data=await fetchRows('rndm_chase_invites','id,room_id,sender_id,recipient_id,status,created_at',q=>q.or(`recipient_id.eq.${state.user.id},sender_id.eq.${state.user.id}`).order('created_at',{ascending:false}).limit(80));
  state.invites=data;
- const pending=data.filter(x=>x.recipient_id===state.user.id&&x.status==='pending');
+ const pending=data.filter(x=>x.recipient_id===state.user.id&&x.status==='pending');document.querySelector('.app').classList.toggle('has-invite',pending.length>0);
  const root=$('inviteList');root.replaceChildren();
  if(pending.length){const senders=[...new Set(pending.map(x=>x.sender_id))];const profiles=await fetchRows('profiles','id,display_name,username,avatar_url',q=>q.in('id',senders));const byId=Object.fromEntries(profiles.map(p=>[p.id,{name:p.display_name||p.username,avatar:p.avatar_url}]));
  for(const inv of pending){const person=byId[inv.sender_id]||{name:'Друг RNDM'};const node=personRow(person,'Зовёт в догонялки',null,null,'invite');const actions=document.createElement('div');actions.className='invite-actions';
@@ -152,7 +167,7 @@ async function loadInvites(){
 async function openRoom(roomId){
  if(!state.user)throw new Error('Для сетевой игры нужен аккаунт');
  state.mode='lobby';state.finished=false;state.room={id:roomId};state.isHost=false;state.players.clear();state.it=null;state.online=false;state.elapsed=0;state.remaining=240;
- showSetup(false);show('roomSection',true);show('friendsSection',false);state.selectedFriends.clear();
+ showSetup(false);show('roomSection',true);show('friendsSection',false);state.selectedFriends.clear();revealLobby();
  await refreshRoom();
  if(!state.room||state.mode==='idle')return;
  await joinChannel(roomId);
@@ -211,19 +226,19 @@ async function joinChannel(id){
   else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED'){setConnection('● Переподключение');notice('Не удалось подключить комнату Realtime. Проверь подключение и права доступа.',true)}
  });
 }
-function startOnlineMatch(){state.mode='playing';state.finished=false;state.remaining=Math.max(0,(new Date(state.room.ends_at)-Date.now())/1000);state.elapsed=0;state.grace=2;state.lastHost=performance.now();$('mapNotice').classList.add('hidden');document.querySelector('.app').classList.remove('show-menu');
+function startOnlineMatch(){state.mode='playing';setGameDisplay(true);state.finished=false;state.remaining=Math.max(0,(new Date(state.room.ends_at)-Date.now())/1000);state.elapsed=0;state.grace=2;state.lastHost=performance.now();$('mapNotice').classList.add('hidden');document.querySelector('.app').classList.remove('show-menu');
  if(state.isHost){state.players.clear();state.roster.forEach((p,i)=>{const xy=randomSpawn(i);state.players.set(p.id,{id:p.id,...xy,tx:xy.x,ty:xy.y,energy:100,tags:0,itTime:0})});state.it=state.first==='host'?state.room.host_id:state.roster[Math.floor(Math.random()*state.roster.length)].id;state.inputs.clear();broadcastSnapshot()}
  else{state.players.clear();state.roster.forEach((p,i)=>{const xy=randomSpawn(i);state.players.set(p.id,{id:p.id,...xy,tx:xy.x,ty:xy.y,energy:100,tags:0,itTime:0})});state.it=state.room.host_id;state.channel?.send({type:'broadcast',event:'request_state',payload:{}})}
  $('roleLabel').textContent=state.it===state.user.id?'Ты водишь!':'Убегай!';
 }
-function startDemo(){const setup=settingsFromForm();state.boost=setup.boost;state.duration=setup.duration;state.first=setup.first;state.mode='demo';state.room=null;state.isHost=true;state.online=false;state.players.clear();state.roster=[{id:'local',name:state.meProfile?.display_name||state.meProfile?.username||'Ты',avatar:state.meProfile?.avatar_url||null},{id:'bot1',name:'Лиса'},{id:'bot2',name:'Волк'},{id:'bot3',name:'Заяц'}];state.it=state.first==='host'?'local':'bot1';state.remaining=state.duration;state.elapsed=0;state.grace=2;state.finished=false;state.inputs.clear();state.roster.forEach((p,i)=>{const xy=randomSpawn(i);state.players.set(p.id,{id:p.id,...xy,tx:xy.x,ty:xy.y,energy:100,tags:0,itTime:0,ai:{dx:0,dy:0,timer:0}})});
+function startDemo(){setGameDisplay(true);const setup=settingsFromForm();state.boost=setup.boost;state.duration=setup.duration;state.first=setup.first;state.mode='demo';state.room=null;state.isHost=true;state.online=false;state.players.clear();state.roster=[{id:'local',name:state.meProfile?.display_name||state.meProfile?.username||'Ты',avatar:state.meProfile?.avatar_url||null},{id:'bot1',name:'Лиса'},{id:'bot2',name:'Волк'},{id:'bot3',name:'Заяц'}];state.it=state.first==='host'?'local':'bot1';state.remaining=state.duration;state.elapsed=0;state.grace=2;state.finished=false;state.inputs.clear();state.roster.forEach((p,i)=>{const xy=randomSpawn(i);state.players.set(p.id,{id:p.id,...xy,tx:xy.x,ty:xy.y,energy:100,tags:0,itTime:0,ai:{dx:0,dy:0,timer:0}})});
  showSetup(true);show('roomSection',false);show('friendsSection',false);$('gameTitle').textContent='Тренировка • 3 бота';$('mapNotice').classList.add('hidden');$('roleLabel').textContent='Тренировка';notice('Тренировка запущена: боты двигаются по лабиринту.');setConnection('● Локальная тренировка');
 }
 async function stopRoom(silent=false){
  const prior=state.room;
  if(state.channel){const ch=state.channel;state.channel=null;try{await client?.removeChannel(ch)}catch(e){console.warn(e)}}
  if(prior&&!silent&&state.user){try{await rpc('chase_leave_room',{p_room:prior.id})}catch(e){console.warn('leave room',e)}}
- state.room=null;state.isHost=false;state.online=false;state.selectedFriends.clear();showSetup(true);state.players.clear();state.inputs.clear();state.roster=[];state.it=null;state.mode='idle';state.finished=false;
+ state.room=null;state.isHost=false;state.online=false;state.selectedFriends.clear();showSetup(true);state.players.clear();state.inputs.clear();state.roster=[];state.it=null;state.mode='idle';state.finished=false;setGameDisplay(false);
  show('roomSection',false);show('friendsSection',false);$('gameTitle').textContent='Большой лесной лабиринт';$('roleLabel').textContent='Ожидание игры';$('mapNotice').classList.remove('hidden');$('mapNotice').textContent='Выбери условия, собери друзей и запусти матч';setConnection(state.user?'● Аккаунт подключён':'● Гость');
 }
 function currentInput(){let dx=Number(keyDown.has('d')||keyDown.has('arrowright'))-Number(keyDown.has('a')||keyDown.has('arrowleft'));

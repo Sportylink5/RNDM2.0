@@ -20,3 +20,12 @@
 .arcade-chase-banner{grid-column:1/-1;display:flex;align-items:center;gap:18px;width:100%;min-height:118px;padding:22px 25px;text-align:left;border:1px solid rgba(156,247,177,.48);border-radius:22px;background:linear-gradient(125deg,#123b2d,#21543b 62%,#143021);color:#f2fff6;box-shadow:0 13px 28px #0003;cursor:pointer}
 .arcade-chase-banner:hover{border-color:#b4ffb9;filter:brightness(1.12)}.arcade-chase-emblem{font-size:48px;flex:none}.arcade-chase-copy{display:grid;gap:4px;flex:1}.arcade-chase-copy small{color:#ade9c4;font-size:10px;letter-spacing:.16em;font-weight:850}.arcade-chase-copy strong{font-size:26px;letter-spacing:.045em}.arcade-chase-copy em{font-style:normal;font-size:13px;color:#dbf7e6}.arcade-chase-arrow{font-size:30px;opacity:.8}.arcade-chase-shell{display:flex;flex-direction:column;min-height:0;height:min(790px,calc(100dvh - 92px));padding:8px 12px 14px;gap:10px}.arcade-chase-top{display:flex;align-items:center;justify-content:space-between;gap:8px}.arcade-chase-top>div{display:grid;gap:3px}.arcade-chase-top strong{font-size:16px}.arcade-chase-top small{font-size:11px;color:#b8c4c4}.arcade-chase-top button{flex:none}.arcade-chase-frame{display:block;flex:1;min-height:0;width:100%;border:1px solid #285442;border-radius:16px;background:#10271d}
 @media(max-width:740px){.arcade-chase-banner{gap:11px;padding:15px;border-radius:16px}.arcade-chase-emblem{font-size:30px}.arcade-chase-copy strong{font-size:20px}.arcade-chase-copy em{font-size:11px}.arcade-chase-shell{padding:0 3px 6px;height:calc(100dvh - 104px);gap:6px}.arcade-chase-top strong{font-size:13px}.arcade-chase-top small{display:none}.arcade-chase-top button{font-size:12px;padding:7px 10px}.arcade-chase-frame{border-radius:9px}}
+
+/* v75: larger, visible game tile on narrow touch screens */
+@media(max-width:740px),(pointer:coarse){
+ .arcade-chase-banner{min-height:114px;padding:17px 13px;gap:12px;border-width:2px;border-color:#7defa3}
+ .arcade-chase-copy{min-width:0}.arcade-chase-copy strong{font-size:21px;line-height:1.15}
+ .arcade-chase-copy em{font-size:12px;line-height:1.35}
+ .arcade-chase-arrow{display:block;font-size:24px}
+ .arcade-chase-shell{height:calc(100dvh - 86px);min-height:390px}
+}

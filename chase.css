@@ -28,3 +28,64 @@ html,body{overscroll-behavior:none;overflow:hidden}button{-webkit-tap-highlight-
 .friend-select{width:24px;height:24px;margin:0 4px 0 auto;flex-shrink:0;accent-color:#67e89a;cursor:pointer}.friend-select:disabled{cursor:default;opacity:.65}.invite-selected{margin-top:10px;width:100%;min-height:45px;border-radius:10px;font-weight:800}.invite-selected:disabled{opacity:.45}
 .sidebar .section{margin-top:15px;padding-top:15px}.sidebar .rules{margin-top:17px}.friend,.invite,.member{min-height:56px}.friend .avatar,.member .avatar,.invite .avatar{border-radius:50%}
 @media(max-width:740px),(pointer:coarse){.setup-section{padding:14px 11px}.sidebar{padding-top:14px}.setting-grid select{font-size:16px;min-height:47px}.lobby-buttons button,.setup-section .buttonset button,.invite-selected{min-height:48px}.step-title{margin-bottom:12px}}
+
+/* v75: Mobile-first RNDM lobby. The old design hid ALL setup/invite controls in an off-screen sidebar. */
+.mobile-guide{display:none}
+@media (max-width:740px),(pointer:coarse){
+ html,body{width:100%;height:100%;overflow:hidden;overscroll-behavior:none}
+ .app,.embedded .app{height:100dvh;min-height:0;max-height:100dvh;overflow:hidden}
+ .topbar{height:calc(57px + env(safe-area-inset-top));min-height:57px;padding:env(safe-area-inset-top) 14px 0;flex:none}
+ .topbar .brand strong{font-size:15px}.topbar .brand small{font-size:10px}.topbar .logo{height:32px;width:32px;font-size:19px}
+ .back{font-size:13px;font-weight:750;min-height:43px;display:flex;align-items:center;padding:9px 11px}
+ .content,.embedded .content{display:block;position:relative;flex:1;min-height:0;height:auto;overflow:hidden}
+ .sidebar,.app:not(.in-game) .sidebar,.embedded .app:not(.in-game) .sidebar{
+  position:relative!important;left:auto!important;top:auto!important;right:auto!important;bottom:auto!important;
+  z-index:1;display:flex;flex-direction:column;transform:none!important;
+  width:100%!important;min-width:0!important;max-width:none!important;height:100%!important;
+  box-shadow:none!important;border:0;overflow-x:hidden;overflow-y:auto;
+  -webkit-overflow-scrolling:touch;touch-action:pan-y;
+  background:linear-gradient(180deg,#112a1b,#0b1e15);
+  padding:14px 14px calc(36px + env(safe-area-inset-bottom));
+  scrollbar-width:thin
+ }
+ .sidebar>*{flex-shrink:0}
+ .sidebar-head{order:0;padding:4px 4px 6px}.sidebar-head h1{font-size:26px;margin:6px 0}.sidebar-head p{font-size:13px;margin-bottom:8px}
+ #notice{order:1;line-height:1.5;font-size:12px}
+ #setupSection{order:2}#roomSection{order:2}#friendsSection{order:3}#inviteSection{order:4}.rules{order:5}
+ .app.has-invite:not(.in-game) #inviteSection{order:2;background:#153523;border:1px solid #4c9665;border-radius:13px;padding:13px;margin:9px 0}
+ .app.has-invite:not(.in-game) #setupSection{order:3}
+ .mobile-guide{display:flex;justify-content:center;align-items:center;gap:7px;font-size:11px;font-weight:800;color:#c7f6db;background:#234d33;padding:12px 8px;border-radius:11px;margin-bottom:13px;white-space:nowrap}
+ .mobile-guide span{color:#8effb2}
+ .setup-section{padding:15px 12px;border-radius:16px;margin:5px 0 12px}
+ .step-title b{font-size:17px}.step-title small{font-size:12px}
+ .setting-grid{gap:14px}.setting-grid label{font-size:11px}.setting-grid select{height:52px;min-height:52px;font-size:16px;padding:11px}
+ .setup-section .buttonset button,.lobby-buttons button,.invite-selected{width:100%;min-height:54px;font-size:14px}
+ .section-head h2{font-size:17px}.sidebar .section{margin-top:13px;padding-top:14px}.friend,.member,.invite{min-height:65px;padding:10px}
+ .friend .avatar,.member .avatar,.invite .avatar{width:42px;height:42px}
+ .friend .person-meta strong,.member .person-meta strong,.invite .person-meta strong{font-size:13px}
+ .invite-actions button{min-height:45px;padding:10px;font-size:12px}
+ .friend-select{width:29px;height:29px;flex:0 0 29px}
+ #friendSearch{min-height:50px;font-size:16px}
+ .app:not(.in-game) .main{display:none!important}
+ .app:not(.in-game) .menu-backdrop{display:none!important}
+ .app.in-game .sidebar,.embedded .app.in-game .sidebar{
+  position:absolute!important;left:0!important;top:0!important;bottom:0!important;right:auto!important;
+  transform:translateX(-105%)!important;z-index:22;width:min(91vw,375px)!important;max-width:375px!important;
+  box-shadow:9px 0 36px #0009!important;height:100%!important;
+  transition:transform .18s ease;overflow-y:auto
+ }
+ .app.in-game.show-menu .sidebar{transform:translateX(0)!important}
+ .app.in-game .main{display:flex!important;flex-direction:column;width:100%;height:100%;min-width:0;min-height:0;gap:6px;padding:8px 7px}
+ .app.in-game.show-menu .menu-backdrop{display:block!important;position:absolute;z-index:20;inset:0;background:#000a;min-width:100%;min-height:100%;border:0}
+ .app.in-game .toggle{display:inline-flex;justify-content:center;align-items:center;min-width:46px;min-height:44px;font-size:24px}
+ .app.in-game .world{min-height:0;flex:1}
+ .app.in-game .mobile-controls{display:flex;z-index:9;bottom:calc(17px + env(safe-area-inset-bottom))}
+ .app.in-game .joy,.app.in-game .sprint{pointer-events:auto}
+ .app.in-game .stamina{top:8px;bottom:auto}
+ .app.in-game .minimap{top:8px;right:8px}
+}
+/* The same sensible scrollable setup UI works when an iframe is unavoidable. */
+@media (max-height:510px) and (max-width:740px){
+ .sidebar{padding-top:7px!important}.sidebar-head p{display:none}.setup-section{margin-top:0}
+ .app.in-game .joy{width:94px;height:94px}.app.in-game .sprint{width:90px;height:90px}
+}

@@ -5,23 +5,23 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
   <meta name="theme-color" content="#102019">
   <title>Догонялки — RNDM Chat</title>
-  <link rel="stylesheet" href="chase.css?v=74.0.0">
+  <link rel="stylesheet" href="chase.css?v=75.0.0">
   <script src="supabase-2.117.2.js?v=67.1.0" defer></script>
   <script src="config.js?v=67.4.0" defer></script>
-  <script type="module" src="chase.js?v=74.0.0"></script>
+  <script type="module" src="chase.js?v=75.0.0"></script>
 </head>
 <body>
-  <div class="app">
+  <div class="app phase-setup">
     <header class="topbar">
       <div class="brand"><span class="logo">R</span><div><strong>RNDM <span>GAMES</span></strong><small>Лесные догонялки</small></div></div>
-      <div class="topright"><span class="chip" id="connection">● Подключение…</span><a href="index.html" class="back">← В RNDM</a></div>
+      <div class="topright"><span class="chip" id="connection">● Подключение…</span><a href="index.html?view=games" class="back">← Все игры</a></div>
     </header>
     <div class="content">
       <aside class="sidebar" id="sidebar">
         <div class="sidebar-head"><div><span class="eyebrow">MULTIPLAYER • 2–8 ИГРОКОВ</span><h1>Догонялки</h1><p>Приглашай друзей прямо из RNDM, убегай по лесным коридорам и ускоряйся.</p></div></div>
         <div class="notice" id="notice" role="status">Загрузка...</div>
         <div id="setupSection" class="setup-section">
-          <div class="step-title"><span class="step-number">01</span><div><b>Настрой матч</b><small>Как в гонках RNDM: выбираешь условия</small></div></div>
+          <div class="mobile-guide">1. Настройки <span>→</span> 2. Друзья <span>→</span> 3. Старт</div><div class="step-title"><span class="step-number">01</span><div><b>Настрой матч</b><small>Как в гонках RNDM: выбираешь условия</small></div></div>
           <div class="setting-grid">
             <label>ДЛИТЕЛЬНОСТЬ<select id="durationSetting"><option value="120">2 минуты — быстрый</option><option value="240" selected>4 минуты — обычный</option><option value="360">6 минут — долгий</option><option value="480">8 минут — марафон</option></select></label>
             <label>УСКОРЕНИЕ<select id="boostSetting"><option value="1.35">Небольшое ×1.35</option><option value="1.65" selected>Обычное ×1.65</option><option value="1.90">Мощное ×1.90</option></select></label>
