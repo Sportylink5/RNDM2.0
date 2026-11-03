@@ -89,3 +89,5 @@ html,body{overscroll-behavior:none;overflow:hidden}button{-webkit-tap-highlight-
  .sidebar{padding-top:7px!important}.sidebar-head p{display:none}.setup-section{margin-top:0}
  .app.in-game .joy{width:94px;height:94px}.app.in-game .sprint{width:90px;height:90px}
 }
+
+.retry-connection{border:1px solid #6bba83;border-radius:10px;padding:12px 18px;margin-bottom:12px;width:100%;font-weight:800;color:white;min-height:48px}.retry-connection[hidden]{display:none!important}.section .empty{line-height:1.6}

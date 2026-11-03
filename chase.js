@@ -1,12 +1,32 @@
-import {W,H,MAP,isPath,canStand,randomSpawn,paintTerrain} from './chase-map.js?v=75.0.0';
+import {W,H,MAP,isPath,canStand,randomSpawn,paintTerrain} from './chase-map.js?v=76.0.0';
 
 const $=id=>document.getElementById(id);
 const canvas=$('gameCanvas'),ctx=canvas.getContext('2d'),mini=$('miniCanvas'),mc=mini.getContext('2d');
 const cfg=window.RNDM_CONFIG||{url:'https://rijqlmrcnshswtoweoai.supabase.co',key:'sb_publishable_Ay6EBRfZx1-Shj1FdMg7ZQ_P61Rii2A'};
-const client=window.supabase?.createClient?.(cfg.url,cfg.key,{
-  auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}
-});
-const state={selectedFriends:new Set(),boost:1.65,duration:240,first:'random',user:null,room:null,roster:[],friends:[],invites:[],players:new Map(),it:null,inputs:new Map(),channel:null,online:false,mode:'idle',isHost:false,remaining:240,elapsed:0,grace:2,sendTimer:0,snapTimer:0,roomCheck:0,inviteCheck:0,lastHost:0,demoBotClock:0,finished:false};
+// Match the main RNDM client: bound all HTTP requests (including session refreshes).
+function chaseFetch(input,init={}){
+ const control=new AbortController(), previous=init.signal;
+ const abort=()=>control.abort();
+ if(previous?.aborted)abort();else previous?.addEventListener('abort',abort,{once:true});
+ const timer=setTimeout(abort,12000);
+ return fetch(input,{...init,signal:control.signal}).finally(()=>{
+  clearTimeout(timer);previous?.removeEventListener('abort',abort);
+ });
+}
+function deadline(task,ms,label){
+ let timer;
+ return Promise.race([Promise.resolve(task),new Promise((_,reject)=>{
+  timer=setTimeout(()=>reject(new Error(label+' — сервер не ответил за '+Math.ceil(ms/1000)+' сек. Нажми «Повторить подключение».')),ms);
+ })]).finally(()=>clearTimeout(timer));
+}
+let client=null;
+try{
+ client=window.supabase?.createClient?.(cfg.url,cfg.key,{
+  auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false},
+  global:{fetch:chaseFetch},realtime:{params:{eventsPerSecond:8}}
+ })||null;
+}catch(error){console.error('RNDM Chase Supabase init',error)}
+const state={connectionBusy:false,roomBusy:false,friendsBusy:false,invitesBusy:false,booted:false,selectedFriends:new Set(),boost:1.65,duration:240,first:'random',user:null,room:null,roster:[],friends:[],invites:[],players:new Map(),it:null,inputs:new Map(),channel:null,online:false,mode:'idle',isHost:false,remaining:240,elapsed:0,grace:2,sendTimer:0,snapTimer:0,roomCheck:0,inviteCheck:0,lastHost:0,demoBotClock:0,finished:false};
 const keyDown=new Set();
 if(new URLSearchParams(location.search).has('embed'))document.documentElement.classList.add('embedded');
 const touch={dx:0,dy:0,sprint:false,pointer:null,boostPointer:null};
@@ -55,29 +75,60 @@ function personRow(person,text,button,click,kind='friend'){
  if(button){const btn=document.createElement('button');btn.type='button';btn.textContent=button;btn.addEventListener('click',()=>click(btn));wrap.append(btn)}return wrap;
 }
 function getError(error){return (error?.message||String(error||'Неизвестная ошибка')).replace(/^(new row violates row-level security policy|permission denied).*/i,'Нет доступа к этой комнате');}
-async function rpc(name,args={}){if(!client)throw new Error('Библиотека Supabase не загружена. Нужен интернет.');const {data,error}=await client.rpc(name,args);if(error)throw error;return data;}
-async function fetchRows(table,columns,fn){let q=client.from(table).select(columns);q=fn?fn(q):q;const {data,error}=await q;if(error)throw error;return data||[];}
+async function rpc(name,args={}){
+ if(!client)throw new Error('Не загружена библиотека Supabase. Открой RNDM онлайн.');
+ const {data,error}=await deadline(client.rpc(name,args),14000,'Операция '+name);
+ if(error)throw error;return data;
+}
+async function fetchRows(table,columns,fn){
+ if(!client)throw new Error('Нет соединения с Supabase');
+ let q=client.from(table).select(columns);q=fn?fn(q):q;
+ const {data,error}=await deadline(q,14000,'Загрузка '+table);
+ if(error)throw error;return data||[];
+}
 async function init(){
- bindUI();paintMiniBase();resize();requestAnimationFrame(loop);
- if(!client){setConnection('● Нет подключения');notice('Не удалось загрузить Supabase. Можно начать тренировку, а для онлайна нужен доступ к сети.',true);return;}
+ if(!state.booted){
+  state.booted=true;bindUI();paintMiniBase();resize();requestAnimationFrame(loop);document.dispatchEvent(new Event('chase-init-ok'));
+ }
+ if(state.connectionBusy)return;
+ state.connectionBusy=true;
+ $('retryConnection').hidden=true;
+ setConnection('● Проверяем вход…');notice('Подключаем аккаунт RNDM…');
  try{
-  const {data:{session},error}=await client.auth.getSession();if(error)throw error;
-  state.user=session?.user||null;
-  if(!state.user){setConnection('● Войти в RNDM');notice('Войди в тот же аккаунт RNDM, в котором у тебя есть друзья. После входа обнови страницу игры.');return;}
-  setConnection('● Аккаунт подключён');notice('Выбери длительность и ускорение, затем создай лобби.');
-  try{const rows=await fetchRows('profiles','id,display_name,username,avatar_url',q=>q.eq('id',state.user.id).limit(1));state.meProfile=rows[0]||null;}catch(e){console.warn('Profile avatar not available',e)}
+  if(!client)throw new Error('Не загружена библиотека Supabase. Проверь, что на сайте есть файл supabase-2.117.2.js.');
+  const {data,error}=await deadline(client.auth.getSession(),12000,'Получение сессии');
+  if(error)throw error;
+  state.user=data?.session?.user||null;
+  if(!state.user){
+   setConnection('● Нет авторизации');
+   notice('Войди в аккаунт RNDM в этом же браузере. Затем вернись в «Игры → Догонялки» и нажми «Повторить подключение».',true);
+   $('retryConnection').hidden=false;
+   return;
+  }
+  setConnection('● Аккаунт RNDM');
+  notice('Аккаунт подключён. Выбери условия и создай лобби или прими приглашение.');
+  try{
+   const rows=await fetchRows('profiles','id,display_name,username,avatar_url',q=>q.eq('id',state.user.id).limit(1));
+   state.meProfile=rows[0]||null;
+  }catch(e){console.warn('RNDM chase avatar unavailable',e)}
   await loadInvites();
-  const invite=new URLSearchParams(location.search).get('invite');
-  if(invite&&state.invites.some(i=>i.id===invite)){const i=state.invites.find(v=>v.id===invite);notice(`Тебя пригласили в комнату. Нажми «Принять» ниже.`);}
- }catch(e){setConnection('● Ошибка доступа');notice('Не удалось получить RNDM-сессию: '+getError(e),true)}
+  if(new URLSearchParams(location.search).get('invite')&&state.invites.some(i=>i.id===new URLSearchParams(location.search).get('invite'))){
+   notice('Тебя пригласили в догонялки! Нажми «Принять» в разделе приглашений.');
+  }
+ }catch(e){
+  setConnection('● Нет соединения');
+  notice('Ошибка подключения: '+getError(e),true);
+  $('retryConnection').hidden=false;
+ }finally{state.connectionBusy=false}
 }
 function bindUI(){
  $('createBtn').addEventListener('click',async()=>{
-   if(!state.user){notice('Сначала войди в RNDM Chat, затем открой догонялки.',true);return}
+   if(!state.user){await init();if(!state.user){notice('Нужен вход в RNDM. Если уже вошёл, нажми «Повторить подключение».',true);return}}
    const b=$('createBtn');b.disabled=true;b.textContent='Создаём лобби…';
    try{await stopRoom();const p=settingsFromForm();const id=await rpc('chase_create_room_config',{p_duration:p.duration,p_boost:p.boost,p_first:p.first});await openRoom(id);notice('Лобби создано! Выбери друзей ниже, отправь приглашения и нажми «Запустить матч».')}catch(e){notice('Не удалось создать лобби: '+getError(e),true)}finally{b.disabled=false;b.textContent='＋ Создать лобби'}
  });
  $('demoBtn').addEventListener('click',async()=>{await stopRoom();startDemo();document.querySelector('.app').classList.remove('show-menu')});
+ $('retryConnection').addEventListener('click',init);
  $('refreshInvites').addEventListener('click',loadInvites);
  $('refreshFriends').addEventListener('click',loadFriends);
  $('inviteSelected').addEventListener('click',sendSelectedInvites);
@@ -100,7 +151,7 @@ function bindUI(){
   let dx=(e.clientX-rect.left-rect.width/2)/radius,dy=(e.clientY-rect.top-rect.height/2)/radius;
   const len=Math.hypot(dx,dy);if(len>1){dx/=len;dy/=len}
   const dead=.12,mag=Math.hypot(dx,dy),speed=mag<dead?0:Math.min(1,(mag-dead)/(1-dead));
-  touch.dx=mag?dx/mag*speed:0;touch.dy=mag?dy/mag*speed;
+  touch.dx=mag?dx/mag*speed:0;touch.dy=mag?dy/mag*speed:0;
   head.style.transform=`translate3d(${dx*radius}px,${dy*radius}px,0)`;e.preventDefault();
  }
  joy.addEventListener('pointerdown',e=>{if(touch.pointer!==null)return;touch.pointer=e.pointerId;joy.setPointerCapture(e.pointerId);joy.classList.add('active');touchMove(e);e.preventDefault()});
@@ -115,14 +166,18 @@ function bindUI(){
 function clearInputs(){keyDown.clear();touch.dx=0;touch.dy=0;touch.sprint=false;touch.pointer=null;touch.boostPointer=null;$('joyHead').style.transform='translate3d(0,0,0)';$('joystick').classList.remove('active');$('touchSprint').classList.remove('pressed')}
 async function loadFriends(){
  if(!state.user)return;
+ if(state.friendsBusy)return;state.friendsBusy=true;
+ $('friendsHelp').textContent='Проверяем подтверждённых друзей RNDM…';
  try{
  const me=state.user.id;
  const fr=await fetchRows('friendships','requester,addressee,status',q=>q.eq('status','accepted').or(`requester.eq.${me},addressee.eq.${me}`));
  const friendIds=[...new Set(fr.map(f=>f.requester===me?f.addressee:f.requester))].filter(x=>x!==me);
- if(!friendIds.length){state.friends=[];state.friendLoadedAt=state.room?.id;renderFriends();return}
+ if(!friendIds.length){state.friends=[];state.friendLoadedAt=state.room?.id;renderFriends();$('friendsHelp').textContent='Пока нет принятых заявок в друзья. Заявки «Ожидает» не считаются друзьями.';return}
  const profiles=await fetchRows('profiles','id,display_name,username,avatar_url',q=>q.in('id',friendIds));
  state.friendLoadedAt=state.room?.id;state.friends=profiles.map(p=>({id:p.id,name:cleanName(p.display_name||p.username),avatar:p.avatar_url}));renderFriends();
- }catch(e){notice('Не удалось загрузить друзей: '+getError(e),true)}
+ $('friendsHelp').textContent=state.friends.length?`Найдено друзей: ${state.friends.length}. Отметь нужных и отправь приглашения.`:'У друзей пока нет доступных профилей.';
+ }catch(e){notice('Не удалось загрузить друзей: '+getError(e),true);$('friendsHelp').textContent='Ошибка списка друзей: '+getError(e)+'. Нажми ↻ для повторной загрузки.'}
+ finally{state.friendsBusy=false}
 }
 function renderFriends(){
  const list=$('friendList');list.replaceChildren();if(!state.friends.length){const p=document.createElement('p');p.className='empty';p.textContent='Пока нет подтверждённых друзей в RNDM. Добавь друзей в мессенджере.';list.append(p);updateSelection();return}
@@ -147,9 +202,11 @@ async function sendSelectedInvites(){
  const people=[...state.selectedFriends];
  for(const id of people){try{await rpc('chase_invite',{p_room:state.room.id,p_friend:id});ok++;state.selectedFriends.delete(id)}catch(e){errors.push(profileName(id)+': '+getError(e))}}
  await loadInvites();renderFriends();notice(errors.length?`Отправлено: ${ok}. Ошибки: ${errors.join('; ')}`:`Отправлено ${ok} приглашений. Ожидаем друзей!`,!!errors.length);
+ btn.disabled=false;
 }
 async function loadInvites(){
  if(!state.user)return;
+ if(state.invitesBusy)return;state.invitesBusy=true;
  try{
  const data=await fetchRows('rndm_chase_invites','id,room_id,sender_id,recipient_id,status,created_at',q=>q.or(`recipient_id.eq.${state.user.id},sender_id.eq.${state.user.id}`).order('created_at',{ascending:false}).limit(80));
  state.invites=data;
@@ -162,7 +219,8 @@ async function loadInvites(){
  actions.append(yes,no);node.append(actions);root.append(node)}
  }else{const p=document.createElement('p');p.className='empty';p.textContent='Новых приглашений нет.';root.append(p)}
  if(state.room&&state.isHost)renderFriends();
- }catch(e){notice('Не удалось обновить приглашения: '+getError(e),true)}
+ }catch(e){notice('Не удалось обновить приглашения: '+getError(e),true);const p=document.createElement('p');p.className='empty';p.textContent='Не удалось получить приглашения. Нажми ↻. '+getError(e);$('inviteList').replaceChildren(p)}
+ finally{state.invitesBusy=false}
 }
 async function openRoom(roomId){
  if(!state.user)throw new Error('Для сетевой игры нужен аккаунт');
@@ -170,11 +228,16 @@ async function openRoom(roomId){
  showSetup(false);show('roomSection',true);show('friendsSection',false);state.selectedFriends.clear();revealLobby();
  await refreshRoom();
  if(!state.room||state.mode==='idle')return;
- await joinChannel(roomId);
+ try{await deadline(joinChannel(roomId),8500,'Подключение Realtime')}catch(error){
+  setConnection('● Лобби создано · офлайн-связь');
+  notice('Лобби готово и друзья могут получать приглашения. Соединение с игрой восстановится при обновлении: '+getError(error),true);
+ }
  $('mapNotice').classList.remove('hidden');$('mapNotice').textContent='Ожидание начала матча…';
 }
 async function refreshRoom(){
- if(!state.room||!state.user)return;
+ if(!state.room||!state.user||state.roomBusy)return;
+ state.roomBusy=true;
+ try{
  const id=state.room.id;
  const room=(await fetchRows('rndm_chase_rooms','id,host_id,status,started_at,ends_at,expires_at,settings',q=>q.eq('id',id).limit(1)))[0];
  if(!room||room.status==='finished'){
@@ -197,11 +260,12 @@ async function refreshRoom(){
  if(state.isHost&&room.status==='waiting'&&state.friendLoadedAt!==id){state.friendLoadedAt=id;await loadFriends()}
  if(room.status==='running'&&state.mode!=='playing'){startOnlineMatch()}
  if(room.status==='running'&&state.mode==='playing'){$('roleLabel').textContent=state.it===state.user.id?'Ты водишь!':'Убегай!'}
+ }finally{state.roomBusy=false}
 }
 async function joinChannel(id){
- if(state.channel){await client.removeChannel(state.channel);state.channel=null}
- const token=(await client.auth.getSession()).data.session?.access_token;
- if(token&&client.realtime?.setAuth)await client.realtime.setAuth(token);
+ if(state.channel){await deadline(client.removeChannel(state.channel),3500,'Отключение старой комнаты').catch(()=>{});state.channel=null}
+ const token=(await deadline(client.auth.getSession(),7000,'Токен комнаты')).data.session?.access_token;
+ if(token&&client.realtime?.setAuth)await deadline(client.realtime.setAuth(token),5000,'Realtime auth').catch(e=>console.warn(e));
  const ch=client.channel('rndm-chase:'+id,{config:{private:true,broadcast:{ack:false,self:false},presence:{key:state.user.id}}});
  ch.on('broadcast',{event:'input'},({payload})=>{
   if(!state.isHost||state.mode!=='playing')return;
@@ -236,7 +300,7 @@ function startDemo(){setGameDisplay(true);const setup=settingsFromForm();state.b
 }
 async function stopRoom(silent=false){
  const prior=state.room;
- if(state.channel){const ch=state.channel;state.channel=null;try{await client?.removeChannel(ch)}catch(e){console.warn(e)}}
+ if(state.channel){const ch=state.channel;state.channel=null;try{await deadline(client?.removeChannel(ch),3500,'Отключение')}catch(e){console.warn(e)}}
  if(prior&&!silent&&state.user){try{await rpc('chase_leave_room',{p_room:prior.id})}catch(e){console.warn('leave room',e)}}
  state.room=null;state.isHost=false;state.online=false;state.selectedFriends.clear();showSetup(true);state.players.clear();state.inputs.clear();state.roster=[];state.it=null;state.mode='idle';state.finished=false;setGameDisplay(false);
  show('roomSection',false);show('friendsSection',false);$('gameTitle').textContent='Большой лесной лабиринт';$('roleLabel').textContent='Ожидание игры';$('mapNotice').classList.remove('hidden');$('mapNotice').textContent='Выбери условия, собери друзей и запусти матч';setConnection(state.user?'● Аккаунт подключён':'● Гость');
@@ -305,8 +369,8 @@ function update(dt){if(state.mode==='playing'&&state.isHost||state.mode==='demo'
   state.sendTimer+=dt;if(state.sendTimer>.068){state.sendTimer=0;if(state.online)state.channel?.send({type:'broadcast',event:'input',payload:{id:state.user.id,...inp}}).catch(()=>{})}
   if(performance.now()-state.lastHost>6000&&state.online){$('roleLabel').textContent='Нет связи с ведущим'}
  }
- state.roomCheck+=dt;if(state.roomCheck>2.5){state.roomCheck=0;if(state.room&&state.mode!=='finished')refreshRoom().catch(e=>notice(getError(e),true))}
- state.inviteCheck+=dt;if(state.inviteCheck>7){state.inviteCheck=0;if(state.user)loadInvites().catch(()=>{})}
+ state.roomCheck+=dt;if(state.roomCheck>6){state.roomCheck=0;if(state.room&&state.mode!=='finished')refreshRoom().catch(e=>notice(getError(e),true))}
+ state.inviteCheck+=dt;if(state.inviteCheck>12){state.inviteCheck=0;if(state.user)loadInvites().catch(()=>{})}
  const myId=state.mode==='demo'?'local':state.user?.id;
  const me=state.players.get(myId);const goal=me||{x:55,y:37};
  camera.x+=(goal.x-camera.x)*Math.min(1,dt*7);camera.y+=(goal.y-camera.y)*Math.min(1,dt*7);
@@ -338,5 +402,5 @@ function drawMini(left,top,tile){mc.clearRect(0,0,mini.width,mini.height);mc.dra
  for(const [id,p] of state.players){mc.fillStyle=id===state.it?'#ff546a':'#a6fdff';mc.beginPath();mc.arc(p.x*kx,p.y*ky,id===(state.mode==='demo'?'local':state.user?.id)?4:3,0,Math.PI*2);mc.fill();mc.strokeStyle='#071711';mc.lineWidth=1;mc.stroke()}
  mc.strokeStyle='#ffffffc4';mc.lineWidth=1.1;mc.strokeRect(left/tile*kx,top/tile*ky,viewW/tile*kx,viewH/tile*ky);
 }
-function loop(time){const dt=last?Math.max(0,Math.min(.045,(time-last)/1000)):0;last=time;update(dt);draw();requestAnimationFrame(loop)}
+function loop(time){const dt=last?Math.max(0,Math.min(.045,(time-last)/1000)):0;last=time;update(dt);if(state.mode==='playing'||state.mode==='demo')draw();requestAnimationFrame(loop)}
 init();

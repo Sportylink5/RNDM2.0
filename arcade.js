@@ -54,14 +54,14 @@ export class Arcade{
   // iOS Safari/PWA cannot reliably scroll/tap nested app panels inside an iframe.
   // Navigate within the SAME RNDM origin, preserving Supabase auth and returning to Arcade.
   if(window.matchMedia('(max-width:740px), (pointer:coarse)').matches){
-   window.location.assign('chase.html?from=arcade&v=75.0.0');
+   window.location.assign('chase.html?from=arcade&v=76.0.0');
    return;
   }
   ++this.generation;
   this.pending?.close();this.pending=null;
   this.room?.close();this.room=null;
   this.training=null;cancelAnimationFrame(this.frame);this.clearControls();
-  this.pane.innerHTML=this.header()+`<section class="arcade-chase-shell"><div class="arcade-chase-top"><div><strong>🏃 Лесные догонялки</strong><small>Настройки → Лобби → Друзья → Игра</small></div><button class="secondary" type="button" data-arcade="chase-back">← Все игры</button></div><iframe class="arcade-chase-frame" src="chase.html?embed=1&v=75.0.0" title="Лесные догонялки RNDM" allow="fullscreen" loading="eager"></iframe></section>`;
+  this.pane.innerHTML=this.header()+`<section class="arcade-chase-shell"><div class="arcade-chase-top"><div><strong>🏃 Лесные догонялки</strong><small>Настройки → Лобби → Друзья → Игра</small></div><button class="secondary" type="button" data-arcade="chase-back">← Все игры</button></div><iframe class="arcade-chase-frame" src="chase.html?embed=1&v=76.0.0" title="Лесные догонялки RNDM" allow="fullscreen" loading="eager"></iframe></section>`;
  }
  stop(){this.conquest?.close();this.conquest=null;++this.generation;this.abort?.abort();this.exitLock();this.room?.close();this.pending?.close();this.room=null;this.pending=null;this.training=null;cancelAnimationFrame(this.frame);this.clearControls();this.canvas=null;this.stage=null;this.overlayKey='';this.busy=false;}
 }
