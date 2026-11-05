@@ -1,4 +1,4 @@
-import {W,H,MAP,isPath,canStand,randomSpawn,paintTerrain} from './chase-map.js?v=76.0.0';
+import {W,H,MAP,isPath,canStand,randomSpawn,paintTerrain} from './chase-map.js?v=77.0.0';
 
 const $=id=>document.getElementById(id);
 const canvas=$('gameCanvas'),ctx=canvas.getContext('2d'),mini=$('miniCanvas'),mc=mini.getContext('2d');
@@ -23,10 +23,10 @@ let client=null;
 try{
  client=window.supabase?.createClient?.(cfg.url,cfg.key,{
   auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false},
-  global:{fetch:chaseFetch},realtime:{params:{eventsPerSecond:8}}
+  global:{fetch:chaseFetch},realtime:{params:{eventsPerSecond:30}}
  })||null;
 }catch(error){console.error('RNDM Chase Supabase init',error)}
-const state={connectionBusy:false,roomBusy:false,friendsBusy:false,invitesBusy:false,booted:false,selectedFriends:new Set(),boost:1.65,duration:240,first:'random',user:null,room:null,roster:[],friends:[],invites:[],players:new Map(),it:null,inputs:new Map(),channel:null,online:false,mode:'idle',isHost:false,remaining:240,elapsed:0,grace:2,sendTimer:0,snapTimer:0,roomCheck:0,inviteCheck:0,lastHost:0,demoBotClock:0,finished:false};
+const state={connectionBusy:false,roomBusy:false,friendsBusy:false,invitesBusy:false,booted:false,selectedFriends:new Set(),boost:1.65,duration:240,first:'random',user:null,room:null,roster:[],friends:[],invites:[],players:new Map(),it:null,inputs:new Map(),channel:null,online:false,mode:'idle',isHost:false,remaining:240,elapsed:0,grace:2,sendTimer:0,snapTimer:0,roomCheck:0,inviteCheck:0,lastHost:0,demoBotClock:0,finished:false,uiClock:0,lastMinimapAt:0,frameAt:0,guestInputAt:0,guestLastDx:0,guestLastDy:0,guestLastSprint:false};
 const keyDown=new Set();
 if(new URLSearchParams(location.search).has('embed'))document.documentElement.classList.add('embedded');
 const touch={dx:0,dy:0,sprint:false,pointer:null,boostPointer:null};
@@ -43,6 +43,37 @@ function getAvatar(userId){
  return image;
 }
 let last=0,viewW=800,viewH=560,dpr=1,camera={x:20,y:20};
+const mobilePower=matchMedia('(pointer:coarse), (max-width:740px)').matches;
+// Build only the visible 8x8-tile chunks, so the forest is not redrawn tree by tree 60 times per second.
+const TERRAIN_TILE=39, CHUNK_SIDE=8, CHUNK_LIMIT=mobilePower?16:32;
+const terrainCache=new Map();
+function terrainChunk(cx,cy){
+ const key=cx+','+cy;
+ if(terrainCache.has(key)){
+  const cached=terrainCache.get(key);terrainCache.delete(key);terrainCache.set(key,cached);
+  return cached;
+ }
+ const tileX=cx*CHUNK_SIDE,tileY=cy*CHUNK_SIDE;
+ const width=Math.min(CHUNK_SIDE,W-tileX)*TERRAIN_TILE;
+ const height=Math.min(CHUNK_SIDE,H-tileY)*TERRAIN_TILE;
+ const image=document.createElement('canvas');image.width=width;image.height=height;
+ const c=image.getContext('2d',{alpha:false});
+ paintTerrain(c,TERRAIN_TILE,tileX*TERRAIN_TILE,tileY*TERRAIN_TILE,width,height);
+ terrainCache.set(key,image);
+ if(terrainCache.size>CHUNK_LIMIT)terrainCache.delete(terrainCache.keys().next().value);
+ return image;
+}
+function paintCachedTerrain(left,top){
+ const firstX=Math.max(0,Math.floor(left/TERRAIN_TILE/CHUNK_SIDE));
+ const firstY=Math.max(0,Math.floor(top/TERRAIN_TILE/CHUNK_SIDE));
+ const lastX=Math.min(Math.ceil(W/CHUNK_SIDE)-1,Math.floor((left+viewW)/TERRAIN_TILE/CHUNK_SIDE));
+ const lastY=Math.min(Math.ceil(H/CHUNK_SIDE)-1,Math.floor((top+viewH)/TERRAIN_TILE/CHUNK_SIDE));
+ for(let cy=firstY;cy<=lastY;cy++)for(let cx=firstX;cx<=lastX;cx++){
+  const image=terrainChunk(cx,cy);
+  ctx.drawImage(image,cx*CHUNK_SIDE*TERRAIN_TILE-left,cy*CHUNK_SIDE*TERRAIN_TILE-top);
+ }
+}
+
 const COLORS=['#93eea4','#93c9ff','#f9c778','#dcadff','#ffa0bf','#a4ffef','#e5ff98','#ffad86'];
 const ids=()=>[...state.players.keys()];
 function notice(msg,error=false){$('notice').textContent=msg;$('notice').classList.toggle('error',error);}
@@ -285,12 +316,12 @@ async function joinChannel(id){
  state.channel=ch;
  ch.subscribe(async(status)=>{
   if(state.channel!==ch)return;
-  state.online=status==='SUBSCRIBED';
+  state.online=status==='SUBSCRIBED';if(state.online)state.sendTimer=1;
   if(state.online){setConnection('● В комнате онлайн');await ch.track({id:state.user.id,name:profileName(state.user.id)});if(state.mode==='playing'&&!state.isHost)ch.send({type:'broadcast',event:'request_state',payload:{}})}
   else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED'){setConnection('● Переподключение');notice('Не удалось подключить комнату Realtime. Проверь подключение и права доступа.',true)}
  });
 }
-function startOnlineMatch(){state.mode='playing';setGameDisplay(true);state.finished=false;state.remaining=Math.max(0,(new Date(state.room.ends_at)-Date.now())/1000);state.elapsed=0;state.grace=2;state.lastHost=performance.now();$('mapNotice').classList.add('hidden');document.querySelector('.app').classList.remove('show-menu');
+function startOnlineMatch(){state.mode='playing';state.sendTimer=0;state.guestLastDx=0;state.guestLastDy=0;state.guestLastSprint=false;setGameDisplay(true);state.finished=false;state.remaining=Math.max(0,(new Date(state.room.ends_at)-Date.now())/1000);state.elapsed=0;state.grace=2;state.lastHost=performance.now();$('mapNotice').classList.add('hidden');document.querySelector('.app').classList.remove('show-menu');
  if(state.isHost){state.players.clear();state.roster.forEach((p,i)=>{const xy=randomSpawn(i);state.players.set(p.id,{id:p.id,...xy,tx:xy.x,ty:xy.y,energy:100,tags:0,itTime:0})});state.it=state.first==='host'?state.room.host_id:state.roster[Math.floor(Math.random()*state.roster.length)].id;state.inputs.clear();broadcastSnapshot()}
  else{state.players.clear();state.roster.forEach((p,i)=>{const xy=randomSpawn(i);state.players.set(p.id,{id:p.id,...xy,tx:xy.x,ty:xy.y,energy:100,tags:0,itTime:0})});state.it=state.room.host_id;state.channel?.send({type:'broadcast',event:'request_state',payload:{}})}
  $('roleLabel').textContent=state.it===state.user.id?'Ты водишь!':'Убегай!';
@@ -345,7 +376,7 @@ function simulate(dt){
  if(state.grace===0){const seeker=state.players.get(state.it);if(seeker){for(const [id,target] of state.players){if(id===state.it)continue;
  if(Math.hypot(seeker.x-target.x,seeker.y-target.y)<.7){target.tags++;state.it=id;state.grace=2;notice(`${profileName(id)} теперь водит!`);break}
  }}}
- if(state.mode==='playing'&&state.isHost){state.snapTimer+=dt;if(state.snapTimer>.085){state.snapTimer=0;broadcastSnapshot()}}
+ if(state.mode==='playing'&&state.isHost){state.snapTimer+=dt;if(state.snapTimer>=.1){state.snapTimer%=.1;broadcastSnapshot()}}
  if(state.remaining<=0&&!state.finished){state.finished=true;finishMatch()}
 }
 function broadcastSnapshot(){if(!state.channel||!state.online)return;
@@ -360,28 +391,63 @@ async function finishMatch(){const results=[...state.players.values()].sort((a,b
 function update(dt){if(state.mode==='playing'&&state.isHost||state.mode==='demo')simulate(dt);
  else if(state.mode==='playing'){
   const me=state.players.get(state.user?.id);const inp=currentInput();if(me)move(me,inp,dt,state.it===state.user.id);
-  for(const [id,p] of state.players){if(id!==state.user?.id&&Number.isFinite(p.tx)){
-   const alpha=Math.min(1,dt*10);p.x+=(p.tx-p.x)*alpha;p.y+=(p.ty-p.y)*alpha;
-  }else if(id===state.user?.id&&Number.isFinite(p.tx)){
-   const dist=Math.hypot(p.x-p.tx,p.y-p.ty);
-   if(dist>3){p.x=p.tx;p.y=p.ty}else if(dist>.14){p.x+=(p.tx-p.x)*Math.min(1,dt*4);p.y+=(p.ty-p.y)*Math.min(1,dt*4)}
-  }}
-  state.sendTimer+=dt;if(state.sendTimer>.068){state.sendTimer=0;if(state.online)state.channel?.send({type:'broadcast',event:'input',payload:{id:state.user.id,...inp}}).catch(()=>{})}
-  if(performance.now()-state.lastHost>6000&&state.online){$('roleLabel').textContent='Нет связи с ведущим'}
+  const moving=Math.hypot(inp.dx,inp.dy)>.07;
+  for(const [id,p] of state.players){
+   if(!Number.isFinite(p.tx)||!Number.isFinite(p.ty))continue;
+   if(id!==state.user?.id){
+    // Display only: smooth the other players' last known positions without extra network work.
+    const alpha=Math.min(1,dt*12);p.x+=(p.tx-p.x)*alpha;p.y+=(p.ty-p.y)*alpha;
+   }else{
+    // Our own movement is predicted locally. Host coordinates describe the PAST and
+    // must not pull a running player backwards on every snapshot (the old stutter bug).
+    const error=Math.hypot(p.x-p.tx,p.y-p.ty);
+    if(!moving){
+     // Never rewind a running guest to an old packet; that was the source of the jumps.
+     if(error>6){p.x=p.tx;p.y=p.ty;}
+     else if(error>.12){
+      const alpha=Math.min(1,dt*3);
+      const x=p.x+(p.tx-p.x)*alpha,y=p.y+(p.ty-p.y)*alpha;
+      if(canStand(x,y)){p.x=x;p.y=y;}
+     }
+    }
+   }
+  }
+  // Realtime broadcast has a finite message budget. Send movement at 10Hz, and
+  // keepalives only on changes / once a second while standing still.
+  state.sendTimer+=dt;
+  const changed=Math.abs(inp.dx-state.guestLastDx)>.1||Math.abs(inp.dy-state.guestLastDy)>.1||inp.sprint!==state.guestLastSprint;
+  if(state.online && (state.sendTimer>=.1 || (changed&&state.sendTimer>=.035)) && (moving || changed || state.sendTimer>=1)){
+   state.sendTimer=0;
+   state.guestLastDx=inp.dx;state.guestLastDy=inp.dy;state.guestLastSprint=inp.sprint;
+   state.channel?.send({type:'broadcast',event:'input',payload:{id:state.user.id,...inp}}).catch(()=>{});
+  }
+  // Connection status is refreshed at HUD rate below, not on every animation frame.
  }
- state.roomCheck+=dt;if(state.roomCheck>6){state.roomCheck=0;if(state.room&&state.mode!=='finished')refreshRoom().catch(e=>notice(getError(e),true))}
- state.inviteCheck+=dt;if(state.inviteCheck>12){state.inviteCheck=0;if(state.user)loadInvites().catch(()=>{})}
+ state.roomCheck+=dt;
+ // Fetch DB state frequently in the lobby, not during a fast action match.
+ const roomInterval=state.mode==='playing'?25:5;
+ if(state.roomCheck>roomInterval){state.roomCheck=0;if(state.room&&state.mode!=='finished')refreshRoom().catch(e=>notice(getError(e),true))}
+ state.inviteCheck+=dt;
+ if(state.inviteCheck>12){state.inviteCheck=0;if(state.user&&state.mode!=='playing')loadInvites().catch(()=>{})}
  const myId=state.mode==='demo'?'local':state.user?.id;
  const me=state.players.get(myId);const goal=me||{x:55,y:37};
  camera.x+=(goal.x-camera.x)*Math.min(1,dt*7);camera.y+=(goal.y-camera.y)*Math.min(1,dt*7);
- const value=Math.round(me?.energy??100);$('staminaFill').style.width=value+'%';$('staminaPercent').textContent=value+'%';
- $('timer').textContent=`${String(Math.floor(Math.max(0,state.remaining)/60)).padStart(2,'0')}:${String(Math.floor(Math.max(0,state.remaining)%60)).padStart(2,'0')}`;
- $('stats').textContent=state.mode==='playing'||state.mode==='demo'?`${state.players.size} игроков • ${state.it===myId?'Ты водишь':'Убегай'} • 116 × 80`:'Большая карта • развилки • обходные пути';
- if(state.mode==='playing'||state.mode==='demo')$('roleLabel').textContent=state.it===myId?'🔴 Ты водишь':'🟢 Убегай';
+ state.uiClock+=dt;
+ if(state.uiClock>=.12){
+  state.uiClock=0;
+  const value=Math.round(me?.energy??100);
+  $('staminaFill').style.width=value+'%';$('staminaPercent').textContent=value+'%';
+  $('timer').textContent=`${String(Math.floor(Math.max(0,state.remaining)/60)).padStart(2,'0')}:${String(Math.floor(Math.max(0,state.remaining)%60)).padStart(2,'0')}`;
+  $('stats').textContent=state.mode==='playing'||state.mode==='demo'?`${state.players.size} игроков • ${state.it===myId?'Ты водишь':'Убегай'} • 116 × 80`:'Большая карта • развилки • обходные пути';
+  if(state.mode==='playing'||state.mode==='demo'){
+   const offline=state.mode==='playing'&&!state.isHost&&performance.now()-state.lastHost>3500;
+   $('roleLabel').textContent=offline?'🟠 Связь с ведущим…':state.it===myId?'🔴 Ты водишь':'🟢 Убегай';
+  }
+ }
 }
-function resize(){const r=canvas.getBoundingClientRect();viewW=Math.max(100,r.width);viewH=Math.max(100,r.height);dpr=Math.min(2,window.devicePixelRatio||1);canvas.width=Math.round(viewW*dpr);canvas.height=Math.round(viewH*dpr);ctx.setTransform(dpr,0,0,dpr,0,0)}
-function draw(){ctx.clearRect(0,0,viewW,viewH);const tile=39;const left=Math.max(0,Math.min(W*tile-viewW,camera.x*tile-viewW*.5));const top=Math.max(0,Math.min(H*tile-viewH,camera.y*tile-viewH*.5));
- paintTerrain(ctx,tile,left,top,viewW,viewH);
+function resize(){const r=canvas.getBoundingClientRect();viewW=Math.max(100,r.width);viewH=Math.max(100,r.height);dpr=Math.min(mobilePower?1.25:1.75,window.devicePixelRatio||1);const width=Math.round(viewW*dpr),height=Math.round(viewH*dpr);if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height;}ctx.setTransform(dpr,0,0,dpr,0,0);}
+function draw(){ctx.clearRect(0,0,viewW,viewH);const tile=TERRAIN_TILE;const left=Math.round(Math.max(0,Math.min(W*tile-viewW,camera.x*tile-viewW*.5)));const top=Math.round(Math.max(0,Math.min(H*tile-viewH,camera.y*tile-viewH*.5)));
+ paintCachedTerrain(left,top);
  for(const [id,p] of state.players){let x=p.x*tile-left,y=p.y*tile-top;if(x< -42||y< -45||x>viewW+42||y>viewH+45)continue;
  const chaser=id===state.it;ctx.fillStyle='#07140c6b';ctx.beginPath();ctx.ellipse(x,y+18,16,7,0,0,Math.PI*2);ctx.fill();
  if(chaser){ctx.strokeStyle='#ff5668';ctx.lineWidth=3;ctx.beginPath();ctx.arc(x,y,21,0,Math.PI*2);ctx.stroke()}
@@ -394,7 +460,7 @@ function draw(){ctx.clearRect(0,0,viewW,viewH);const tile=39;const left=Math.max
  const meId=state.mode==='demo'?'local':state.user?.id;const label=cleanName(id===meId?'Ты':profileName(id));
  ctx.font='700 11px system-ui';ctx.textAlign='center';const width=Math.max(38,ctx.measureText(label).width+13);ctx.fillStyle=id===meId?'#16422fda':'#0b1b15ce';ctx.beginPath();ctx.roundRect(x-width/2,y-39,width,19,6);ctx.fill();ctx.fillStyle='#fff';ctx.fillText(label,x,y-26);
  }
- drawMini(left,top,tile);
+ if(performance.now()-state.lastMinimapAt>120){state.lastMinimapAt=performance.now();drawMini(left,top,tile);}
 }
 const minimapBack=document.createElement('canvas');minimapBack.width=mini.width;minimapBack.height=mini.height;const bg=minimapBack.getContext('2d');
 function paintMiniBase(){const pw=mini.width/W,ph=mini.height/H;bg.fillStyle='#174e2b';bg.fillRect(0,0,mini.width,mini.height);bg.fillStyle='#d6c5a4';for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(MAP[y][x])bg.fillRect(x*pw,y*ph,Math.ceil(pw),Math.ceil(ph))}
@@ -402,5 +468,5 @@ function drawMini(left,top,tile){mc.clearRect(0,0,mini.width,mini.height);mc.dra
  for(const [id,p] of state.players){mc.fillStyle=id===state.it?'#ff546a':'#a6fdff';mc.beginPath();mc.arc(p.x*kx,p.y*ky,id===(state.mode==='demo'?'local':state.user?.id)?4:3,0,Math.PI*2);mc.fill();mc.strokeStyle='#071711';mc.lineWidth=1;mc.stroke()}
  mc.strokeStyle='#ffffffc4';mc.lineWidth=1.1;mc.strokeRect(left/tile*kx,top/tile*ky,viewW/tile*kx,viewH/tile*ky);
 }
-function loop(time){const dt=last?Math.max(0,Math.min(.045,(time-last)/1000)):0;last=time;update(dt);if(state.mode==='playing'||state.mode==='demo')draw();requestAnimationFrame(loop)}
+function loop(time){const dt=last?Math.max(0,Math.min(.045,(time-last)/1000)):0;last=time;update(dt);if((state.mode==='playing'||state.mode==='demo')&&time-state.frameAt>=(mobilePower?29:16)){state.frameAt=time;draw();}requestAnimationFrame(loop)}
 init();
