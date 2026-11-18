@@ -380,7 +380,7 @@ function simulate(dt){
  if(state.grace===0){const seeker=state.players.get(state.it);if(seeker){for(const [id,target] of state.players){if(id===state.it)continue;
  if(Math.hypot(seeker.x-target.x,seeker.y-target.y)<.7){target.tags++;state.it=id;state.grace=2;notice(`${profileName(id)} теперь водит!`);break}
  }}}
- if(state.mode==='playing'&&state.isHost){state.snapTimer+=dt;if(state.snapTimer>=.1){state.snapTimer%=.1;broadcastSnapshot()}}
+ if(state.mode==='playing'&&state.isHost){state.snapTimer+=dt;if(state.snapTimer>=.01){state.snapTimer%=.01;broadcastSnapshot()}}
  if(state.remaining<=0&&!state.finished){state.finished=true;finishMatch()}
 }
 function broadcastSnapshot(){if(!state.channel||!state.online)return;
@@ -420,11 +420,11 @@ function update(dt){if(state.mode==='playing'&&state.isHost||state.mode==='demo'
     }
    }
   }
-  // Realtime broadcast has a finite message budget. Send movement at a fixed 10Hz (every 100ms), and
+  // Realtime broadcast has a finite message budget. Send movement at a fixed 100Hz (every 10ms), and
   // keepalives only on changes / once a second while standing still.
   state.sendTimer+=dt;
   const changed=Math.abs(inp.dx-state.guestLastDx)>.1||Math.abs(inp.dy-state.guestLastDy)>.1||inp.sprint!==state.guestLastSprint;
-  if(state.online && (state.sendTimer>=.1) && (moving || changed || state.sendTimer>=1)){
+  if(state.online && (state.sendTimer>=.01) && (moving || changed || state.sendTimer>=1)){
    state.sendTimer=0;
    state.guestLastDx=inp.dx;state.guestLastDy=inp.dy;state.guestLastSprint=inp.sprint;
    state.channel?.send({type:'broadcast',event:'input',payload:{id:state.user.id,seq:++state.inputSeq,...inp}}).catch(()=>{});
