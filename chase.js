@@ -26,7 +26,7 @@ try{
   global:{fetch:chaseFetch},realtime:{params:{eventsPerSecond:30}}
  })||null;
 }catch(error){console.error('RNDM Chase Supabase init',error)}
-const state={connectionBusy:false,roomBusy:false,friendsBusy:false,invitesBusy:false,booted:false,selectedFriends:new Set(),boost:1.65,duration:240,first:'random',user:null,room:null,roster:[],friends:[],invites:[],players:new Map(),it:null,inputs:new Map(),channel:null,online:false,mode:'idle',isHost:false,remaining:240,elapsed:0,grace:2,sendTimer:0,snapTimer:0,roomCheck:0,inviteCheck:0,lastHost:0,demoBotClock:0,finished:false,uiClock:0,lastMinimapAt:0,frameAt:0,guestInputAt:0,guestLastDx:0,guestLastDy:0,guestLastSprint:false};
+const state={connectionBusy:false,roomBusy:false,friendsBusy:false,invitesBusy:false,booted:false,selectedFriends:new Set(),boost:1.65,duration:240,first:'random',user:null,room:null,roster:[],friends:[],invites:[],players:new Map(),it:null,inputs:new Map(),channel:null,online:false,mode:'idle',isHost:false,remaining:240,elapsed:0,grace:2,sendTimer:0,snapTimer:0,roomCheck:0,inviteCheck:0,lastHost:0,demoBotClock:0,finished:false,uiClock:0,lastMinimapAt:0,frameAt:0,guestInputAt:0,guestLastDx:0,guestLastDy:0,guestLastSprint:false,inputSeq:0,snapshotSeq:0,lastSnapshotSeq:-1,netClock:0};
 const keyDown=new Set();
 if(new URLSearchParams(location.search).has('embed'))document.documentElement.classList.add('embedded');
 const touch={dx:0,dy:0,sprint:false,pointer:null,boostPointer:null};
@@ -304,13 +304,17 @@ async function joinChannel(id){
   let dx=Number(payload.dx),dy=Number(payload.dy);
   if(!Number.isFinite(dx)||!Number.isFinite(dy))return;
   let size=Math.hypot(dx,dy);if(size>1){dx/=size;dy/=size}
-  state.inputs.set(payload.id,{dx,dy,sprint:!!payload.sprint,t:performance.now()});
+  const previous=state.inputs.get(payload.id);
+  if(Number.isFinite(payload.seq)&&previous&&Number.isFinite(previous.seq)&&payload.seq<=previous.seq)return;
+  state.inputs.set(payload.id,{dx,dy,sprint:!!payload.sprint,seq:Number(payload.seq)||0,t:performance.now()});
  }).on('broadcast',{event:'snapshot'},({payload})=>{
   if(state.isHost||state.mode!=='playing'||!payload?.players)return;
+  if(Number.isFinite(payload.seq)&&payload.seq<=state.lastSnapshotSeq)return;
+  if(Number.isFinite(payload.seq))state.lastSnapshotSeq=payload.seq;
   state.lastHost=performance.now();state.it=payload.it;state.remaining=Number(payload.remaining)||0;state.grace=Number(payload.grace)||0;
   for(const data of payload.players){if(!Array.isArray(data)||!state.roster.some(p=>p.id===data[0]))continue;
    const [id,x,y,energy,tags,itTime]=data;if(!Number.isFinite(x)||!Number.isFinite(y)||!canStand(x,y))continue;
-   const old=state.players.get(id);if(old){old.tx=x;old.ty=y;old.energy=energy;old.tags=tags;old.itTime=itTime}else state.players.set(id,{id,x,y,tx:x,ty:y,energy,tags,itTime});
+   const old=state.players.get(id);if(old){old.tx=x;old.ty=y;old.netAt=performance.now();old.energy=energy;old.tags=tags;old.itTime=itTime}else state.players.set(id,{id,x,y,tx:x,ty:y,netAt:performance.now(),energy,tags,itTime});
   }
  }).on('broadcast',{event:'request_state'},()=>{if(state.isHost&&state.mode==='playing')broadcastSnapshot()});
  state.channel=ch;
@@ -321,7 +325,7 @@ async function joinChannel(id){
   else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED'){setConnection('● Переподключение');notice('Не удалось подключить комнату Realtime. Проверь подключение и права доступа.',true)}
  });
 }
-function startOnlineMatch(){state.mode='playing';state.sendTimer=0;state.guestLastDx=0;state.guestLastDy=0;state.guestLastSprint=false;setGameDisplay(true);state.finished=false;state.remaining=Math.max(0,(new Date(state.room.ends_at)-Date.now())/1000);state.elapsed=0;state.grace=2;state.lastHost=performance.now();$('mapNotice').classList.add('hidden');document.querySelector('.app').classList.remove('show-menu');
+function startOnlineMatch(){state.lastSnapshotSeq=-1;state.snapshotSeq=0;state.inputSeq=0;state.netClock=0;state.mode='playing';state.sendTimer=0;state.guestLastDx=0;state.guestLastDy=0;state.guestLastSprint=false;setGameDisplay(true);state.finished=false;state.remaining=Math.max(0,(new Date(state.room.ends_at)-Date.now())/1000);state.elapsed=0;state.grace=2;state.lastHost=performance.now();$('mapNotice').classList.add('hidden');document.querySelector('.app').classList.remove('show-menu');
  if(state.isHost){state.players.clear();state.roster.forEach((p,i)=>{const xy=randomSpawn(i);state.players.set(p.id,{id:p.id,...xy,tx:xy.x,ty:xy.y,energy:100,tags:0,itTime:0})});state.it=state.first==='host'?state.room.host_id:state.roster[Math.floor(Math.random()*state.roster.length)].id;state.inputs.clear();broadcastSnapshot()}
  else{state.players.clear();state.roster.forEach((p,i)=>{const xy=randomSpawn(i);state.players.set(p.id,{id:p.id,...xy,tx:xy.x,ty:xy.y,energy:100,tags:0,itTime:0})});state.it=state.room.host_id;state.channel?.send({type:'broadcast',event:'request_state',payload:{}})}
  $('roleLabel').textContent=state.it===state.user.id?'Ты водишь!':'Убегай!';
@@ -380,7 +384,7 @@ function simulate(dt){
  if(state.remaining<=0&&!state.finished){state.finished=true;finishMatch()}
 }
 function broadcastSnapshot(){if(!state.channel||!state.online)return;
- const payload={it:state.it,remaining:state.remaining,grace:state.grace,players:[...state.players.values()].map(p=>[p.id,+p.x.toFixed(3),+p.y.toFixed(3),+p.energy.toFixed(1),p.tags,+p.itTime.toFixed(1)])};
+ const payload={seq:++state.snapshotSeq,it:state.it,remaining:state.remaining,grace:state.grace,players:[...state.players.values()].map(p=>[p.id,+p.x.toFixed(3),+p.y.toFixed(3),+p.energy.toFixed(1),p.tags,+p.itTime.toFixed(1)])};
  state.channel.send({type:'broadcast',event:'snapshot',payload}).catch(()=>{});
 }
 async function finishMatch(){const results=[...state.players.values()].sort((a,b)=>a.itTime-b.itTime);
@@ -396,16 +400,20 @@ function update(dt){if(state.mode==='playing'&&state.isHost||state.mode==='demo'
    if(!Number.isFinite(p.tx)||!Number.isFinite(p.ty))continue;
    if(id!==state.user?.id){
     // Display only: smooth the other players' last known positions without extra network work.
-    const alpha=Math.min(1,dt*12);p.x+=(p.tx-p.x)*alpha;p.y+=(p.ty-p.y)*alpha;
+    // Keep remote avatars behind the latest authoritative snapshot by a small,
+    // consistent visual delay. Do not chase every new packet with a rubber band.
+    const alpha=1-Math.exp(-dt*15);
+    const x=p.x+(p.tx-p.x)*alpha,y=p.y+(p.ty-p.y)*alpha;
+    if(canStand(x,y)){p.x=x;p.y=y;}else{p.x=p.tx;p.y=p.ty;}
    }else{
     // Our own movement is predicted locally. Host coordinates describe the PAST and
     // must not pull a running player backwards on every snapshot (the old stutter bug).
     const error=Math.hypot(p.x-p.tx,p.y-p.ty);
     if(!moving){
      // Never rewind a running guest to an old packet; that was the source of the jumps.
-     if(error>6){p.x=p.tx;p.y=p.ty;}
-     else if(error>.12){
-      const alpha=Math.min(1,dt*3);
+     if(error>3){p.x=p.tx;p.y=p.ty;}
+     else if(error>.08){
+      const alpha=1-Math.exp(-dt*5);
       const x=p.x+(p.tx-p.x)*alpha,y=p.y+(p.ty-p.y)*alpha;
       if(canStand(x,y)){p.x=x;p.y=y;}
      }
@@ -416,10 +424,10 @@ function update(dt){if(state.mode==='playing'&&state.isHost||state.mode==='demo'
   // keepalives only on changes / once a second while standing still.
   state.sendTimer+=dt;
   const changed=Math.abs(inp.dx-state.guestLastDx)>.1||Math.abs(inp.dy-state.guestLastDy)>.1||inp.sprint!==state.guestLastSprint;
-  if(state.online && (state.sendTimer>=.1 || (changed&&state.sendTimer>=.035)) && (moving || changed || state.sendTimer>=1)){
+  if(state.online && (state.sendTimer>=.075 || (changed&&state.sendTimer>=.025)) && (moving || changed || state.sendTimer>=1)){
    state.sendTimer=0;
    state.guestLastDx=inp.dx;state.guestLastDy=inp.dy;state.guestLastSprint=inp.sprint;
-   state.channel?.send({type:'broadcast',event:'input',payload:{id:state.user.id,...inp}}).catch(()=>{});
+   state.channel?.send({type:'broadcast',event:'input',payload:{id:state.user.id,seq:++state.inputSeq,...inp}}).catch(()=>{});
   }
   // Connection status is refreshed at HUD rate below, not on every animation frame.
  }
